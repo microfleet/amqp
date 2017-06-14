@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "coffee-script": "^1.12.6",
-    "istanbul": "0.1.43",
+    "istanbul": "0.4.5",
     "jscoverage": "^0.6.0",
     "mocha": "^3.4.2",
     "should": "*",

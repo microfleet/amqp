@@ -1,6 +1,8 @@
 amqp-coffee
 ===========
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/microfleet/amqp-coffee.svg)](https://greenkeeper.io/)
+
 [![Build Status](https://travis-ci.org/microfleet/amqp-coffee.svg?branch=master)](https://travis-ci.org/microfleet/amqp-coffee) Node.JS AMQP 0.9.1 Client
 
 ## Notice
