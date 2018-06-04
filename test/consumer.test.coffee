@@ -1269,3 +1269,67 @@ describe 'Consumer', () ->
           should.not.exist e
           next()
     ]
+
+  it 'test acknowledging multiple deliveries', (done)->
+    amqp = null
+    queue = uuid()
+    consumer = null
+
+    checkSuccess = (m)->
+      message = m.data
+      message.value.should.eql 3
+      done()
+
+    messageProcessor = (m)->
+      if m.deliveryTag is 2
+        consumer.multiAck(2)
+
+      if m.deliveryTag is 3
+        async.series [
+          (next)->
+            consumer.close(next)
+
+          (next)->
+            amqp.close(next)
+
+          (next)->
+            amqp = new AMQP { host:'localhost' }, (e, r)->
+              should.not.exist e
+              next()
+
+          (next)->
+            amqp.queue {queue, autoDelete:false, durable:true}, (e,q)->
+              q.declare ()->
+                q.bind "amq.direct", queue, next
+
+          (next)->
+            consumer = amqp.consume queue, {}, checkSuccess, (e,r)->
+              should.not.exist e
+              next()
+        ]
+
+    async.series [
+      (next)->
+        amqp = new AMQP { host:'localhost' }, (e, r)->
+          should.not.exist e
+          next()
+
+      (next)->
+        amqp.queue {queue, autoDelete:false, durable:true}, (e,q)->
+          q.declare ()->
+            q.bind "amq.direct", queue, next
+
+      (next)->
+        consumer = amqp.consume queue, {prefetchCount: 3}, messageProcessor, (e,r)->
+          should.not.exist e
+          next()
+
+      (next)->
+        amqp.publish "amq.direct", queue, {value: 1}, {confirm: false}, next
+
+      (next)->
+        amqp.publish "amq.direct", queue, {value: 2}, {confirm: false}, next
+
+      (next)->
+        amqp.publish "amq.direct", queue, {value: 3}, {confirm: false}, next
+    ]
