@@ -1272,12 +1272,14 @@ describe 'Consumer', () ->
 
   it 'test acknowledging multiple deliveries', (done)->
     amqp = null
-    queue = uuid()
     consumer = null
+    queueName = uuid()
+    queueOptions = {queue: queueName, autoDelete:false, durable:true}
+    queue = null
 
     checkSuccess = (m)->
-      message = m.data
-      message.value.should.eql 3
+      m.deliveryTag.should.eql 1
+      m.data.value.should.eql 3
       done()
 
     messageProcessor = (m)->
@@ -1290,20 +1292,19 @@ describe 'Consumer', () ->
             consumer.close(next)
 
           (next)->
-            amqp.close(next)
-
-          (next)->
-            amqp = new AMQP { host:'localhost' }, (e, r)->
+            queue.messageCount queueOptions, (e,c)->
               should.not.exist e
+              c.should.eql 1
               next()
 
           (next)->
-            amqp.queue {queue, autoDelete:false, durable:true}, (e,q)->
-              q.declare ()->
-                q.bind "amq.direct", queue, next
+            queue.consumerCount queueOptions, (e,c)->
+              should.not.exist e
+              c.should.eql 0
+              next()
 
           (next)->
-            consumer = amqp.consume queue, {}, checkSuccess, (e,r)->
+            consumer = amqp.consume queueName, {}, checkSuccess, (e,r)->
               should.not.exist e
               next()
         ]
@@ -1315,21 +1316,22 @@ describe 'Consumer', () ->
           next()
 
       (next)->
-        amqp.queue {queue, autoDelete:false, durable:true}, (e,q)->
+        amqp.queue queueOptions, (e,q)->
+          queue = q
           q.declare ()->
-            q.bind "amq.direct", queue, next
+            q.bind "amq.direct", queueName, next
 
       (next)->
-        consumer = amqp.consume queue, {prefetchCount: 3}, messageProcessor, (e,r)->
+        consumer = amqp.consume queueName, {prefetchCount: 3}, messageProcessor, (e,r)->
           should.not.exist e
           next()
 
       (next)->
-        amqp.publish "amq.direct", queue, {value: 1}, {confirm: false}, next
+        amqp.publish "amq.direct", queueName, {value: 1}, {confirm: false}, next
 
       (next)->
-        amqp.publish "amq.direct", queue, {value: 2}, {confirm: false}, next
+        amqp.publish "amq.direct", queueName, {value: 2}, {confirm: false}, next
 
       (next)->
-        amqp.publish "amq.direct", queue, {value: 3}, {confirm: false}, next
+        amqp.publish "amq.direct", queueName, {value: 3}, {confirm: false}, next
     ]
