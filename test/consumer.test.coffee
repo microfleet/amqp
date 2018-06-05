@@ -1327,11 +1327,11 @@ describe 'Consumer', () ->
           next()
 
       (next)->
-        amqp.publish "amq.direct", queueName, {value: 1}, {confirm: false}, next
+        amqp.publish "amq.direct", queueName, {value: 1}, {confirm: true}, next
 
       (next)->
-        amqp.publish "amq.direct", queueName, {value: 2}, {confirm: false}, next
+        amqp.publish "amq.direct", queueName, {value: 2}, {confirm: true}, next
 
       (next)->
-        amqp.publish "amq.direct", queueName, {value: 3}, {confirm: false}, next
+        amqp.publish "amq.direct", queueName, {value: 3}, {confirm: true}, next
     ]
