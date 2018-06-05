@@ -1333,5 +1333,8 @@ describe 'Consumer', () ->
         amqp.publish "amq.direct", queueName, {value: 2}, {confirm: true}, next
 
       (next)->
+        setTimeout next, 500
+
+      (next)->
         amqp.publish "amq.direct", queueName, {value: 3}, {confirm: true}, next
     ]
