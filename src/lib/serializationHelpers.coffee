@@ -247,8 +247,10 @@ exports.serializeFields = serializeFields = (buffer, fields, args, strict)->
         serializeInt(buffer, 8, param)
 
       when 'shortstr'
-        if (typeof(param) != "string" || param.length > 0xFF)
-          throw new Error("Unmatched field " + JSON.stringify(field))
+        if (typeof(param) != "string")
+          throw new Error('Field serialization failed: ' + 'Field of domain "shortstr" should be of type "string". ' + JSON.stringify({field, value: param}))
+        if (param.length > 0xFF)
+          throw new Error('Field serialization failed: ' + 'Field of domain "shortstr" should NOT be longer than ' + 0xFF + ' symbols. ' + JSON.stringify({field, value: param}))
 
         serializeShortString(buffer, param)
 
