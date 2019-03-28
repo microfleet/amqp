@@ -203,7 +203,7 @@ exports.serializeFields = serializeFields = (buffer, fields, args, strict)->
           # defaults noWait to false
           args[field.name] = false
         else
-          throw new Error("Missing field '" + field.name + "' of type '" + domain + "' while executing AMQP method '" + arguments.callee.caller.arguments[1].name + "'")
+          throwFieldSerializationError(field, undefined, "Missing field '" + field.name + "' of type '" + domain + "' while executing AMQP method '" + arguments.callee.caller.arguments[1].name + "'")
       else
         continue
 
@@ -244,7 +244,7 @@ exports.serializeFields = serializeFields = (buffer, fields, args, strict)->
       when 'shortstr'
         assertFieldType(field, param, "string")
         if (param.length > 0xFF)
-          throw new Error('Field serialization failed: ' + 'Field of domain "shortstr" should NOT be longer than ' + 0xFF + ' symbols. ' + JSON.stringify({field, value: param}))
+          throwFieldSerializationError(field, param, 'Field of domain "shortstr" should NOT be longer than ' + 0xFF + ' symbols')
 
         serializeShortString(buffer, param)
 
@@ -256,7 +256,7 @@ exports.serializeFields = serializeFields = (buffer, fields, args, strict)->
         serializeTable(buffer, param)
 
       else
-        throw new Error("Unknown domain value type " + domain)
+        throwFieldSerializationError(field, param, 'Unknown domain value type "' + domain + '"')
 
 
 exports.isBigInt = isBigInt = (value)->
