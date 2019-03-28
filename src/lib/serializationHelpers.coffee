@@ -224,24 +224,18 @@ exports.serializeFields = serializeFields = (buffer, fields, args, strict)->
 
       when 'octet'
         assertFieldType(field, param, "number")
-        if (param > 0xFF)
-          throw new Error("Unmatched field " + JSON.stringify(field))
-
+        assertIntegerFieldValue(field, param, 0xFF)
         buffer[buffer.used++] = param
 
       when 'short'
         assertFieldType(field, param, "number")
-        if (param > 0xFFFF)
-          throw new Error("Unmatched field " + JSON.stringify(field))
-
+        assertIntegerFieldValue(field, param, 0xFFFF)
         serializeInt(buffer, 2, param)
         break
 
       when 'long'
         assertFieldType(field, param, "number")
-        if (param > 0xFFFFFFFF)
-          throw new Error("Unmatched field " + JSON.stringify(field))
-
+        assertIntegerFieldValue(field, param, 0xFFFFFFFF)
         serializeInt(buffer, 4, param)
 
       when 'timestamp', 'longlong'
@@ -282,4 +276,11 @@ exports.isFloat = isFloat = (value)->
 
 assertFieldType = (field, param, type)->
   if (typeof(param) != type)
-    throw new Error('Field serialization failed: ' + 'Field of domain "' + field.domain + '" should be of type "' + type + '". ' + JSON.stringify({field, value: param}))
+    throwFieldSerializationError(field, param, 'Field of domain "' + field.domain + '" should be of type "' + type + '"')
+
+assertIntegerFieldValue = (field, param, largestValue)->
+  if (param > largestValue)
+    throwFieldSerializationError(field, param, 'Field of domain "' + field.domain + '" should NOT be larger than ' + largestValue)
+
+throwFieldSerializationError = (field, param, reason)->
+  throw new Error('Field serialization failed: ' + reason + ': ' + JSON.stringify({field, value: param}))
