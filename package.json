@@ -27,18 +27,18 @@
     "prepublish": "./scripts/compile.sh"
   },
   "dependencies": {
-    "async": "^2.6.1",
-    "bson": "^2.0.7",
-    "debug": "^3.1.0",
-    "lodash": "^4.17.10"
+    "async": "^3.1.0",
+    "bson": "^4.0.2",
+    "debug": "^4.1.1",
+    "lodash": "^4.17.14"
   },
   "devDependencies": {
-    "coffeescript": "^2.3.1",
+    "coffeescript": "^2.4.1",
     "istanbul": "0.4.5",
-    "mocha": "^5.2.0",
-    "should": "13.2.1",
+    "mocha": "^6.1.4",
+    "should": "13.2.3",
     "underscore": "^1.9.1",
-    "uuid": "^3.2.1"
+    "uuid": "^3.3.2"
   },
   "repository": {
     "type": "git",

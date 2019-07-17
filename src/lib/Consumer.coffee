@@ -10,8 +10,7 @@ extend = require('lodash/extend')
 clone = require('lodash/clone')
 pickBy = require('lodash/pickBy')
 
-BSON = require('bson')
-bson = new BSON()
+bson = require('bson')
 
 { methodTable, classes, methods } = require('./config').protocol
 { MaxEmptyFrameSize } = require('./config').constants

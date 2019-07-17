@@ -7,8 +7,7 @@ uuid = require('uuid').v4
 AMQP = require('src/amqp')
 
 
-BSON    = require('bson')
-bson    = new BSON()
+bson    = require('bson')
 
 { MaxFrameSize, FrameType, HeartbeatFrame }   = require('../src/lib/config').constants
 
