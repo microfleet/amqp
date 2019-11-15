@@ -203,16 +203,14 @@ exports.serializeFields = serializeFields = (buffer, fields, args, strict)->
           # defaults noWait to false
           args[field.name] = false
         else
-          throw new Error("Missing field '" + field.name + "' of type '" + domain + "' while executing AMQP method '" + arguments.callee.caller.arguments[1].name + "'")
+          throwFieldSerializationError(field, undefined, "Missing field '" + field.name + "' of type '" + domain + "' while executing AMQP method '" + arguments.callee.caller.arguments[1].name + "'")
       else
         continue
 
     param = args[field.name]
     switch domain
       when 'bit'
-        if (typeof(param) != "boolean")
-          throw new Error("Unmatched field " + JSON.stringify(field))
-
+        assertFieldType(field, param, "boolean")
 
         if param then bitField |= (1 << bitIndex)
         bitIndex++
@@ -225,30 +223,28 @@ exports.serializeFields = serializeFields = (buffer, fields, args, strict)->
 
 
       when 'octet'
-        if (typeof(param) != "number" || param > 0xFF)
-          throw new Error("Unmatched field " + JSON.stringify(field))
-
+        assertFieldType(field, param, "number")
+        assertIntegerFieldValue(field, param, 0xFF)
         buffer[buffer.used++] = param
 
       when 'short'
-        if (typeof(param) != "number" || param > 0xFFFF)
-          throw new Error("Unmatched field " + JSON.stringify(field))
-
+        assertFieldType(field, param, "number")
+        assertIntegerFieldValue(field, param, 0xFFFF)
         serializeInt(buffer, 2, param)
         break
 
       when 'long'
-        if (typeof(param) != "number" || param > 0xFFFFFFFF)
-          throw new Error("Unmatched field " + JSON.stringify(field))
-
+        assertFieldType(field, param, "number")
+        assertIntegerFieldValue(field, param, 0xFFFFFFFF)
         serializeInt(buffer, 4, param)
 
       when 'timestamp', 'longlong'
         serializeInt(buffer, 8, param)
 
       when 'shortstr'
-        if (typeof(param) != "string" || param.length > 0xFF)
-          throw new Error("Unmatched field " + JSON.stringify(field))
+        assertFieldType(field, param, "string")
+        if (param.length > 0xFF)
+          throwFieldSerializationError(field, param, 'Field of domain "shortstr" should NOT be longer than ' + 0xFF + ' symbols')
 
         serializeShortString(buffer, param)
 
@@ -256,13 +252,11 @@ exports.serializeFields = serializeFields = (buffer, fields, args, strict)->
         serializeLongString(buffer, param)
 
       when 'table'
-        if (typeof(param) != "object")
-          throw new Error("Unmatched field " + JSON.stringify(field))
-
+        assertFieldType(field, param, "object")
         serializeTable(buffer, param)
 
       else
-        throw new Error("Unknown domain value type " + domain)
+        throwFieldSerializationError(field, param, 'Unknown domain value type "' + domain + '"')
 
 
 exports.isBigInt = isBigInt = (value)->
@@ -280,3 +274,13 @@ exports.getCode = getCode = (dev)->
 exports.isFloat = isFloat = (value)->
   return value is +value and value isnt value|0
 
+assertFieldType = (field, param, type)->
+  if (typeof(param) != type)
+    throwFieldSerializationError(field, param, 'Field of domain "' + field.domain + '" should be of type "' + type + '"')
+
+assertIntegerFieldValue = (field, param, largestValue)->
+  if (param > largestValue)
+    throwFieldSerializationError(field, param, 'Field of domain "' + field.domain + '" should NOT be larger than ' + largestValue)
+
+throwFieldSerializationError = (field, param, reason)->
+  throw new Error('Field serialization failed: ' + reason + ': ' + JSON.stringify({field, value: param}))
