@@ -11,13 +11,26 @@ export type Protocol = MethodFrame
 
 export type MethodsTableMethod = ClassMethodsTable[keyof ClassMethodsTable]
 export type ClassTypes = Classes[keyof Classes]
+export type ClassFields = ClassTypes['fields']
+export type MethodFields = MethodsTableMethod['fields']
+export type Fields = ClassFields | MethodFields
+export type Field = Fields extends Array<infer T> ? T : never
+
+export interface ContentHeaderProperties {
+    [key: string]: any;
+
+    headers: Record<string, string | number | boolean | Date | Record<string, any>>
+    contentType: string;
+    exchange: string;
+    routingKey: string;
+}
 
 export type ContentHeader = {
     type: FrameType.HEADER;
     classInfo: ClassTypes;
     weight: number;
-    properties: Record<string, unknown>;
     size: number;
+    properties: Partial<ContentHeaderProperties>;
 }
 
 export type Content = {

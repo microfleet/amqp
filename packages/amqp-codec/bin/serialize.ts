@@ -99,6 +99,21 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         )
     }
 
+    const unionFromSet = (name: string, set: Set<string>): ts.TypeAliasDeclaration => {
+        return ts.factory.createTypeAliasDeclaration(
+            undefined,
+            [
+                ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
+                ts.factory.createModifier(ts.SyntaxKind.ConstKeyword)
+            ],
+            name,
+            undefined,
+            ts.factory.createUnionTypeNode(Array.from(set, (member) => ts.factory.createLiteralTypeNode(
+                ts.factory.createStringLiteral(member)
+            )))
+        )
+    }
+
     const frameTypes = ts.factory.createEnumDeclaration(
         undefined,
         [
@@ -113,24 +128,35 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     )
 
     // domain types
-    const fieldTypesEnum = enumFromSet('FieldTypes', domains)
-    const fieldNamesEnum = enumFromSet('FieldNames', fieldNames)
-    const methodNamesEnum = enumFromSet('MethodNames', methodNames)
-    const classNamesEnum = enumFromSet('ClassNames', classNames)
+    // const fieldTypesEnum = enumFromSet('FieldTypes', domains)
+    // const fieldNamesEnum = enumFromSet('FieldNames', fieldNames)
+    // const methodNamesEnum = enumFromSet('MethodNames', methodNames)
+    // const classNamesEnum = enumFromSet('ClassNames', classNames)
+
+    const fieldTypesUnion = unionFromSet('FieldTypes', domains)
+    const fieldNamesUnion = unionFromSet('FieldNames', fieldNames)
+    const methodNamesUnion = unionFromSet('MethodNames', methodNames)
+    const classNamesUnion = unionFromSet('ClassNames', classNames)
 
     const fieldTypeConversion = ts.factory.createTypeAliasDeclaration(
         undefined,
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
         ts.factory.createIdentifier('FieldTypeEquality'),
         undefined,
-        ts.factory.createTypeLiteralNode(Object.entries(FieldTypeToType).map(([name, type]) => (
-            ts.factory.createPropertySignature(
-                undefined,
-                ts.factory.createIdentifier(`[${fieldTypesEnum.name.text}.${name}]`),
-                undefined,
-                type
-            )
-        )))
+        ts.factory.createTypeLiteralNode(
+            [ts.factory.createIndexSignature(
+
+            )]
+            .concat(Object.entries(FieldTypeToType).map(([name, type]) => (
+                ts.factory.createPropertySignature(
+                    undefined,
+                    // ts.factory.createIdentifier(`[${fieldTypesEnum.name.text}.${name}]`),
+                    ts.factory.createIdentifier(name),
+                    undefined,
+                    type
+                )
+            ))
+        ))
     )
 
     const classIdsEnum = ts.factory.createEnumDeclaration(

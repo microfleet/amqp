@@ -7,18 +7,20 @@ import {
   kMissingFrame,
   kUnknownFrameType,
 } from './constants'
+import { FieldNames, FieldTypeEquality, FieldTypes, MethodArgTypes } from './fixtures/typed-protocol';
 import { 
   classes,
   isClassMethodId,
   isClassIndex,
-  Field,
   classMethodsTable,
   Protocol,
   MethodFrame,
   ContentHeader,
   Content,
   Heartbeat,
-  FieldTypeEquality
+  ContentHeaderProperties,
+  Field,
+  Fields
 } from './protocol'
 
 export interface Configuration {
@@ -35,7 +37,7 @@ const FIELD_TYPE_SELECTOR = {
       ? true
       : false
 
-    if (nextField !== undefined && nextField.domain === 'bit') {
+    if (nextField !== undefined && nextField.domain === FieldTypes.bit) {
       parser.bitIndex += 1
     } else {
       parser.bitIndex = 0
@@ -163,14 +165,27 @@ function parseTable(parser: Parser): Record<string, unknown> {
   return table
 }
 
-function parseFields<T extends Record<Field['name'], FieldTypeEquality[Field['domain']]>>(parser: Parser, fields: Field[]): T {
-  const args: T = Object.create(null)
+type ArrayKeys = keyof any[]
+type Indices<T> = Exclude<keyof T, ArrayKeys>
+
+type Remapped<T extends Fields, K extends Indices<T>> = {
+  [I in K as `${T[I]['name']}`]: FieldTypeEquality[T[I]['domain']]
+}
+
+  // T extends [infer A] ? { [key: A['name']]: FieldTypeEquality[A['domain']] } :
+  // T extends [infer A, infer B] ? FieldToObj<A> & FieldToObj<B> :
+  // T extends [infer A, infer B, infer C] 
+
+function parseFields<T extends Fields, R extends Remapped<T>>(parser: Parser, fields: T): R {
+  const args: R = Object.create(null)
+
+  JSON.parse
 
   // reset bit index
   parser.bitIndex = 0
 
-  for (const [i, { name, domain }] of fields.entries()) {
-    args[name] = FIELD_TYPE_SELECTOR[domain](parser, fields[i + 1])
+  for (const [i, field] of fields.entries()) {
+    args[field.name] = FIELD_TYPE_SELECTOR[field.domain](parser, fields[i + 1])
   }
 
   return args
@@ -214,7 +229,7 @@ function parseHeaderFrame(parser: Parser): ContentHeader | Error {
     }
   }
 
-  const properties = parseFields(parser, fields)
+  const properties = parseFields<ContentHeaderProperties>(parser, fields)
   return { type: FrameType.HEADER, classInfo, weight, properties, size }
 }
 

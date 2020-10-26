@@ -55,7 +55,8 @@ export type TaskPublish = {
 export type Task = TaskMethod | TaskPublish
 
 export class Channel extends EventEmitter {
-    private state = CHANNEL_STATE.Closed
+    public state = CHANNEL_STATE.Closed
+
     private transactional = false
     private waitingCallbacks: { [key in keyof typeof methods]: onMethodCallback[] }
     private limit = Limit(1)
@@ -69,7 +70,7 @@ export class Channel extends EventEmitter {
         this.open()
 
         // so that we don't have to do checks on the fly
-        const methodsCallbackTable: Record<string, any> = {}
+        const methodsCallbackTable: Record<string, any> = Object.create(null)
         for (const method of Object.values(methods)) {
             methodsCallbackTable[method.name] = []
         }
@@ -211,19 +212,19 @@ export class Channel extends EventEmitter {
     }
 
     // Functions to overwrite
-    onChannelOpen(): never {
+    onChannelOpen(): void {
         throw new Error('channel open called and should be overwritten')
     }
 
-    channelClosed(err?: Error): never {
+    channelClosed(err?: Error): void {
         throw new Error('channel closed called and should be overwritten')
     }
 
-    onChannelReconnect(): never {
+    onChannelReconnect(): void {
         throw new Error('channel reconnect called and should be overwritten')
     }
 
-    onMethod(channel: number, method: MethodFrame): never {
+    onMethod(channel: number, method: MethodFrame): void {
         throw new Error('_onMethod MUST be overwritten by whoever extends Channel')
     }
 

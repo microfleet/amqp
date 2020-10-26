@@ -1,162 +1,180 @@
 /// Publisher
 import _debug = require('debug')
-import { BasicReturnError } from '@microfleet/amqp-connection'
-import { Channel } from './Channel'
+import { once } from 'events'
+import { Reconnectable as Connection, BasicReturnError } from '@microfleet/amqp-connection'
+import { Channel, CHANNEL_STATE } from './Channel'
 import rfdc = require('rfdc')
 import {
-
+    methods,
+    FrameType, 
+    MethodNames, 
+    ContentHeader, MethodFrame
 } from '@microfleet/amqp-codec'
 
-// defaults  = require('./defaults')
+import { basicPublish } from '../defaults'
 
 const debug = _debug('amqp:Publisher')
 const clone = rfdc()
 
-applyDefaults = require('lodash/defaults')
-
+// applyDefaults = require('lodash/defaults')
 // { methodTable, classes, methods } = require('./config').protocol
 
+export const enum ConfirmState {
+    Opening = 'opening',
+    Open = 'open',
+    Closed = 'closed'
+}
+
+type PromiseCb = <T = any>(err: Error | null, value?: T) => void
+
 export class Publisher extends Channel {
+    public confirmState: ConfirmState = ConfirmState.Closed
+    private seq: number = 0
+    private seqCallbacks: Map<number, PromiseCb> = new Map()
+    private currentMethod: MethodFrame | null = null
 
     constructor(private connection: Connection, 
                 public channel: number, 
                 public readonly confirm: boolean = false) {
         super(connection, channel)
-
-        this.seqCallbacks = new Map() // publisher confirms
-        this.currentMethod = null
-        this.currentArgs   = null
-
         if (confirm) {
             this.confirmMode()
         }
     }
 
-    async confirmMode() {
-    @confirmState = 'opening'
-    @taskPush methods.confirmSelect, {noWait:false}, methods.confirmSelectOk, () =>
-      @confirmState = 'open'
-      @confirm = true
-      @seq     = 1
-      cb() if cb?
-      @emit 'confirm'
+    private async confirmMode(): Promise<void> {
+        this.confirmState = ConfirmState.Opening
+        
+        await this.taskPush({ 
+            type: FrameType.METHOD, 
+            name: MethodNames.confirmSelect, 
+            method: methods.confirmSelect, 
+            args: { noWait: false },
+        }, methods.confirmSelectOk)
 
-  _channelClosed: (message)=>
-    @confirmState = 'closed'
-    if !message? then message = "Channel closed, try again"
+        this.confirmState = ConfirmState.Open
+        this.seq = 1
+        this.emit('confirm')
+    }
 
-    for cb from @seqCallbacks.values()
-      if typeof cb is 'function'
-        cb(message)
+    private channelClosed(err: Error = new Error('Channel closed, try again')): void {
+        this.confirmState = ConfirmState.Closed
+        for (const cb of this.seqCallbacks.values()) {
+            cb(err)
+        }
 
-    @seqCallbacks = new Map()
+        this.seqCallbacks = new Map()
+        if (this.confirm) {
+            this.confirmMode()
+        }
+    }
 
-    if @confirm then @confirmMode()
+    public async publish(exchange: string, 
+                         routingKey: string, 
+                         data: unknown, 
+                         opts?: Partial<Omit<ContentHeader, 'size'>>): Promise<void> {
 
-  publish: (exchange, routingKey, data, options, cb)->
-    if typeof options is 'function'
-      cb = options
-      options = {}
+        // Because we add modify options, we want to make sure we only modify our internal version
+        // this is why we clone it.
+        let options: Partial<ContentHeader> = opts ? clone(opts) : Object.create(null)
 
-    # Because we add modify options, we want to make sure we only modify our internal version
-    # this is why we clone it.
-    if !options? then options = {} else options = clone options
+        if (this.state !== CHANNEL_STATE.Open || (this.confirm && this.confirmState !== ConfirmState.Open)) {
+            if (this.state === CHANNEL_STATE.Opening || 
+                this.state === CHANNEL_STATE.Closed || 
+                (this.confirm && this.confirmState === ConfirmState.Opening)) {
+                
+                const waitFor = this.confirm ? 'confirm' : 'open'
+                await once(this, waitFor)
+                return this.publish(exchange, routingKey, data, opts)
+            }
 
-    if @state isnt "open" or (@confirm and @confirmState isnt "open")
-      if @state is "opening" or @state is "closed" or (@confirm and @confirmState is 'opening')
+            throw new Error(`Channel is closed and will not re-open? ${this.state} ${this.confirm} ${this.confirmState}`)
+        }
 
-        if @confirm then waitFor = 'confirm' else waitFor = 'open'
-        return @once waitFor, () =>
-          @publish(exchange, routingKey, data, options, cb)
+        // data must be a buffer
+        if (typeof data === 'string') {
+            options.contentType = 'string/utf8'
+            data = Buffer.from(data, 'utf8')
+        } else if (typeof data === 'object' && !Buffer.isBuffer(data)) {
+            if (options.contentType) {
+                throw new Error('opts.contentType specified but data isn\'t a buffer')
+            }
 
-      else
-        return cb(new Error("Channel is closed and will not re-open? #{@state} #{@confirm} #{@confirmState}")) if cb
+            // TODO: use faster stringify! (fast-json-stringify?)
+            data = Buffer.from(JSON.stringify(data), 'utf8')
+            options.contentType = 'application/json'
+        } else if (data === undefined) {
+            data = Buffer.allocUnsafe(0)
+            options.contentType = 'application/undefined'
+        }
 
-    # data must be a buffer
-    if typeof data is 'string'
-      options.contentType = 'string/utf8'
-      data = Buffer.from(data, 'utf8')
+        // increment this as the final step before publishing, to make sure we're in sync with the server
+        let thisSequenceNumber: number
+        if (this.confirm) {
+            thisSequenceNumber = this.seq++
+        }
 
-    else if typeof data is 'object' and !(data instanceof Buffer)
-      if options.contentType?
-        debug 1, () -> return "contentType specified but data isn't a buffer, #{JSON.stringify options}"
-        if cb?
-          cb("contentType specified but data isn't a buffer")
-          return
+        // Apply default options after we deal with potentially converting the data
+        options = { ...basicPublish, ...options, exchange, routingKey }
 
-      # default use JSON
-      data = Buffer.from(JSON.stringify(data), 'utf8')
-      options.contentType = 'application/json'
+        // This is to tie back this message as failed if it failed in confirm mode with a mandatory or immediate publish
+        if (this.confirm && (options.mandatory || options.immediate)) {
+            options.headers ??= {}
+            options.headers['x-seq'] = thisSequenceNumber
+        }
 
-      # data = BSON.serialize data
-      # options.contentType = 'application/bson'
+        this.queuePublish methods.basicPublish, data, options
 
-    else if data is undefined
-      data = Buffer.allocUnsafe(0)
-      options.contentType = 'application/undefined'
+        if (this.confirm) {
+            await this.waitForSeq(thisSequenceNumber)
+        }
+    }
 
+    public onMethod(_: number, method: MethodFrame): void {
+        this.currentMethod = method
+        if (method.name === MethodNames.basicAck && this.confirm) {
+            this.gotSeq(method.args.deliveryTag, method.args.multiple)
+        }
+    }
 
-    # increment this as the final step before publishing, to make sure we're in sync with the server
-    thisSequenceNumber = @seq++ if @confirm
+    public onContentHeader(_: number, header: ContentHeader): void {
+        const { currentMethod } = this
+        if (currentMethod?.name !== MethodNames.basicReturn) {
+            return
+        }
 
-    # Apply default options after we deal with potentially converting the data
-    options            = applyDefaults options, defaults.basicPublish
-    options.exchange   = exchange
-    options.routingKey = routingKey
+        const seq = header.properties.headers?.['x-seq']
+        if (seq != null) {
+            this.gotSeq(seq, false, new BasicReturnError(currentMethod.args))
+        }
+    }
 
-    # This is to tie back this message as failed if it failed in confirm mode with a mandatory or immediate publish
-    if @confirm and cb? and (options.mandatory || options.immediate)
-      options.headers ?= {}
-      options.headers['x-seq'] = thisSequenceNumber
+    public onContent(_: number, __: Buffer): void {
+      // Content is not needed on a basicReturn
+    }
 
-    @queuePublish methods.basicPublish, data, options
+    private async waitForSeq(seq: number): Promise<void> {
+        await new Promise((resolve, reject) => {
+            this.seqCallbacks.set(seq, (err: Error | null) => {
+                if (err) {
+                    return reject(err)
+                }
+                resolve()
+            })
+        })
+    }
 
-    if @confirm and cb?
-      debug 4, () -> return JSON.stringify {exchange, routingKey, data, options, thisSequenceNumber}
-      @_waitForSeq thisSequenceNumber, cb
-    else
-      debug 4, () -> return JSON.stringify {exchange, routingKey, data, options, noConfirm: true}
-      setImmediate(cb) if cb?
-
-
-  _onMethod: (channel, method, args)->
-    @currentMethod = method
-    @currentArgs   = args
-
-    switch method
-      when methods.basicAck
-        if @confirm
-          # debug 4, () => return JSON.stringify args
-          @_gotSeq args.deliveryTag, args.multiple
-
-  _onContentHeader: (channel, classInfo, weight, properties, size)->
-    switch @currentMethod
-      when methods.basicReturn
-        if properties.headers?['x-seq']?
-          @_gotSeq properties.headers['x-seq'], false, new BasicReturnError(@currentArgs)
-
-  _onContent: (channel, data)->
-    # Content is not needed on a basicReturn
-
-  _waitForSeq: (seq, cb)->
-    if typeof cb is 'function'
-      @seqCallbacks.set seq, cb
-    else
-      debug "callback requested for publish that isn't a function"
-      console.error cb
-
-  _gotSeq:(seq, multi, err = null)->
-    if multi
-      for key from @seqCallbacks.keys()
-        if key <= seq
-          @seqCallbacks.get(key)(err)
-          @seqCallbacks.delete key
-    else
-      if @seqCallbacks.has(seq)
-        @seqCallbacks.get(seq)(err)
-      else
-        debug 3, ()-> return "got a seq for #{seq} but that callback either doesn't exist or was already called or was returned"
-
-      @seqCallbacks.delete seq
-
-module.exports = Publisher
+    private gotSeq(seq: number, multi: boolean, err: Error | null = null): void {
+        if (multi) {
+            for (const key of this.seqCallbacks.keys()) {
+                if (key <= seq) {
+                    this.seqCallbacks.get(key)!(err)
+                    this.seqCallbacks.delete(key)
+                }
+            }
+        } else if (this.seqCallbacks.has(seq)) {
+            this.seqCallbacks.get(seq)!(err)
+            this.seqCallbacks.delete(seq)
+        }
+    }
+}
