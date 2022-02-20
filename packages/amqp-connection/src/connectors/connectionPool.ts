@@ -20,9 +20,9 @@ const getNodeKey = (node: StartupNode) => {
 }
 
 export class ConnectionPool extends EventEmitter {
-  private serializer = new Serializer();
-  private specifiedOptions: Record<string, any> = Object.create(null);
-  private [kConnections]: Record<string, Connection> = Object.create(null);
+  private serializer = new Serializer()
+  private specifiedOptions: Record<string, any> = Object.create(null)
+  private [kConnections]: Record<string, Connection> = Object.create(null)
   
   // when connection pool is drained
   public drained = true

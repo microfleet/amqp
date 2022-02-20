@@ -1,9 +1,9 @@
 import { strict as assert } from 'assert'
 import type { Content, ContentHeader, MethodFrame } from '@microfleet/amqp-codec'
-import Joi = require('@hapi/joi');
+import Joi = require('joi');
 import { EventEmitter, once } from 'events'
 import os = require('os');
-import readPkgUp = require('read-pkg-up');
+import { sync } from 'read-pkg-up'
 import _debug = require('debug');
 import { Connection, ConnectionConfig } from './connectors/connection'
 import { StartupNodes, ConnectionPool } from './connectors/connectionPool'
@@ -12,7 +12,7 @@ import { AggregateError } from './errors'
 
 export { ServerError, BasicReturnError } from './errors'
 
-const pkg = readPkgUp.sync({ cwd: __dirname })?.packageJson
+const pkg = sync({ cwd: __dirname })?.packageJson
 assert(pkg, 'pkg must be defined')
 
 const debug = _debug('amqp-connection:index')
@@ -168,7 +168,7 @@ export class Reconnectable extends EventEmitter {
           await node.connect()
           debug('connection established')
           return
-        } catch (e) {
+        } catch (e: any) {
           debug('connection failed to node with error %O', e)
           err.addError(e)
         }

@@ -4,11 +4,11 @@ import net = require('net');
 const debug = _debug('proxy')
 
 export class Route {
-  private proxyPort: number;
-  private operational: boolean;
-  private serviceSockets: any[];
-  private proxySockets: any[];
-  private server: net.Server;
+  private proxyPort: number
+  private operational: boolean
+  private serviceSockets: any[]
+  private proxySockets: any[]
+  private server: net.Server
 
   constructor(proxyPort: number, servicePort = 5672, serviceHost = '127.0.0.1') {
     this.proxyPort = proxyPort || 9001

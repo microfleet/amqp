@@ -60,7 +60,7 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
             const method = {
                 classIndex: classInfo.index,
                 fields: methodInfo.fields,
-                methodIndex: methodInfo.index,
+                methodIndex: methodInfo.index,  
                 name,
             }
             const classMethodId = `${method.classIndex}_${method.methodIndex}`
@@ -99,20 +99,20 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         )
     }
 
-    const unionFromSet = (name: string, set: Set<string>): ts.TypeAliasDeclaration => {
-        return ts.factory.createTypeAliasDeclaration(
-            undefined,
-            [
-                ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
-                ts.factory.createModifier(ts.SyntaxKind.ConstKeyword)
-            ],
-            name,
-            undefined,
-            ts.factory.createUnionTypeNode(Array.from(set, (member) => ts.factory.createLiteralTypeNode(
-                ts.factory.createStringLiteral(member)
-            )))
-        )
-    }
+    // const unionFromSet = (name: string, set: Set<string>): ts.TypeAliasDeclaration => {
+    //     return ts.factory.createTypeAliasDeclaration(
+    //         undefined,
+    //         [
+    //             ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
+    //             ts.factory.createModifier(ts.SyntaxKind.ConstKeyword)
+    //         ],
+    //         name,
+    //         undefined,
+    //         ts.factory.createUnionTypeNode(Array.from(set, (member) => ts.factory.createLiteralTypeNode(
+    //             ts.factory.createStringLiteral(member)
+    //         )))
+    //     )
+    // }
 
     const frameTypes = ts.factory.createEnumDeclaration(
         undefined,
@@ -128,15 +128,15 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     )
 
     // domain types
-    // const fieldTypesEnum = enumFromSet('FieldTypes', domains)
-    // const fieldNamesEnum = enumFromSet('FieldNames', fieldNames)
-    // const methodNamesEnum = enumFromSet('MethodNames', methodNames)
-    // const classNamesEnum = enumFromSet('ClassNames', classNames)
+    const fieldTypesEnum = enumFromSet('FieldTypes', domains)
+    const fieldNamesEnum = enumFromSet('FieldNames', fieldNames)
+    const methodNamesEnum = enumFromSet('MethodNames', methodNames)
+    const classNamesEnum = enumFromSet('ClassNames', classNames)
 
-    const fieldTypesUnion = unionFromSet('FieldTypes', domains)
-    const fieldNamesUnion = unionFromSet('FieldNames', fieldNames)
-    const methodNamesUnion = unionFromSet('MethodNames', methodNames)
-    const classNamesUnion = unionFromSet('ClassNames', classNames)
+    // const fieldTypesUnion = unionFromSet('FieldTypes', domains)
+    // const fieldNamesUnion = unionFromSet('FieldNames', fieldNames)
+    // const methodNamesUnion = unionFromSet('MethodNames', methodNames)
+    // const classNamesUnion = unionFromSet('ClassNames', classNames)
 
     const fieldTypeConversion = ts.factory.createTypeAliasDeclaration(
         undefined,
@@ -144,19 +144,16 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         ts.factory.createIdentifier('FieldTypeEquality'),
         undefined,
         ts.factory.createTypeLiteralNode(
-            [ts.factory.createIndexSignature(
-
-            )]
-            .concat(Object.entries(FieldTypeToType).map(([name, type]) => (
+            Object.entries(FieldTypeToType).map(([name, type]) => (
                 ts.factory.createPropertySignature(
                     undefined,
-                    // ts.factory.createIdentifier(`[${fieldTypesEnum.name.text}.${name}]`),
-                    ts.factory.createIdentifier(name),
+                    ts.factory.createIdentifier(`[${fieldTypesEnum.name.text}.${name}]`),
+                    // ts.factory.createIdentifier(name),
                     undefined,
                     type
                 )
             ))
-        ))
+        )
     )
 
     const classIdsEnum = ts.factory.createEnumDeclaration(
@@ -220,13 +217,13 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
                     undefined, 'fields', undefined,
                     ts.factory.createTupleTypeNode(method.fields.map(({ name, domain }) => (
                         ts.factory.createTypeLiteralNode([
-                            ts.createPropertySignature(
+                            ts.factory.createPropertySignature(
                                 undefined,
                                 ts.factory.createIdentifier('name'),
                                 undefined,
                                 ts.factory.createTypeReferenceNode(`${fieldNamesEnum.name.text}.${name}`)
                             ),
-                            ts.createPropertySignature(
+                            ts.factory.createPropertySignature(
                                 undefined,
                                 ts.factory.createIdentifier('domain'),
                                 undefined,
@@ -369,13 +366,13 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
                     undefined, 'fields', undefined, 
                     ts.factory.createTupleTypeNode(classInfo.fields.map(({ name, domain }) => (
                         ts.factory.createTypeLiteralNode([
-                            ts.createPropertySignature(
+                            ts.factory.createPropertySignature(
                                 undefined,
                                 ts.factory.createIdentifier('name'),
                                 undefined,
                                 ts.factory.createTypeReferenceNode(`${fieldNamesEnum.name.text}.${name}`)
                             ),
-                            ts.createPropertySignature(
+                            ts.factory.createPropertySignature(
                                 undefined,
                                 ts.factory.createIdentifier('domain'),
                                 undefined,
@@ -400,12 +397,11 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         ts.factory.createIdentifier('MethodsTable'),
         undefined,
         ts.factory.createTypeLiteralNode(Object.entries(methods).map(([methodName, method]) => (
-            ts.createPropertySignature(
+            ts.factory.createPropertySignature(
                 undefined,
                 ts.factory.createIdentifier(`[${methodNamesEnum.name.text}.${methodName}]`),
                 undefined,
                 ts.factory.createTypeReferenceNode(method.name),
-                undefined
             )
         )))
     )
@@ -516,12 +512,11 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         ts.factory.createIdentifier('ClassMethodsTable'),
         undefined,
         ts.factory.createTypeLiteralNode(Object.entries(classMethodTable).map(([classId, method]) => (
-            ts.createPropertySignature(
+            ts.factory.createPropertySignature(
                 undefined,
                 ts.factory.createStringLiteral(classId),
                 undefined,
                 ts.factory.createTypeReferenceNode(method.name),
-                undefined
             )
         )))
     )
@@ -567,5 +562,48 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         classData,
     ]
 
-    await fs.writeFile(resolve(dest, resultFile.fileName), printer.printFile(ts.factory.updateSourceFile(resultFile, statements)))
+    const append = `
+export interface IParser {
+    offset: number
+    buffer?: Buffer
+    bitIndex: number
+
+    execute(buffer: Buffer): void
+    reset(): void
+}
+
+type _<T> = T;
+export type Merge<T> = _<{ [k in keyof T]: T[k] }>;
+export type FieldsToRecord<T extends any[]> =
+    T extends [infer Head, ...infer Tail]
+        ? Head extends { name: FieldNames, domain: FieldTypes }
+            ? Merge<{ [K in \`\${ Head['name']}\`]: FieldTypeEquality[Head['domain']] } & FieldsToRecord<Tail>>
+            : never
+        : Record<string, never>
+
+export type ParseFields<T> = 
+${Object.values(classes).map((classInfo) => (
+  `${' '.repeat(4)}T extends ${classInfo.name}['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :`
+)).join('\n')}
+${Object.values(methods).map((method) => (
+  `${' '.repeat(4)}T extends ${method.name}['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :`
+)).join('\n')}
+    never;
+
+export type ParseFieldsFn = {
+${Object.values(classes).map((classInfo) => (
+  `${' '.repeat(2)}<T extends ${classInfo.name}['fields']>(parser: IParser, fields: T): FieldsToRecord<T>`
+)).join('\n')}
+${Object.values(methods).map((method) => (
+  `${' '.repeat(2)}<T extends ${method.name}['fields']>(parser: IParser, fields: T): FieldsToRecord<T>`
+)).join('\n')}
+}
+
+// type parsedFields = ReturnType<parseFields<basic['fields']>>
+`
+
+    await fs.writeFile(
+        resolve(dest, resultFile.fileName), 
+        printer.printFile(ts.factory.updateSourceFile(resultFile, statements)) + '\n' + append
+    )
 })()

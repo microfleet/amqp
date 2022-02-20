@@ -7,7 +7,7 @@ import {
   kMissingFrame,
   kUnknownFrameType,
 } from './constants'
-import { FieldNames, FieldTypeEquality, FieldTypes, MethodArgTypes } from './fixtures/typed-protocol';
+import { FieldTypes } from './fixtures/typed-protocol'
 import { 
   classes,
   isClassMethodId,
@@ -18,9 +18,7 @@ import {
   ContentHeader,
   Content,
   Heartbeat,
-  ContentHeaderProperties,
   Field,
-  Fields
 } from './protocol'
 
 export interface Configuration {
@@ -165,21 +163,8 @@ function parseTable(parser: Parser): Record<string, unknown> {
   return table
 }
 
-type ArrayKeys = keyof any[]
-type Indices<T> = Exclude<keyof T, ArrayKeys>
-
-type Remapped<T extends Fields, K extends Indices<T>> = {
-  [I in K as `${T[I]['name']}`]: FieldTypeEquality[T[I]['domain']]
-}
-
-  // T extends [infer A] ? { [key: A['name']]: FieldTypeEquality[A['domain']] } :
-  // T extends [infer A, infer B] ? FieldToObj<A> & FieldToObj<B> :
-  // T extends [infer A, infer B, infer C] 
-
-function parseFields<T extends Fields, R extends Remapped<T>>(parser: Parser, fields: T): R {
-  const args: R = Object.create(null)
-
-  JSON.parse
+function parseFields(parser: Parser, fields: Field[]): Record<string, any> {
+  const args = Object.create(null)
 
   // reset bit index
   parser.bitIndex = 0
@@ -229,7 +214,7 @@ function parseHeaderFrame(parser: Parser): ContentHeader | Error {
     }
   }
 
-  const properties = parseFields<ContentHeaderProperties>(parser, fields)
+  const properties = parseFields(parser, fields)
   return { type: FrameType.HEADER, classInfo, weight, properties, size }
 }
 
@@ -257,10 +242,10 @@ function parseType(parser: Parser, type: FrameType, frameSize: number): Protocol
 }
 
 export class Parser {
-  public offset = 0;
-  public buffer?: Buffer = undefined;
-  public bitIndex = 0;
-  private handleResponse: Configuration['handleResponse'];
+  public offset = 0
+  public buffer?: Buffer = undefined
+  public bitIndex = 0
+  private handleResponse: Configuration['handleResponse']
 
   constructor(options: Configuration) {
     if (!options) {

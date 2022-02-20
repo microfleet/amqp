@@ -1,0 +1,4 @@
+packages:
+  - ./packages/amqp-codec
+  - ./packages/amqp-connection
+  - ./packages/amqp-core

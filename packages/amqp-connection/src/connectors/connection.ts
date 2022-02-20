@@ -89,19 +89,19 @@ const kCloseFrame: MethodFrame = {
 }
 
 export class Connection extends EventEmitter {
-  public id: string;
-  public state: CONNECTION_STATUS;
-  public serverChannelMax = 0;
-  public serverProperties: ServerProperties = Object.create(null);
+  public id: string
+  public state: CONNECTION_STATUS
+  public serverChannelMax = 0
+  public serverProperties: ServerProperties = Object.create(null)
 
-  private config: ConnectionConfig;
-  private connector: typeof netConnector | typeof tlsConnector;
-  private reconnectable: ReturnType<typeof netConnector | typeof tlsConnector>;
-  private parser: Parser;
-  private serializer: Serializer;
-  private connectionOptions: tls.TlsOptions | net.NetConnectOpts;
-  private stream: Socket | null = null;
-  private timers: { [name: string]: Timer } = Object.create(null);
+  private config: ConnectionConfig
+  private connector: typeof netConnector | typeof tlsConnector
+  private reconnectable: ReturnType<typeof netConnector | typeof tlsConnector>
+  private parser: Parser
+  private serializer: Serializer
+  private connectionOptions: tls.TlsOptions | net.NetConnectOpts
+  private stream: Socket | null = null
+  private timers: { [name: string]: Timer } = Object.create(null)
 
   constructor(config: ConnectionConfig, serializer: Serializer) {
     super()
