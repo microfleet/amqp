@@ -1,7 +1,10 @@
 #!/bin/sh
 
+set -e
+
 # default to all the tests
 GREP=""
+
 # don't run coverage by default
 COVERAGE=false
 
@@ -11,8 +14,8 @@ NODE_DEBUG=false
 ROOT=`git rev-parse --show-toplevel`
 # the default directory to test from
 FILES=$ROOT/test
+
 # try to find mocha, no matter where it is
-MOCHA=$(dirname $(/usr/bin/env node -e "console.log(require.resolve('mocha'))"))/bin/mocha
 PATTERN="*.test.coffee"
 
 USAGE='Usage: '$0' [options] [paths]\n\n'
@@ -79,13 +82,6 @@ if [ "$#" -ne 0 ];then
   FILES=$@
 fi
 
-
-echo $PATTERN
-# find all the tests to run
-TESTS=`find $FILES -iname "$PATTERN"`
-
-#ulimit -n 10000
-
 cd $ROOT/test/ssl/
 ./cleanSsl.sh
 ./setupSsl.sh
@@ -93,13 +89,4 @@ cd $ROOT
 
 $ROOT/scripts/compile.sh
 
-if $COVERAGE; then
-  _MOCHA=$(dirname $(/usr/bin/env node -e "console.log(require.resolve('mocha'))"))/bin/_mocha
-  ISTANBUL=$(dirname $(/usr/bin/env node -e "console.log(require.resolve('istanbul'))"))/lib/cli.js
-  AMQP_TEST=1 NODE_PATH=$ROOT/bin $ISTANBUL cover $_MOCHA -- --require 'coffeescript/register' --reporter spec --ui bdd --grep "$GREP" $TESTS
-  open $ROOT/coverage/lcov-report/index.html
-else
-
-  AMQP_TEST=1 NODE_PATH=$ROOT/bin $MOCHA --require 'coffeescript/register' --reporter spec --ui bdd --timeout 10000 --grep "$GREP" $TESTS
-
-fi
+mdep test run
