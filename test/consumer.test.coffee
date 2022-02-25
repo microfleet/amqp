@@ -25,7 +25,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -55,7 +55,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -84,7 +84,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -112,7 +112,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -156,7 +156,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -208,7 +208,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -253,7 +253,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -296,7 +296,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -329,7 +329,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -361,7 +361,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -406,7 +406,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -458,7 +458,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -509,7 +509,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -562,7 +562,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -605,7 +605,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -651,7 +651,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -697,7 +697,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -742,7 +742,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -777,7 +777,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost', clientProperties: { capabilities: { consumer_cancel_notify: true }}}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq', clientProperties: { capabilities: { consumer_cancel_notify: true }}}, (e, r)->
           should.not.exist e
           next()
 
@@ -819,7 +819,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost', clientProperties: { capabilities: { consumer_cancel_notify: true }}}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq', clientProperties: { capabilities: { consumer_cancel_notify: true }}}, (e, r)->
           should.not.exist e
           next()
 
@@ -852,7 +852,7 @@ describe 'Consumer', () ->
 
   it 'test we can consume and interrupt a autoDelete queue 854', (done)->
 
-    thisproxy = new proxy.route(7007, 5672, "localhost")
+    thisproxy = new proxy.route(7007, 5672, "rabbitmq")
     amqp = null
 
     testData = {test:"message"}
@@ -904,7 +904,7 @@ describe 'Consumer', () ->
 
   it 'test we can consume and interrupt a nameless queue 806', (done)->
     this.timeout = 60000
-    thisproxy = new proxy.route(7007, 5672, "localhost")
+    thisproxy = new proxy.route(7007, 5672, "rabbitmq")
     amqp = null
 
     testData = {test:"message"}
@@ -962,7 +962,7 @@ describe 'Consumer', () ->
 
   it 'test we can consume and interrupt a nameless queue with resume 807', (done)->
     this.timeout = 60000
-    thisproxy = new proxy.route(7008, 5672, "localhost")
+    thisproxy = new proxy.route(7008, 5672, "rabbitmq")
     amqp = null
 
     testData = {test:"message"}
@@ -1022,7 +1022,7 @@ describe 'Consumer', () ->
 
   it 'test we can consume and interrupt a nameless queue with close 807.5', (done)->
     this.timeout = 60000
-    thisproxy = new proxy.route(7008, 5672, "localhost")
+    thisproxy = new proxy.route(7008, 5672, "rabbitmq")
     amqp = null
 
     testData = {test:"message"}
@@ -1107,7 +1107,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost', port: 5672}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq', port: 5672}, (e, r)->
           should.not.exist e
           next()
 
@@ -1129,7 +1129,7 @@ describe 'Consumer', () ->
 
   it 'test we can consume and interrupt midstream and get all the messages 855', (done)->
 
-    thisproxy = new proxy.route(7003, 5672, "localhost")
+    thisproxy = new proxy.route(7003, 5672, "rabbitmq")
     amqp = null
 
 
@@ -1186,7 +1186,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP { host:'localhost' }, (e, r)->
+        amqp = new AMQP { host:'rabbitmq' }, (e, r)->
           should.not.exist e
           next()
 
@@ -1218,7 +1218,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP { host:'localhost' }, (e, r)->
+        amqp = new AMQP { host:'rabbitmq' }, (e, r)->
           should.not.exist e
           next()
 
@@ -1251,7 +1251,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP { host:'localhost' }, (e, r)->
+        amqp = new AMQP { host:'rabbitmq' }, (e, r)->
           should.not.exist e
           next()
 
@@ -1310,7 +1310,7 @@ describe 'Consumer', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP { host:'localhost' }, (e, r)->
+        amqp = new AMQP { host:'rabbitmq' }, (e, r)->
           should.not.exist e
           next()
 

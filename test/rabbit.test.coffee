@@ -1,7 +1,6 @@
 should  = require('should')
 async    = require('async')
 _        = require('underscore')
-Proxy    = require('./proxy')
 
 uuid = require('uuid').v4
 
@@ -16,7 +15,7 @@ describe 'Rabbit Plugin', () ->
     async.series [
       (next)->
 
-        amqp = new AMQP  {host:['127.0.0.1', 'localhost'], rabbitMasterNode:{queue}}, (e, r)->
+        amqp = new AMQP  {host:['127.0.0.1', 'rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
           should.not.exist e
           next()
 
@@ -54,7 +53,7 @@ describe 'Rabbit Plugin', () ->
     async.series [
       (next)->
 
-        amqp = new AMQP  {host:['localhost'], rabbitMasterNode:{queue}}, (e, r)->
+        amqp = new AMQP  {host:['rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
           should.not.exist e
           next()
 
@@ -82,7 +81,7 @@ describe 'Rabbit Plugin', () ->
     async.series [
       (next)->
 
-        amqp = new AMQP  {host:['127.0.0.1', 'localhost'], rabbitMasterNode:{queue}}, (e, r)->
+        amqp = new AMQP  {host:['127.0.0.1', 'rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
           should.not.exist e
           next()
 
@@ -96,7 +95,7 @@ describe 'Rabbit Plugin', () ->
         next()
 
       (next)->
-        amqp = new AMQP  {host:['127.0.0.1', 'localhost'], rabbitMasterNode:{queue}}, (e, r)->
+        amqp = new AMQP  {host:['127.0.0.1', 'rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
           should.not.exist e
           next()
 

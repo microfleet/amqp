@@ -13,7 +13,7 @@ describe 'Queue', () ->
     queue = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -39,7 +39,7 @@ describe 'Queue', () ->
     queue = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -74,7 +74,7 @@ describe 'Queue', () ->
     queuename = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -124,7 +124,7 @@ describe 'Queue', () ->
     queue = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -173,7 +173,7 @@ describe 'Queue', () ->
 
   it 'test it can get a queues consumer count with connection trouble 503', (done)->
 
-    thisproxy = new proxy.route(7008, 5672, "localhost")
+    thisproxy = new proxy.route(7008, 5672, "rabbitmq")
 
     amqp = null
     queue = null
@@ -230,7 +230,7 @@ describe 'Queue', () ->
 
   it 'test it can get a queues consumer count with connection trouble 504', (done)->
     this.timeout(5000)
-    thisproxy = new proxy.route(7008, 5672, "localhost")
+    thisproxy = new proxy.route(7008, 5672, "rabbitmq")
 
     amqp = null
     queue = null
@@ -291,7 +291,7 @@ describe 'Queue', () ->
     channel = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -321,7 +321,7 @@ describe 'Queue', () ->
     channel = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -353,7 +353,7 @@ describe 'Queue', () ->
     queue = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -382,7 +382,7 @@ describe 'Queue', () ->
     queueName = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -411,7 +411,7 @@ describe 'Queue', () ->
     queueName = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -444,7 +444,7 @@ describe 'Queue', () ->
     queueName = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -483,7 +483,7 @@ describe 'Queue', () ->
     queueName = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -548,7 +548,7 @@ describe 'Queue', () ->
     queueName = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -594,7 +594,7 @@ describe 'Queue', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -659,7 +659,7 @@ describe 'Queue', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -707,7 +707,7 @@ describe 'Queue', () ->
     queueName = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -747,7 +747,7 @@ describe 'Queue', () ->
     channel = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -792,7 +792,7 @@ describe 'Queue', () ->
     channel = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -820,7 +820,7 @@ describe 'Queue', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -842,7 +842,7 @@ describe 'Queue', () ->
           should.not.exist e
           eventFired++
       (next)->
-        amqp2 = new AMQP {host:'localhost'}, (e, r)->
+        amqp2 = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 

@@ -12,7 +12,7 @@ describe 'Connection Heartbeats', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost', port: 5672, heartbeat: 1000}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq', port: 5672, heartbeat: 1000}, (e, r)->
           should.not.exist e
           next()
 
@@ -34,7 +34,7 @@ describe 'Connection Heartbeats', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost', port: 5672, heartbeat: 1000}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq', port: 5672, heartbeat: 1000}, (e, r)->
           should.not.exist e
           next()
 
@@ -74,7 +74,7 @@ describe 'Connection Heartbeats', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost', port: 5672, heartbeat: 1000}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq', port: 5672, heartbeat: 1000}, (e, r)->
           should.not.exist e
           next()
 
@@ -93,7 +93,7 @@ describe 'Connection Heartbeats', () ->
   it 'hearthbeat missing reconnects 574', (done)->
 
     this.timeout(60000)
-    proxy = new Proxy.route(7070, 5672, "localhost")
+    proxy = new Proxy.route(7070, 5672, "rabbitmq")
     amqp = null
 
     async.series [
@@ -129,13 +129,13 @@ describe 'Connection Heartbeats', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
 
         amqp.once 'ready', next
 
       (next)->
-        consumer = new AMQP {host:'localhost', heartbeat: 1000}, (e, r)->
+        consumer = new AMQP {host:'rabbitmq', heartbeat: 1000}, (e, r)->
           should.not.exist e
 
         consumer.once 'ready', next

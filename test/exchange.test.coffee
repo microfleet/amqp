@@ -1,7 +1,6 @@
 should  = require('should')
 async    = require('async')
 _        = require('underscore')
-proxy    = require('./proxy')
 uuid = require('uuid').v4
 
 AMQP = require('../src/amqp')
@@ -14,7 +13,7 @@ describe 'Exchange', () ->
     exchange = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -42,7 +41,7 @@ describe 'Exchange', () ->
     exchange = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -71,7 +70,7 @@ describe 'Exchange', () ->
     exchange = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -99,7 +98,7 @@ describe 'Exchange', () ->
     exchange = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -121,7 +120,7 @@ describe 'Exchange', () ->
     exchange = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -144,7 +143,7 @@ describe 'Exchange', () ->
     exchange = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -178,7 +177,7 @@ describe 'Exchange', () ->
     exchange = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -235,7 +234,7 @@ describe 'Exchange', () ->
     exchange = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -273,7 +272,7 @@ describe 'Exchange', () ->
     exchange = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -308,7 +307,7 @@ describe 'Exchange', () ->
     exchange = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 

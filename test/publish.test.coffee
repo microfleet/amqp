@@ -1,7 +1,6 @@
 should  = require('should')
 async    = require('async')
 _        = require('underscore')
-proxy    = require('./proxy')
 uuid = require('uuid').v4
 
 AMQP = require('../src/amqp')
@@ -16,7 +15,7 @@ describe 'Publisher', () ->
     queue = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -33,7 +32,7 @@ describe 'Publisher', () ->
     queue = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -52,7 +51,7 @@ describe 'Publisher', () ->
     queue = uuid()
     done = _.once done
 
-    amqp = new AMQP {host:'localhost'}, (e, r)->
+    amqp = new AMQP {host:'rabbitmq'}, (e, r)->
       should.not.exist e
 
       amqp.queue {queue}, (e,q)->
@@ -75,7 +74,7 @@ describe 'Publisher', () ->
     queue = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -91,7 +90,7 @@ describe 'Publisher', () ->
     amqp = null
     queue = uuid()
 
-    amqp = new AMQP {host:'localhost'}, (e, r)->
+    amqp = new AMQP {host:'rabbitmq'}, (e, r)->
       should.not.exist e
 
     amqp.publish "amq.direct", queue, "test message", {}, (e,r)->
@@ -104,7 +103,7 @@ describe 'Publisher', () ->
   #   queue = uuid()
   #   async.series [
   #     (next)->
-  #       amqp = new AMQP {host:'localhost'}, (e, r)->
+  #       amqp = new AMQP {host:'rabbitmq'}, (e, r)->
   #         should.not.exist e
   #         next()
 
@@ -121,7 +120,7 @@ describe 'Publisher', () ->
     queue = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -141,7 +140,7 @@ describe 'Publisher', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -169,7 +168,7 @@ describe 'Publisher', () ->
     queue = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -187,7 +186,7 @@ describe 'Publisher', () ->
     packetSize = MaxFrameSize * 2.5
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -205,7 +204,7 @@ describe 'Publisher', () ->
     packetSize = 344
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -224,7 +223,7 @@ describe 'Publisher', () ->
     packetSize = 344
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -244,7 +243,7 @@ describe 'Publisher', () ->
     queue = uuid()
     packetSize = 256837
 
-    amqp = new AMQP {host:'localhost'}, (e, r)->
+    amqp = new AMQP {host:'rabbitmq'}, (e, r)->
       should.not.exist e
 
       async.forEach [0...10], (i, next)->
@@ -260,7 +259,7 @@ describe 'Publisher', () ->
     queue = null
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -280,7 +279,7 @@ describe 'Publisher', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -321,7 +320,7 @@ describe 'Publisher', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -389,7 +388,7 @@ describe 'Publisher', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 
@@ -457,7 +456,7 @@ describe 'Publisher', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost'}, (e, r)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
           next()
 

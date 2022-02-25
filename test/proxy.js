@@ -8,7 +8,7 @@ module.exports.route = function (proxyPort, servicePort, serviceHost) {
   var proxyRoute = this;
   proxyRoute.proxyPort = proxyPort || 9001;
   var servicePort = servicePort || 5672;
-  var serviceHost = serviceHost || '127.0.0.1';
+  var serviceHost = serviceHost || 'rabbitmq';
 
   proxyRoute.operational = true;
   proxyRoute.serviceSockets = [];
