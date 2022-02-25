@@ -4,7 +4,7 @@ _        = require('underscore')
 proxy    = require('./proxy')
 uuid = require('uuid').v4
 
-AMQP = require('src/amqp')
+AMQP = require('../src/amqp')
 
 { MaxFrameSize, FrameType, HeartbeatFrame }   = require('../src/lib/config').constants
 

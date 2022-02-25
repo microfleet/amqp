@@ -4,7 +4,7 @@ _        = require('underscore')
 SslProxy    = require('./sslproxy')
 Proxy = require('./proxy')
 
-AMQP = require('src/amqp')
+AMQP = require('../src/amqp')
 
 describe 'SSL Connection', () ->
   sslProxyConnection = null

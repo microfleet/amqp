@@ -3,7 +3,7 @@ async    = require('async')
 _        = require('underscore')
 Proxy    = require('./proxy')
 
-AMQP = require('src/amqp')
+AMQP = require('../src/amqp')
 
 describe 'Connection', () ->
   it 'tests it can connect to localhost', (done) ->

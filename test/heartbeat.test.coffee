@@ -3,7 +3,7 @@ async    = require('async')
 _        = require('underscore')
 Proxy    = require('./proxy')
 
-AMQP = require('src/amqp')
+AMQP = require('../src/amqp')
 
 describe 'Connection Heartbeats', () ->
   it 'we can get a heartbeat 541', (done)->
