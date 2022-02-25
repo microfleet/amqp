@@ -13,6 +13,7 @@ specifiers:
   eslint-config-makeomatic: ^5.1.0
   lodash: ^4.17.14
   mocha: ^9.2.1
+  semantic-release: ^19.0.2
   should: 13.2.3
   typescript: ^4.5.5
   underscore: ^1.9.1
@@ -33,6 +34,7 @@ devDependencies:
   eslint: 8.10.0
   eslint-config-makeomatic: 5.1.0_typescript@4.5.5
   mocha: 9.2.1
+  semantic-release: 19.0.2
   should: 13.2.3
   typescript: 4.5.5
   underscore: 1.13.2
