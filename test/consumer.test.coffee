@@ -13,6 +13,13 @@ bson    = require('bson')
 
 describe 'Consumer', () ->
   this.timeout(10000)
+
+  amqp = null
+
+  afterEach (done) ->
+    amqp.close()
+    done()
+
   it 'test we can consume a queue and get a message', (done)->
 
     testData = {test:"message"}
@@ -103,7 +110,6 @@ describe 'Consumer', () ->
 
     ], done
 
-
   it 'test we fail correctly with a exclusive consumer 165', (done)->
 
     amqp = null
@@ -176,7 +182,6 @@ describe 'Consumer', () ->
     ], (e,r)->
       should.not.exist e
 
-
   it 'test we can consume a queue and get some messages, and keep them intact 587', (done)->
 
     testData = [{test:"message1"},{test:"message2"}]
@@ -233,8 +238,6 @@ describe 'Consumer', () ->
     ], (e,r)->
       should.not.exist e
 
-
-
   it 'test we can consume a queue and get a big message 588', (done)->
 
     testData = Buffer.alloc(MaxFrameSize*3.5)
@@ -274,7 +277,6 @@ describe 'Consumer', () ->
         amqp.publish "amq.direct", queue, testData, {confirm: true}, next
     ], (e,r)->
       should.not.exist e
-
 
   it 'test we can consume a queue several really big messages 173', (done)->
     this.timeout(120000)
@@ -352,8 +354,6 @@ describe 'Consumer', () ->
     ], (e,r)->
       should.not.exist e
 
-
-
   it 'test we can consume a queue and get a BSON big message 142', (done)->
     t = Buffer.alloc(MaxFrameSize*3.5)
     testData = {t: t.toString()}
@@ -385,8 +385,6 @@ describe 'Consumer', () ->
         amqp.publish "amq.direct", queue, bson.serialize(testData), {contentType:"application/bson", confirm: true}, next
     ], (e,r)->
       should.not.exist e
-
-
 
   it 'test we can consume and get max messages', (done)->
 
@@ -431,8 +429,6 @@ describe 'Consumer', () ->
           next()
     ], (e,r)->
       should.not.exist e
-
-
 
   it 'test we can consume and change prefetchCount 700', (done)->
     testData = {test:"message"}
@@ -537,8 +533,6 @@ describe 'Consumer', () ->
     ], (e,r)->
       should.not.exist e
 
-
-
   it 'test we can use flow control 496', (done)->
 
     testData = {test:"message"}
@@ -591,7 +585,6 @@ describe 'Consumer', () ->
     ], (e,r)->
       should.not.exist e
 
-
   it 'test we can consume and reject a message', (done)->
 
     testData = {test:"message"}
@@ -634,8 +627,6 @@ describe 'Consumer', () ->
           next()
     ], (e,r)->
       should.not.exist e
-
-
 
   it 'test we can consume and retry a message', (done)->
 
@@ -681,7 +672,6 @@ describe 'Consumer', () ->
           next()
     ], (e,r)->
       should.not.exist e
-
 
   it 'test we can consume and deal with a crash mid stream 705', (done)->
 
@@ -729,7 +719,6 @@ describe 'Consumer', () ->
     ], (e,r)->
       should.not.exist e
 
-
   it 'test we can consume and cancel the consumer', (done)->
 
     testData = {test:"message"}
@@ -774,7 +763,6 @@ describe 'Consumer', () ->
           next()
     ], (e,r)->
       should.not.exist e
-
 
   it 'test we can consumer cancel notify', (done)->
 
@@ -915,7 +903,6 @@ describe 'Consumer', () ->
     ], (e,r)->
       should.not.exist e
 
-
   it 'test we can consume and interrupt a nameless queue 806', (done)->
     this.timeout = 60000
     thisproxy = new proxy.route(7007, 5672, "rabbitmq")
@@ -973,7 +960,6 @@ describe 'Consumer', () ->
 
     ], (e,r)->
       should.not.exist e
-
 
   it 'test we can consume and interrupt a nameless queue with resume 807', (done)->
     this.timeout = 60000
@@ -1034,8 +1020,6 @@ describe 'Consumer', () ->
     ], (e,r)->
       should.not.exist e
 
-
-
   it 'test we can consume and interrupt a nameless queue with close 807.5', (done)->
     this.timeout = 60000
     thisproxy = new proxy.route(7008, 5672, "rabbitmq")
@@ -1094,9 +1078,6 @@ describe 'Consumer', () ->
 
     ], (e,r)->
       should.not.exist e
-
-
-
 
   it 'test we can close a consumer channel 854.5', (done)->
 
@@ -1224,7 +1205,6 @@ describe 'Consumer', () ->
     ], (e,r)->
       should.not.exist e
 
-
   it 'test we can consume a null message 857', (done)->
     amqp = null
     queue = uuid()
@@ -1256,7 +1236,6 @@ describe 'Consumer', () ->
           next()
     ], (e,r)->
       should.not.exist e
-
 
   it 'test we can consume a zero length message 858', (done)->
     amqp = null
@@ -1358,5 +1337,53 @@ describe 'Consumer', () ->
 
       (next)->
         amqp.publish "amq.direct", queueName, {value: 3}, {confirm: true}, next
+    ], (e,r)->
+      should.not.exist e
+
+  it 'test we can use flow control 498 autoAck', (done)->
+
+    testData = {test:"message"}
+    amqp = null
+    queue = uuid()
+    messagesRecieved = 0
+    consumer = null
+
+    messageProcessor = (m)->
+      m.data.should.eql testData
+      messagesRecieved++
+
+      if messagesRecieved is 10
+        consumer.pause()
+        _.delay ()->
+          messagesRecieved.should.eql 10
+          consumer.resume()
+        , 500
+
+      if messagesRecieved is 50
+        _.delay ()->
+          messagesRecieved.should.eql 50
+          done()
+        , 50
+
+    async.series [
+      (next)->
+        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
+          should.not.exist e
+          next()
+
+      (next)->
+        amqp.queue {autoDelete:false, queue}, (e,q)->
+          q.declare ()->
+            q.bind "amq.direct", queue, next
+
+      (next)->
+        async.forEach [0...50], (i, done)->
+          amqp.publish "amq.direct", queue, testData, {confirm: true}, done
+        , next
+
+      (next)->
+        consumer = amqp.consume queue, {prefetchCount: 10, noAck: true }, messageProcessor, (e,r)->
+          should.not.exist e
+          next()
     ], (e,r)->
       should.not.exist e
