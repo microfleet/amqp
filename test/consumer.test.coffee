@@ -41,7 +41,8 @@ describe 'Consumer', () ->
 
       (next)->
         amqp.publish "amq.direct", queue, testData, {confirm: true}, next
-    ]
+    ], (e,r)->
+      should.not.exist e
 
   it 'test we can consume a queue and get a message with headers 163', (done)->
 
@@ -71,9 +72,9 @@ describe 'Consumer', () ->
 
       (next)->
         amqp.publish "amq.direct", queue, testData, {confirm: true}, next
-    ]
 
-
+    ], (e,r)->
+      should.not.exist e
 
   it 'test we can set up a bunch of consumes 164', (done)->
 
@@ -172,7 +173,8 @@ describe 'Consumer', () ->
 
       (next)->
         amqp.publish "amq.direct", queue, testData, {confirm: true}, next
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
   it 'test we can consume a queue and get some messages, and keep them intact 587', (done)->
@@ -228,7 +230,8 @@ describe 'Consumer', () ->
       (next)->
         amqp.publish "amq.direct", queue, testData[1], {confirm: true}, next
 
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
 
@@ -269,7 +272,8 @@ describe 'Consumer', () ->
 
       (next)->
         amqp.publish "amq.direct", queue, testData, {confirm: true}, next
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
   it 'test we can consume a queue several really big messages 173', (done)->
@@ -345,7 +349,8 @@ describe 'Consumer', () ->
 
       (next)->
         amqp.publish "amq.direct", queue, testData, {confirm: true}, next
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
 
@@ -424,7 +429,8 @@ describe 'Consumer', () ->
         amqp.consume queue, {prefetchCount: 2}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
 
@@ -487,7 +493,8 @@ describe 'Consumer', () ->
           should.not.exist e
           next()
 
-    ]
+    ], (e,r)->
+      should.not.exist e
 
   it 'test we can consume a bunch of messages 215', (done)->
 
@@ -527,7 +534,8 @@ describe 'Consumer', () ->
         amqp.consume queue, {prefetchCount: 500}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
 
@@ -580,7 +588,8 @@ describe 'Consumer', () ->
         consumer = amqp.consume queue, {prefetchCount: 10}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
   it 'test we can consume and reject a message', (done)->
@@ -623,7 +632,8 @@ describe 'Consumer', () ->
         amqp.consume queue, {prefetchCount: 2}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
 
@@ -669,7 +679,8 @@ describe 'Consumer', () ->
         amqp.consume queue, {prefetchCount: 2}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
   it 'test we can consume and deal with a crash mid stream 705', (done)->
@@ -715,7 +726,8 @@ describe 'Consumer', () ->
         consumer = amqp.consume queue, {prefetchCount: 2}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
   it 'test we can consume and cancel the consumer', (done)->
@@ -760,7 +772,8 @@ describe 'Consumer', () ->
         consumer = amqp.consume queue, {prefetchCount: 1}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
   it 'test we can consumer cancel notify', (done)->
@@ -899,7 +912,8 @@ describe 'Consumer', () ->
             thisproxy.close()
             done()
 
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
   it 'test we can consume and interrupt a nameless queue 806', (done)->
@@ -957,7 +971,8 @@ describe 'Consumer', () ->
       (next)->
         amqp.publish "", queue, testData, {confirm: true}, next
 
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
   it 'test we can consume and interrupt a nameless queue with resume 807', (done)->
@@ -1016,7 +1031,8 @@ describe 'Consumer', () ->
       (next)->
         amqp.publish "", queue, testData, {confirm: true}, next
 
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
 
@@ -1076,7 +1092,8 @@ describe 'Consumer', () ->
       (next)->
         amqp.publish "", queue, testData, {confirm: true}, next
 
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
 
@@ -1125,7 +1142,8 @@ describe 'Consumer', () ->
         consumer = amqp.consume queue, {prefetchCount: 1}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
   it 'test we can consume and interrupt midstream and get all the messages 855', (done)->
 
@@ -1171,7 +1189,8 @@ describe 'Consumer', () ->
         consumer = amqp.consume queue, {prefetchCount: 1}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
   it 'test we can consume a undefined message 856', (done)->
     amqp = null
@@ -1202,7 +1221,8 @@ describe 'Consumer', () ->
         consumer = amqp.consume queue, {}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
   it 'test we can consume a null message 857', (done)->
@@ -1234,7 +1254,8 @@ describe 'Consumer', () ->
         consumer = amqp.consume queue, {}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
 
   it 'test we can consume a zero length message 858', (done)->
@@ -1267,7 +1288,8 @@ describe 'Consumer', () ->
         consumer = amqp.consume queue, {}, messageProcessor, (e,r)->
           should.not.exist e
           next()
-    ]
+    ], (e,r)->
+      should.not.exist e
 
   it 'test acknowledging multiple deliveries', (done)->
     amqp = null
@@ -1336,4 +1358,5 @@ describe 'Consumer', () ->
 
       (next)->
         amqp.publish "amq.direct", queueName, {value: 3}, {confirm: true}, next
-    ]
+    ], (e,r)->
+      should.not.exist e

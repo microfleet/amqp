@@ -6,7 +6,6 @@ var tls = require('tls');
 var debug = require('debug')('ssl-proxy');
 var fs = require('fs');
 
-
 module.exports.route = function (proxyPort, servicePort, serviceHost) {
   var proxyRoute = this;
   proxyRoute.proxyPort = proxyPort || 5671;
@@ -31,8 +30,12 @@ module.exports.route = function (proxyPort, servicePort, serviceHost) {
     var buffers = [];
     var serviceSocket = new net.Socket();
     proxyRoute.serviceSockets.push(serviceSocket);
-    serviceSocket.connect(parseInt(servicePort), serviceHost);
+    serviceSocket.connect(parseInt(servicePort, 10), serviceHost);
+
+    debug('connecting serviceSocket to', parseInt(servicePort, 10), serviceHost)
+
     serviceSocket.on('connect', function() {
+      debug('service socket connected' + serviceHost, servicePort);
       connected = true;
       for (var i in buffers) {
         serviceSocket.write(buffers[i]);
@@ -40,10 +43,12 @@ module.exports.route = function (proxyPort, servicePort, serviceHost) {
       buffers = [];
     });
     proxySocket.on('error', function (e) {
+      debug('proxy socket err', e)
       serviceSocket.end();
     });
     serviceSocket.on('error', function (e) {
       debug('Could not connect to service at host ' + serviceHost + ', port ' + servicePort);
+      debug('error', e);
       proxySocket.end();
     });
     proxySocket.on("data", function (data) {

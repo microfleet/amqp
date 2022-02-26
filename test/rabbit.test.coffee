@@ -15,7 +15,7 @@ describe 'Rabbit Plugin', () ->
     async.series [
       (next)->
 
-        amqp = new AMQP  {host:['127.0.0.1', 'rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
+        amqp = new AMQP  {host:['rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
           should.not.exist e
           next()
 
@@ -81,7 +81,7 @@ describe 'Rabbit Plugin', () ->
     async.series [
       (next)->
 
-        amqp = new AMQP  {host:['127.0.0.1', 'rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
+        amqp = new AMQP  {host:['rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
           should.not.exist e
           next()
 
@@ -95,7 +95,7 @@ describe 'Rabbit Plugin', () ->
         next()
 
       (next)->
-        amqp = new AMQP  {host:['127.0.0.1', 'rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
+        amqp = new AMQP  {host:['rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
           should.not.exist e
           next()
 
@@ -107,7 +107,7 @@ describe 'Rabbit Plugin', () ->
           next()
 
       (next)->
-        amqp.connectionOptions.host.should.eql 'localhost'
+        amqp.connectionOptions.host.should.eql 'rabbitmq'
         next()
 
     ], done

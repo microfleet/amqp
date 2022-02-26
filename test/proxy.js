@@ -10,6 +10,8 @@ module.exports.route = function (proxyPort, servicePort, serviceHost) {
   var servicePort = servicePort || 5672;
   var serviceHost = serviceHost || 'rabbitmq';
 
+  debug('created proxy', proxyPort, servicePort, serviceHost)
+
   proxyRoute.operational = true;
   proxyRoute.serviceSockets = [];
   proxyRoute.proxySockets = [];
@@ -28,7 +30,7 @@ module.exports.route = function (proxyPort, servicePort, serviceHost) {
     var buffers = [];
     var serviceSocket = new net.Socket();
     proxyRoute.serviceSockets.push(serviceSocket);
-    serviceSocket.connect(parseInt(servicePort), serviceHost);
+    serviceSocket.connect(parseInt(servicePort, 10), serviceHost);
     serviceSocket.on('connect', function() {
       connected = true;
       for (var i in buffers) {

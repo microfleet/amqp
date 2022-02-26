@@ -8,26 +8,34 @@ AMQP = require('../src/amqp')
 
 describe 'SSL Connection', () ->
   sslProxyConnection = null
+  amqp = null
+  proxy = null
+
   before (done)->
     sslProxyConnection = new SslProxy.route()
     done()
 
   after (done) ->
-    sslProxyConnection.close()
+    sslProxyConnection?.close()
+    done()
+
+  afterEach (done) ->
+    amqp?.close()
+    proxy?.close()
     done()
 
   it 'tests it can connect to localhost using ssl', (done) ->
-    amqp = new AMQP {host:'localhost', ssl: true, sslOptions: {secureProtocol:"TLSv1_method", ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
+    amqp = new AMQP {host:'localhost', ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
       should.not.exist e
       done()
 
   it 'we can reconnect if the connection fails ssl', (done)->
-    proxy = new Proxy.route(7051, 5671, "rabbitmq")
+    proxy = new Proxy.route(7051, 5671, "localhost")
     amqp = null
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost', sslPort: 7051, ssl: true, sslOptions: {secureProtocol:"TLSv1_method", ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
+        amqp = new AMQP {host:'localhost', sslPort: 7051, ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
           should.not.exist e
           next()
 
@@ -47,13 +55,13 @@ describe 'SSL Connection', () ->
       done()
 
   it 'we emit only one close event ssl', (done)->
-    proxy = new Proxy.route(9010, 5671, "rabbitmq")
+    proxy = new Proxy.route(9010, 5671, "localhost")
     amqp  = null
     closes = 0
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost', sslPort: 9010, ssl: true, sslOptions: {secureProtocol:"TLSv1_method", ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
+        amqp = new AMQP {host:'localhost', sslPort: 9010, ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
           should.not.exist e
           next()
 
@@ -81,7 +89,7 @@ describe 'SSL Connection', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'localhost', ssl: true, sslOptions: {secureProtocol:"TLSv1_method", ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
+        amqp = new AMQP {host:'localhost', ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
           should.not.exist e
           next()
 

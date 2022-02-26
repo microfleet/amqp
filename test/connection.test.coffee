@@ -6,6 +6,14 @@ Proxy    = require('./proxy')
 AMQP = require('../src/amqp')
 
 describe 'Connection', () ->
+  amqp = null
+  proxy = null
+
+  afterEach (done) ->
+    amqp?.close()
+    proxy?.close()
+    done()
+
   it 'tests it can connect to rabbitmq', (done) ->
     amqp = new AMQP {host:'rabbitmq'}, (e, r)->
       should.not.exist e
@@ -33,7 +41,7 @@ describe 'Connection', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:'rabbitmq', port: 7001}, (e, r)->
+        amqp = new AMQP {host:'localhost', port: 7001}, (e, r)->
           should.not.exist e
           next()
 
@@ -129,7 +137,7 @@ describe 'Connection', () ->
 
     async.series [
       (next)->
-        amqp = new AMQP {host:['rabbitmq','127.0.0.1'], port: 9009}, (e, r)->
+        amqp = new AMQP {host:['localhost','127.0.0.1'], port: 9009}, (e, r)->
           should.not.exist e
           next()
 

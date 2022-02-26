@@ -1,6 +1,7 @@
 {
-  "require": ["coffeescript/register"],
+  "require": ["coffeescript/register", "source-map-support/register"],
   "reporter": "spec",
   "ui": "bdd",
-  "timeout": 10000
+  "timeout": 10000,
+  "exit": true
 }

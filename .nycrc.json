@@ -1,12 +1,6 @@
 {
-  "include": [
-    "src/**/*.coffee"
-  ],
   "cache": true,
   "clean": false,
-  "require": [
-    "coffeescript/register"
-  ],
   "reporter": [
     "text-summary"
   ]

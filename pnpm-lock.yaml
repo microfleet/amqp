@@ -16,6 +16,7 @@ specifiers:
   rimraf: ^3.0.2
   semantic-release: ^19.0.2
   should: 13.2.3
+  source-map-support: ^0.5.21
   typescript: ^4.5.5
   underscore: ^1.9.1
   uuid: ^8.3.2
@@ -38,6 +39,7 @@ devDependencies:
   rimraf: 3.0.2
   semantic-release: 19.0.2
   should: 13.2.3
+  source-map-support: 0.5.21
   typescript: 4.5.5
   underscore: 1.13.2
   uuid: 8.3.2
@@ -4064,6 +4066,13 @@ packages:
     resolution: {integrity: sha512-6xYZFRmDEtxGqfOKcDQ4cPLrNa0SPEDI+wlzDAHowXE6YV42NeXqg9mP2KkiM8JVu3lHfZ2iQKYlGOz+kTpphg==}
     dependencies:
       atomic-sleep: 1.0.0
+    dev: true
+
+  /source-map-support/0.5.21:
+    resolution: {integrity: sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==}
+    dependencies:
+      buffer-from: 1.1.2
+      source-map: 0.6.1
     dev: true
 
   /source-map/0.6.1:

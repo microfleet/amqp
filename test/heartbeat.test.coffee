@@ -4,6 +4,7 @@ _        = require('underscore')
 Proxy    = require('./proxy')
 
 AMQP = require('../src/amqp')
+debug = require('debug')('heartbeat')
 
 describe 'Connection Heartbeats', () ->
   it 'we can get a heartbeat 541', (done)->
@@ -132,40 +133,49 @@ describe 'Connection Heartbeats', () ->
         amqp = new AMQP {host:'rabbitmq'}, (e, r)->
           should.not.exist e
 
+        debug('amqp ready')
         amqp.once 'ready', next
 
       (next)->
         consumer = new AMQP {host:'rabbitmq', heartbeat: 1000}, (e, r)->
           should.not.exist e
 
+        debug('consumer ready')
         consumer.once 'ready', next
 
       (next)->
         amqp.queue {queue: ''}, (err, queueInfo)->
           should.not.exist err
+          debug('queue pre')
 
           queueInfo.declare (err, queueInfo)->
             should.not.exist err
             queueName = queueInfo.queue
+            debug('queue declared', queueInfo.queue)
             next()
 
       (next)->
 
         consumer.consume queueName, {}, ()->
+          debug 'consumed+'
 
         shouldStop = false
 
         setTimeout ()->
           shouldStop = true
+          debug('should stop')
         , 4000
 
-        async.until ()->
-          return shouldStop
+        async.until (cb)->
+          debug('eh?')
+          cb null, shouldStop
         , (done)->
+          debug('h+')
           amqp.publish '', queueName, 'message', done
         , next
 
       (next)->
+        debug('close?')
         amqp.close()
         consumer.close()
         next()
