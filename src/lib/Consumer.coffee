@@ -59,13 +59,14 @@ class Consumer extends Channel
       providedOptions['global'] = options.global if options.global?
 
       qosOptions    = applyDefaults providedOptions, defaults.basicQos
-      options.noAck = false
+      options.noAck = options.noAck || false
       delete options.prefetchCount
     else
       @qos = false
       options.noAck = true
 
-    consumeOptions             = applyDefaults options, defaults.basicConsume
+    # do not mutate original opts
+    consumeOptions             = applyDefaults {}, options, defaults.basicConsume
     consumeOptions.queue       = queueName
     consumeOptions.consumerTag = @consumerTag
 
@@ -170,7 +171,7 @@ class Consumer extends Channel
       @consumerState = CONSUMER_STATE_CONNECTION_CLOSED
 
   multiAck: (deliveryTag)->
-    if @qos
+    if @qos and !@consumeOptions.noAck
       @outstandingDeliveryTags = pickBy @outstandingDeliveryTags, (value, key) -> key > deliveryTag
 
       if @state is 'open'
@@ -179,7 +180,7 @@ class Consumer extends Channel
 
   # QOS RELATED Callbacks
   ack: ()->
-    if @subscription.qos and @subscription.outstandingDeliveryTags[@deliveryTag]?
+    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags[@deliveryTag]?
       delete @subscription.outstandingDeliveryTags[@deliveryTag]
 
       if @subscription.state is 'open'
@@ -187,7 +188,7 @@ class Consumer extends Channel
         @subscription.connection._sendMethod @subscription.channel, methods.basicAck, basicAckOptions
 
   reject: ()->
-    if @subscription.qos and @subscription.outstandingDeliveryTags[@deliveryTag]?
+    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags[@deliveryTag]?
       delete @subscription.outstandingDeliveryTags[@deliveryTag]
 
       if @subscription.state is 'open'
@@ -195,7 +196,7 @@ class Consumer extends Channel
         @subscription.connection._sendMethod @subscription.channel, methods.basicReject, basicAckOptions
 
   retry: ()->
-    if @subscription.qos and @subscription.outstandingDeliveryTags[@deliveryTag]?
+    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags[@deliveryTag]?
       delete @subscription.outstandingDeliveryTags[@deliveryTag]
 
       if @subscription.state is 'open'
