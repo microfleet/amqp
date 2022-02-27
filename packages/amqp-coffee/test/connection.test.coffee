@@ -3,9 +3,8 @@ async    = require('async')
 _        = require('underscore')
 Proxy    = require('./proxy')
 
-AMQP = require('../src/amqp')
-
 describe 'Connection', () ->
+  AMQP = require('../src/amqp')
   amqp = null
   proxy = null
 

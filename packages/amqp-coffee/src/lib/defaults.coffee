@@ -3,7 +3,7 @@ try
 catch e
   clientVersion = '0.0.1'
 
-{ MaxFrameSize } = require('./constants')
+{ MaxFrameSize } = require('@microfleet/amqp-codec')
 
 os = require('os')
 

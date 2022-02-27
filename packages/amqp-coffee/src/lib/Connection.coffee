@@ -13,19 +13,20 @@ delay = require('lodash/delay')
 keys = require('lodash/keys')
 
 defaults = require('./defaults')
-{ methodTable, classes, methods } = require('./config').protocol
-{ FrameType, HeartbeatFrame, EndFrame } = require('./config').constants
-{ serializeInt, serializeFields } = require('./serializationHelpers')
-
 Queue = require('./Queue')
 Exchange = require('./Exchange')
-AMQPParser = require('./AMQPParser')
 ChannelManager  = require('./ChannelManager')
+
+{ 
+  HandshakeFrame, 
+  Parser, 
+  Serializer, 
+  FrameType,
+  methods
+} = require('@microfleet/amqp-codec')
 
 if process.env.AMQP_TEST?
   defaults.connection.reconnectDelayTime = 100
-
-hasOwnProperty = Object.prototype.hasOwnProperty
 
 class Connection extends EventEmitter
 
@@ -65,8 +66,7 @@ class Connection extends EventEmitter
     # connection tuning paramaters
     @channelMax = @connectionOptions.channelMax
     @frameMax   = @connectionOptions.frameMax
-
-    @sendBuffer = Buffer.allocUnsafe(@frameMax)
+    @serializer = new Serializer @frameMax
 
     @channelManager = new ChannelManager(@)
 
@@ -334,7 +334,7 @@ class Connection extends EventEmitter
     @sendHeartbeatTimer = setInterval(@_sendHeartbeat, @connectionOptions.heartbeat)
 
   _sendHeartbeat: () =>
-    @connection.write HeartbeatFrame
+    @connection.write @serializer.encode(0, { type: FrameType.HEARTBEAT })
 
   # called directly in tests to simulate missed heartbeat
   _missedHeartbeat: () =>
@@ -344,21 +344,40 @@ class Connection extends EventEmitter
 
     @_clearHeartbeatTimer()
 
+  _onParserResponse: (channel, datum) =>
+    debug "onParserResponse -> #{channel} #{Object.keys(datum)}"
+
+    if datum instanceof Error
+      @emit 'error', datum
+      return
+
+    switch datum.type
+      when FrameType.METHOD
+        @_onMethod(channel, datum.method, datum.args)
+      
+      when FrameType.HEADER
+        @_onContentHeader(channel, datum.classInfo, datum.weight, datum.properties, datum.size)
+
+      when FrameType.BODY
+        @_onContent(channel, datum.data)
+
+      when FrameType.HEARTBEAT
+        @_receivedHeartbeat()
+
   _setupParser: (cb)->
-    if @parser? then @parser.removeAllListeners()
-
-    # setup the parser
-    @parser = new AMQPParser('0-9-1', 'client', @)
-
-    @parser.on 'method',         @_onMethod
-    @parser.on 'contentHeader',  @_onContentHeader
-    @parser.on 'content',        @_onContent
-    @parser.on 'heartbeat',      @_receivedHeartbeat
+    if @parser?
+      @parser.reset()
+    else
+      # setup the parser
+      @parser = new Parser {
+        handleResponse: @_onParserResponse
+      }
 
     # network --> parser
     # send any connection data events to our parser
     @connection.removeAllListeners('data') # cleanup reconnections
-    @connection.on 'data', (data)=> @parser.execute data
+    @connection.on 'data', @parser.execute
+    @connection.write HandshakeFrame
 
     if cb?
       @removeListener('ready', cb)
@@ -369,133 +388,49 @@ class Connection extends EventEmitter
       return @once 'ready', () =>
         @_sendMethod(channel, method, args)
 
-
     debug 3, () -> return "#{channel} < #{method.name}"# #{util.inspect args}"
-    b = @sendBuffer
 
-    b.used = 0
+    methodBuffer = @serializer.encode channel, {
+      type: FrameType.METHOD,
+      name: method.name,
+      method,
+      args,
+    }
 
-    b[b.used++] = 1 # constants. FrameType.METHOD
-    serializeInt(b, 2, channel)
-
-    # will replace with actuall length later
-    lengthIndex = b.used
-    serializeInt(b, 4, 0)
-    startIndex = b.used
-
-    serializeInt(b, 2, method.classIndex)  # short, classId
-    serializeInt(b, 2, method.methodIndex) # short, methodId
-
-    serializeFields(b, method.fields, args, true)
-
-    endIndex = b.used
-
-    # write in the frame length now that we know it.
-    b.used = lengthIndex
-    serializeInt(b, 4, endIndex - startIndex)
-    b.used = endIndex
-
-    b[b.used++] = 206 # constants Indicators.frameEnd;
-
-    # we create this new buffer to make sure it doesn't get overwritten in a situation where we're backed up flushing to the network
-    methodBuffer = Buffer.allocUnsafe(b.used)
-    b.copy(methodBuffer,0 ,0 ,b.used)
     @connection.write(methodBuffer)
+
     @_resetSendHeartbeatTimer()
 
   # Only used in sendBody
   _sendHeader: (channel, size, args)=>
     debug 3, () => return "#{@id} #{channel} < header #{size}"# #{util.inspect args}"
-    b = @sendBuffer
+    debug args
 
-    classInfo = classes[60]
+    headerBuffer = @serializer.encode channel, {
+      type: FrameType.HEADER,
+      size,
+      properties: args,
+    }
 
-    b.used = 0
-    b[b.used++] = 2 # constants. FrameType.HEADER
+    @connection.write headerBuffer
 
-    serializeInt(b, 2, channel)
-
-    lengthStart = b.used
-    serializeInt(b, 4, 0) # temporary length
-    bodyStart   = b.used
-
-    serializeInt(b, 2, classInfo.index) # class 60 for Basic
-    serializeInt(b, 2, 0)               # weight, always 0 for rabbitmq
-    serializeInt(b, 8, size)            # byte size of body
-
-    #properties - first propertyFlags
-    propertyFlags  = [0]
-    propertyFields = []
-
-    ###
-    The property flags are an array of bits that indicate the presence or absence of each
-    property value in sequence. The bits are ordered from most high to low - bit 15 indicates
-    the first property.
-
-    The property flags can specify more than 16 properties. If the last bit (0) is set, this indicates that a
-    further property flags field follows. There are many property flags fields as needed.
-    ###
-    for field, i in classInfo.fields
-      if (i + 1)  % 16 is 0
-        # we have more than 15 properties, set bit 0 to 1 of the previous bit set
-        propertyFlags[Math.floor((i-1)/15)] |= 1 << 0
-        propertyFlags.push 0
-
-      if hasOwnProperty.call(args, field.name)
-        propertyFlags[Math.floor(i/15)] |= 1 <<(15-i)
-
-    for propertyFlag in propertyFlags
-      serializeInt(b, 2, propertyFlag)
-
-    #now the actual properties.
-    serializeFields(b, classInfo.fields, args, false)
-
-    #serializeTable(b, props);
-    bodyEnd = b.used
-
-    # Go back to the header and write in the length now that we know it.
-    b.used = lengthStart
-    serializeInt(b, 4, bodyEnd - bodyStart)
-    b.used = bodyEnd;
-
-    # 1 OCTET END
-    b[b.used++] = 206 # constants.frameEnd;
-
-    # we create this new buffer to make sure it doesn't get overwritten in a situation where we're backed up flushing to the network
-    headerBuffer = Buffer.allocUnsafe(b.used)
-    b.copy(headerBuffer,0 ,0 ,b.used)
-    @connection.write(headerBuffer)
     @_resetSendHeartbeatTimer()
 
   _sendBody: (channel, body, args, cb)=>
-    if body instanceof Buffer
-      @_sendHeader channel, body.length, args
-
-      offset = 0
-      while offset < body.length
-
-        length = Math.min((body.length - offset), @frameMax)
-        h      = Buffer.allocUnsafe(7)
-        h.used = 0
-
-        h[h.used++] = 3                     # constants.frameBody
-        serializeInt(h, 2, channel)
-        serializeInt(h, 4, length)
-
-        debug 3, () => return "#{@id} #{channel} < body #{offset}, #{offset+length} of #{body.length}"
-        @connection.write(h)
-        @connection.write(body.slice(offset,offset+length))
-        @connection.write(EndFrame)
-        @_resetSendHeartbeatTimer()
-
-        offset += @frameMax
-
-      cb?()
-      return true
-    else
+    unless body instanceof Buffer
       debug 1, ()-> return "invalid body type"
       cb?("Invalid body type for publish, expecting a buffer")
       return false
+
+    debug "sending header"
+    @_sendHeader channel, body.length, args
+
+    for frame from @serializer.encode(channel, { type: FrameType.BODY, data: body })
+      @connection.write frame
+
+    @_resetSendHeartbeatTimer()
+    cb?()
+    return true
 
   _onContentHeader: (channel, classInfo, weight, properties, size)=>
     @_resetHeartbeatTimer()
@@ -512,7 +447,6 @@ class Connection extends EventEmitter
       channel._onContent(channel, data)
     else
       debug 1, ()-> return "unhandled -- _onContent #{channel} > #{data.length}"
-
 
   _onMethod: (channel, method, args)=>
     @_resetHeartbeatTimer()
@@ -552,7 +486,7 @@ class Connection extends EventEmitter
 
           if args.frameMax? and args.frameMax < @frameMax
             @frameMax = args.frameMax
-            @sendBuffer = Buffer.allocUnsafe(@frameMax)
+            @serializer.setMaxFrameSize @frameMax
 
           @_sendMethod 0, methods.connectionTuneOk, {
             channelMax: @channelMax

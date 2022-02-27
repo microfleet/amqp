@@ -6,14 +6,11 @@ Channel = require('./Channel')
 async = require('async')
 defaults = require('./defaults')
 applyDefaults = require('lodash/defaults')
-extend = require('lodash/extend')
-clone = require('lodash/clone')
 pickBy = require('lodash/pickBy')
 
 bson = require('bson')
 
-{ methodTable, classes, methods } = require('./config').protocol
-{ MaxEmptyFrameSize } = require('./config').constants
+{ methods, MaxEmptyFrameSize } = require('@microfleet/amqp-codec')
 
 CONSUMER_STATE_OPEN = 'open'
 CONSUMER_STATE_OPENING = 'opening'
@@ -209,10 +206,7 @@ class Consumer extends Channel
     switch method
       when methods.basicDeliver
         delete args['consumerTag'] # TODO evaluate if this is a good idea
-        if @qos
-          @incomingMessage = args
-        else
-          @incomingMessage = args
+        @incomingMessage = args
 
       when methods.basicCancel
         debug 1, ()->return "basicCancel"
@@ -228,29 +222,35 @@ class Consumer extends Channel
 
   _onContentHeader: (channel, classInfo, weight, properties, size)->
     debug 3, ()->return "_onContentHeader #{JSON.stringify properties} #{size}"
-    @incomingMessage = extend @incomingMessage, {weight, properties, size}
+    Object.assign @incomingMessage, { weight, properties, size, used: 0 }
 
     # if we're only expecting one packet lets just copy the buffer when we get it
     # otherwise lets create a new incoming data buffer and pre alloc the space
     if size > @connection.frameMax - MaxEmptyFrameSize
-      @incomingMessage.data      = Buffer.allocUnsafe(size)
-      @incomingMessage.data.used = 0
+      @incomingMessage.data = Buffer.allocUnsafe(size)
+      debug 3, "alloc data"
 
     if size == 0
       @_onContent(channel, Buffer.allocUnsafe(0))
+      debug 3, "alloc empty data"
 
   _onContent: (channel, data)=>
+    debug 3, () => "size is #{@incomingMessage.size}, l is #{data.length}"
+
     if !@incomingMessage.data? and @incomingMessage.size is data.length
       # if our size is equal to the data we have, just replace the data object
       @incomingMessage.data = data
+      @incomingMessage.used = data.length
+      debug 3, "alloc data onContent"
 
     else
+      debug 3, "try to copy"
       # if there are multiple packets just copy the data starting from the last used bit.
-      data.copy(@incomingMessage.data, @incomingMessage.data.used)
-      @incomingMessage.data.used += data.length
+      data.copy @incomingMessage.data, @incomingMessage.used
+      @incomingMessage.used += data.length
 
-    if @incomingMessage.data.used >= @incomingMessage.size || @incomingMessage.size == 0
-      message = clone @incomingMessage
+    if @incomingMessage.used >= @incomingMessage.size || @incomingMessage.size == 0
+      message = Object.assign {}, @incomingMessage
       message.raw = @incomingMessage.data
 
       # DEFINE GETTERS ON THE DATA FIELD WHICH RETURN A COPY OF THE RAW DATA

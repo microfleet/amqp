@@ -13,6 +13,7 @@ publisherPoolSize = 1
 Publisher = require('./Publisher')
 Consumer = require('./Consumer')
 TemporaryChannel  = require('./TemporaryChannel')
+{ hasOwnProperty } = Object.prototype
 
 class ChannelManager
   constructor: (connection)->
@@ -84,6 +85,6 @@ class ChannelManager
     delete @channels[channelNumber]
 
   isChannelClosed: (channelNumber)->
-    return !@channels.hasOwnProperty(channelNumber)
+    return !hasOwnProperty.call(@channels, channelNumber)
 
 module.exports = ChannelManager

@@ -7,7 +7,7 @@ clone = require('lodash/clone')
 applyDefaults = require('lodash/defaults')
 
 { BasicReturnError } = require('./Errors')
-{ methodTable, classes, methods } = require('./config').protocol
+{ methods } = require('@microfleet/amqp-codec')
 
 class Publisher extends Channel
 
@@ -113,6 +113,8 @@ class Publisher extends Channel
   _onMethod: (channel, method, args)->
     @currentMethod = method
     @currentArgs   = args
+
+    debug "#{channel} #{method.name} #{JSON.stringify(args)}"
 
     switch method
       when methods.basicAck

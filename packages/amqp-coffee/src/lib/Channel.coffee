@@ -5,9 +5,8 @@ debug = require('./config').debug('amqp:Channel')
 async = require('async')
 defer = require('lodash/defer')
 
-defaults = require('./defaults')
-{ methodTable, classes, methods } = require('./config').protocol
-
+{ methodTable } = require('./config').protocol
+{ methods } = require('@microfleet/amqp-codec')
 
 # we track this to avoid node's max stack size with a saturated async queue
 OVERFLOW_PROTECTION = 0
@@ -127,7 +126,7 @@ class Channel extends EventEmitter
     debug 4, ()->return "channel reconnect called and should be overwritten"
     cb()
 
-  _onMethod: (method, args)->
+  _onMethod: ()->
     debug 3, ()->return "_onMethod MUST be overwritten by whoever extends Channel"
 
 

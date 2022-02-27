@@ -1,11 +1,9 @@
 # Queues
 debug = require('./config').debug('amqp:Queue')
-Channel = require('./Channel')
 defaults = require('./defaults')
 applyDefaults = require('lodash/defaults')
 
-{ methodTable, classes, methods } = require('./config').protocol
-
+{ methods } = require('@microfleet/amqp-codec')
 
 class Queue
   ###
@@ -75,9 +73,7 @@ class Queue
     return @
 
   unbind: (exchange, routingKey, queueName, cb)=>
-    if typeof queueName is 'string'
-      queueName =  queueName
-    else
+    if typeof queueName isnt 'string'
       cb = queueName
       queueName = @queueOptions.queue
 

@@ -1,5 +1,4 @@
 # Exchange
-debug          = require('./config').debug('amqp:Exchange')
 { methods }    = require('./config').protocol
 defaults       = require('./defaults')
 

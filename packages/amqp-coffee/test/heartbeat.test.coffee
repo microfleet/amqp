@@ -2,6 +2,7 @@ should  = require('should')
 async    = require('async')
 _        = require('underscore')
 Proxy    = require('./proxy')
+sinon    = require('sinon')
 
 AMQP = require('../src/amqp')
 debug = require('debug')('heartbeat')
@@ -10,16 +11,22 @@ describe 'Connection Heartbeats', () ->
   it 'we can get a heartbeat 541', (done)->
     this.timeout(5000)
     amqp = null
+    spy = null
 
     async.series [
       (next)->
         amqp = new AMQP {host:'rabbitmq', port: 5672, heartbeat: 1000}, (e, r)->
           should.not.exist e
           next()
+        
+        spy = sinon.spy(amqp, '_receivedHeartbeat')
 
       (next)->
-        amqp.parser.once 'heartbeat', ()->
-          next()
+        async.until (cb) ->
+          cb(null, spy.called)
+        , (it) -> 
+          setTimeout(it, 100)
+        , next
 
       (next)->
         amqp.close()

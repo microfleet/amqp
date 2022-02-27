@@ -612,7 +612,7 @@ describe 'Queue', () ->
 
       (next)->
         consumer = amqp.consume queueName, {}, (message)->
-          console.error messge
+          console.error message
         , (cb)->
           next()
 
