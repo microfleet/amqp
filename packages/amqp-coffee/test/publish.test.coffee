@@ -5,7 +5,7 @@ uuid = require('uuid').v4
 
 AMQP = require('../src/amqp')
 
-{ MaxFrameSize, FrameType, HeartbeatFrame }   = require('../src/lib/config').constants
+{ MaxFrameSize }   = require('@microfleet/amqp-codec')
 
 describe 'Publisher', () ->
   this.timeout(15000)

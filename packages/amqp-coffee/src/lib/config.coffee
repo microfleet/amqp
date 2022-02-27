@@ -1,5 +1,3 @@
-constants = require('./constants')
-protocol = require('./protocol')('../amqp-definitions-0-9-1')
 DEBUG = require('debug')
 
 DEBUG_LEVEL = process.env.AMQP
@@ -23,4 +21,4 @@ debug     = (name)->
         return ()->
           # do nothing
 
-module.exports = { constants, protocol, debug }
+module.exports = { debug }

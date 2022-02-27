@@ -5,8 +5,7 @@ debug = require('./config').debug('amqp:Channel')
 async = require('async')
 defer = require('lodash/defer')
 
-{ methodTable } = require('./config').protocol
-{ methods } = require('@microfleet/amqp-codec')
+{ methods, classMethodsTable } = require('@microfleet/amqp-codec')
 
 # we track this to avoid node's max stack size with a saturated async queue
 OVERFLOW_PROTECTION = 0
@@ -232,7 +231,7 @@ class Channel extends EventEmitter
         @state = 'closed'
 
         if args.classId? and args.methodId?
-          closingMethod = methodTable[args.classId][args.methodId].name
+          closingMethod = classMethodsTable["#{args.classId}_#{args.methodId}"].name
           @callbackForMethod(methods["#{closingMethod}Ok"])(args) #this would be the error
 
         @_channelClosed({msg: "Server closed channel", error: args})

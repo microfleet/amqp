@@ -1,5 +1,5 @@
 # Exchange
-{ methods }    = require('./config').protocol
+{ methods }    = require('@microfleet/amqp-codec')
 defaults       = require('./defaults')
 
 applyDefaults = require('lodash/defaults')

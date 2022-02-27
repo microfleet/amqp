@@ -9,7 +9,7 @@ AMQP = require('../src/amqp')
 
 bson    = require('bson')
 
-{ MaxFrameSize, FrameType, HeartbeatFrame }   = require('../src/lib/config').constants
+{ MaxFrameSize }   = require('@microfleet/amqp-codec')
 
 describe 'Consumer', () ->
   this.timeout(10000)
