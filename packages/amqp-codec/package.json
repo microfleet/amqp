@@ -31,7 +31,6 @@
     "typescript": "^4.6.0-beta"
   },
   "dependencies": {
-    "debug": "^4.1.1",
-    "string_decoder": "^1.3.0"
+    "debug": "^4.1.1"
   }
 }
