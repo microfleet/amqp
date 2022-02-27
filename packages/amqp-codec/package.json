@@ -11,10 +11,11 @@
     "gen-protocol": "pnpm exec -- ts-node ./bin/serialize.ts",
     "lint": "eslint './src/**/*.ts'",
     "test": "pnpm run lint",
+    "prepublishOnly": "pnpm run compile",
     "compile": "tsc -b ./tsconfig.build.json"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["amqp", "codec", "amqp codec", "amqp parser", "amqp serializer"],
+  "author": "Vitaly Aminev <v@makeomatic.ca>",
   "license": "MIT",
   "devDependencies": {
     "@node-rs/xxhash-linux-x64-musl": "^1.2.0",
@@ -35,5 +36,9 @@
   },
   "dependencies": {
     "debug": "^4.1.1"
-  }
+  },
+  "files": [
+    "src/",
+    "lib/"
+  ]
 }
