@@ -3,10 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "semantic-release": "semantic-release",
+    "semantic-release": "multi-semantic-release",
     "prepare": "mdep install"
   },
   "devDependencies": {
-    "@makeomatic/deploy": "^12.6.3"
+    "@makeomatic/deploy": "^12.6.3",
+    "multi-semantic-release": "^2.11.1"
   }
 }
