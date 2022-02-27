@@ -151,6 +151,3 @@ class AMQPParser extends EventEmitter
     return @header
 
 module.exports = AMQPParser
-
-
-

@@ -31,7 +31,7 @@ blocks:
       jobs:
       - name: test the project
         commands:
-        - pnpm run test
+        - pnpm -r test
 
   - name: release
     dependencies: ["tests"]

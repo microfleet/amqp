@@ -11,7 +11,7 @@ COVERAGE=false
 # disable nodejs debugging by default
 NODE_DEBUG=false
 
-ROOT=`git rev-parse --show-toplevel`
+ROOT=`git rev-parse --show-toplevel`/packages/amqp-coffee
 # the default directory to test from
 FILES=$ROOT/test
 
