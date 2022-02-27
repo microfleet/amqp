@@ -1,3 +1,4 @@
+/* eslint-disable semi */
 export const enum FrameType {
     METHOD = 1,
     HEADER = 2,
@@ -175,6 +176,10 @@ export const enum ClassIds {
     confirm = 85
 }
 export type ClassMethodIds = "10_10" | "10_11" | "10_20" | "10_21" | "10_30" | "10_31" | "10_40" | "10_41" | "10_50" | "10_51" | "10_60" | "10_61" | "20_10" | "20_11" | "20_20" | "20_21" | "20_40" | "20_41" | "40_10" | "40_11" | "40_20" | "40_21" | "40_30" | "40_31" | "40_40" | "40_51" | "50_10" | "50_11" | "50_20" | "50_21" | "50_50" | "50_51" | "50_30" | "50_31" | "50_40" | "50_41" | "60_10" | "60_11" | "60_20" | "60_21" | "60_30" | "60_31" | "60_40" | "60_50" | "60_60" | "60_70" | "60_71" | "60_72" | "60_80" | "60_90" | "60_100" | "60_110" | "60_111" | "60_120" | "90_10" | "90_11" | "90_20" | "90_21" | "90_30" | "90_31" | "85_10" | "85_11";
+export type Field = {
+    name: FieldNames;
+    domain: FieldTypes;
+};
 export type MethodArgTypes = {
     [MethodNames.connectionStart]: {
         [FieldNames.versionMajor]: number;
@@ -219,11 +224,11 @@ export type MethodArgTypes = {
         [FieldNames.classId]: number;
         [FieldNames.methodId]: number;
     };
-    [MethodNames.connectionCloseOk]?: {};
+    [MethodNames.connectionCloseOk]?: Record<string, never>;
     [MethodNames.connectionBlocked]: {
         [FieldNames.reason]: string;
     };
-    [MethodNames.connectionUnblocked]?: {};
+    [MethodNames.connectionUnblocked]?: Record<string, never>;
     [MethodNames.channelOpen]?: {
         [FieldNames.reserved1]?: string;
     };
@@ -242,7 +247,7 @@ export type MethodArgTypes = {
         [FieldNames.classId]: number;
         [FieldNames.methodId]: number;
     };
-    [MethodNames.channelCloseOk]?: {};
+    [MethodNames.channelCloseOk]?: Record<string, never>;
     [MethodNames.exchangeDeclare]: {
         [FieldNames.reserved1]?: number;
         [FieldNames.exchange]: string;
@@ -254,14 +259,14 @@ export type MethodArgTypes = {
         [FieldNames.noWait]?: boolean;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.exchangeDeclareOk]?: {};
+    [MethodNames.exchangeDeclareOk]?: Record<string, never>;
     [MethodNames.exchangeDelete]: {
         [FieldNames.reserved1]?: number;
         [FieldNames.exchange]: string;
         [FieldNames.ifUnused]: boolean;
         [FieldNames.noWait]?: boolean;
     };
-    [MethodNames.exchangeDeleteOk]?: {};
+    [MethodNames.exchangeDeleteOk]?: Record<string, never>;
     [MethodNames.exchangeBind]: {
         [FieldNames.reserved1]?: number;
         [FieldNames.destination]: string;
@@ -270,7 +275,7 @@ export type MethodArgTypes = {
         [FieldNames.noWait]?: boolean;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.exchangeBindOk]?: {};
+    [MethodNames.exchangeBindOk]?: Record<string, never>;
     [MethodNames.exchangeUnbind]: {
         [FieldNames.reserved1]?: number;
         [FieldNames.destination]: string;
@@ -279,7 +284,7 @@ export type MethodArgTypes = {
         [FieldNames.noWait]?: boolean;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.exchangeUnbindOk]?: {};
+    [MethodNames.exchangeUnbindOk]?: Record<string, never>;
     [MethodNames.queueDeclare]: {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
@@ -303,7 +308,7 @@ export type MethodArgTypes = {
         [FieldNames.noWait]?: boolean;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.queueBindOk]?: {};
+    [MethodNames.queueBindOk]?: Record<string, never>;
     [MethodNames.queueUnbind]: {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
@@ -311,7 +316,7 @@ export type MethodArgTypes = {
         [FieldNames.routingKey]: string;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.queueUnbindOk]?: {};
+    [MethodNames.queueUnbindOk]?: Record<string, never>;
     [MethodNames.queuePurge]: {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
@@ -335,7 +340,7 @@ export type MethodArgTypes = {
         [FieldNames.prefetchCount]: number;
         [FieldNames.global]: boolean;
     };
-    [MethodNames.basicQosOk]?: {};
+    [MethodNames.basicQosOk]?: Record<string, never>;
     [MethodNames.basicConsume]: {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
@@ -405,22 +410,22 @@ export type MethodArgTypes = {
     [MethodNames.basicRecover]: {
         [FieldNames.requeue]: boolean;
     };
-    [MethodNames.basicRecoverOk]?: {};
+    [MethodNames.basicRecoverOk]?: Record<string, never>;
     [MethodNames.basicNack]: {
         [FieldNames.deliveryTag]: number;
         [FieldNames.multiple]: boolean;
         [FieldNames.requeue]: boolean;
     };
-    [MethodNames.txSelect]?: {};
-    [MethodNames.txSelectOk]?: {};
-    [MethodNames.txCommit]?: {};
-    [MethodNames.txCommitOk]?: {};
-    [MethodNames.txRollback]?: {};
-    [MethodNames.txRollbackOk]?: {};
+    [MethodNames.txSelect]?: Record<string, never>;
+    [MethodNames.txSelectOk]?: Record<string, never>;
+    [MethodNames.txCommit]?: Record<string, never>;
+    [MethodNames.txCommitOk]?: Record<string, never>;
+    [MethodNames.txRollback]?: Record<string, never>;
+    [MethodNames.txRollbackOk]?: Record<string, never>;
     [MethodNames.confirmSelect]?: {
         [FieldNames.noWait]?: boolean;
     };
-    [MethodNames.confirmSelectOk]?: {};
+    [MethodNames.confirmSelectOk]?: Record<string, never>;
 };
 export type connectionStart = {
     name: MethodNames.connectionStart;
@@ -1806,7 +1811,7 @@ export type MethodFrameConnectionCloseOk = {
     type: FrameType.METHOD;
     name: MethodNames.connectionCloseOk;
     method: connectionCloseOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameConnectionBlocked = {
     type: FrameType.METHOD;
@@ -1820,7 +1825,7 @@ export type MethodFrameConnectionUnblocked = {
     type: FrameType.METHOD;
     name: MethodNames.connectionUnblocked;
     method: connectionUnblocked;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameChannelOpen = {
     type: FrameType.METHOD;
@@ -1869,7 +1874,7 @@ export type MethodFrameChannelCloseOk = {
     type: FrameType.METHOD;
     name: MethodNames.channelCloseOk;
     method: channelCloseOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameExchangeDeclare = {
     type: FrameType.METHOD;
@@ -1891,7 +1896,7 @@ export type MethodFrameExchangeDeclareOk = {
     type: FrameType.METHOD;
     name: MethodNames.exchangeDeclareOk;
     method: exchangeDeclareOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameExchangeDelete = {
     type: FrameType.METHOD;
@@ -1908,7 +1913,7 @@ export type MethodFrameExchangeDeleteOk = {
     type: FrameType.METHOD;
     name: MethodNames.exchangeDeleteOk;
     method: exchangeDeleteOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameExchangeBind = {
     type: FrameType.METHOD;
@@ -1927,7 +1932,7 @@ export type MethodFrameExchangeBindOk = {
     type: FrameType.METHOD;
     name: MethodNames.exchangeBindOk;
     method: exchangeBindOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameExchangeUnbind = {
     type: FrameType.METHOD;
@@ -1946,7 +1951,7 @@ export type MethodFrameExchangeUnbindOk = {
     type: FrameType.METHOD;
     name: MethodNames.exchangeUnbindOk;
     method: exchangeUnbindOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameQueueDeclare = {
     type: FrameType.METHOD;
@@ -1990,7 +1995,7 @@ export type MethodFrameQueueBindOk = {
     type: FrameType.METHOD;
     name: MethodNames.queueBindOk;
     method: queueBindOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameQueueUnbind = {
     type: FrameType.METHOD;
@@ -2008,7 +2013,7 @@ export type MethodFrameQueueUnbindOk = {
     type: FrameType.METHOD;
     name: MethodNames.queueUnbindOk;
     method: queueUnbindOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameQueuePurge = {
     type: FrameType.METHOD;
@@ -2062,7 +2067,7 @@ export type MethodFrameBasicQosOk = {
     type: FrameType.METHOD;
     name: MethodNames.basicQosOk;
     method: basicQosOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameBasicConsume = {
     type: FrameType.METHOD;
@@ -2207,7 +2212,7 @@ export type MethodFrameBasicRecoverOk = {
     type: FrameType.METHOD;
     name: MethodNames.basicRecoverOk;
     method: basicRecoverOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameBasicNack = {
     type: FrameType.METHOD;
@@ -2223,37 +2228,37 @@ export type MethodFrameTxSelect = {
     type: FrameType.METHOD;
     name: MethodNames.txSelect;
     method: txSelect;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameTxSelectOk = {
     type: FrameType.METHOD;
     name: MethodNames.txSelectOk;
     method: txSelectOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameTxCommit = {
     type: FrameType.METHOD;
     name: MethodNames.txCommit;
     method: txCommit;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameTxCommitOk = {
     type: FrameType.METHOD;
     name: MethodNames.txCommitOk;
     method: txCommitOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameTxRollback = {
     type: FrameType.METHOD;
     name: MethodNames.txRollback;
     method: txRollback;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameTxRollbackOk = {
     type: FrameType.METHOD;
     name: MethodNames.txRollbackOk;
     method: txRollbackOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrameConfirmSelect = {
     type: FrameType.METHOD;
@@ -2267,7 +2272,7 @@ export type MethodFrameConfirmSelectOk = {
     type: FrameType.METHOD;
     name: MethodNames.confirmSelectOk;
     method: confirmSelectOk;
-    args?: {};
+    args?: Record<string, never>;
 };
 export type MethodFrame = MethodFrameConnectionStart | MethodFrameConnectionStartOk | MethodFrameConnectionSecure | MethodFrameConnectionSecureOk | MethodFrameConnectionTune | MethodFrameConnectionTuneOk | MethodFrameConnectionOpen | MethodFrameConnectionOpenOk | MethodFrameConnectionClose | MethodFrameConnectionCloseOk | MethodFrameConnectionBlocked | MethodFrameConnectionUnblocked | MethodFrameChannelOpen | MethodFrameChannelOpenOk | MethodFrameChannelFlow | MethodFrameChannelFlowOk | MethodFrameChannelClose | MethodFrameChannelCloseOk | MethodFrameExchangeDeclare | MethodFrameExchangeDeclareOk | MethodFrameExchangeDelete | MethodFrameExchangeDeleteOk | MethodFrameExchangeBind | MethodFrameExchangeBindOk | MethodFrameExchangeUnbind | MethodFrameExchangeUnbindOk | MethodFrameQueueDeclare | MethodFrameQueueDeclareOk | MethodFrameQueueBind | MethodFrameQueueBindOk | MethodFrameQueueUnbind | MethodFrameQueueUnbindOk | MethodFrameQueuePurge | MethodFrameQueuePurgeOk | MethodFrameQueueDelete | MethodFrameQueueDeleteOk | MethodFrameBasicQos | MethodFrameBasicQosOk | MethodFrameBasicConsume | MethodFrameBasicConsumeOk | MethodFrameBasicCancel | MethodFrameBasicCancelOk | MethodFrameBasicPublish | MethodFrameBasicReturn | MethodFrameBasicDeliver | MethodFrameBasicGet | MethodFrameBasicGetOk | MethodFrameBasicGetEmpty | MethodFrameBasicAck | MethodFrameBasicReject | MethodFrameBasicRecoverAsync | MethodFrameBasicRecover | MethodFrameBasicRecoverOk | MethodFrameBasicNack | MethodFrameTxSelect | MethodFrameTxSelectOk | MethodFrameTxCommit | MethodFrameTxCommitOk | MethodFrameTxRollback | MethodFrameTxRollbackOk | MethodFrameConfirmSelect | MethodFrameConfirmSelectOk;
 export type MethodFrameOk = MethodFrameConnectionStartOk | MethodFrameConnectionSecureOk | MethodFrameConnectionTuneOk | MethodFrameConnectionOpenOk | MethodFrameConnectionCloseOk | MethodFrameChannelOpenOk | MethodFrameChannelFlowOk | MethodFrameChannelCloseOk | MethodFrameExchangeDeclareOk | MethodFrameExchangeDeleteOk | MethodFrameExchangeBindOk | MethodFrameExchangeUnbindOk | MethodFrameQueueDeclareOk | MethodFrameQueueBindOk | MethodFrameQueueUnbindOk | MethodFrameQueuePurgeOk | MethodFrameQueueDeleteOk | MethodFrameBasicQosOk | MethodFrameBasicConsumeOk | MethodFrameBasicCancelOk | MethodFrameBasicGetOk | MethodFrameBasicRecoverOk | MethodFrameTxSelectOk | MethodFrameTxCommitOk | MethodFrameTxRollbackOk | MethodFrameConfirmSelectOk;
@@ -2536,3 +2541,168 @@ export const classes: Classes = {
         ]
     }
 };
+
+
+export interface IParser {
+    offset: number
+    buffer?: Buffer
+    bitIndex: number
+
+    execute(buffer: Buffer): void
+    reset(): void
+}
+
+type _<T> = T;
+export type Merge<T> = _<{ [k in keyof T]: T[k] }>;
+export type FieldsToRecord<T extends any[]> =
+    T extends [infer Head, ...infer Tail]
+        ? Head extends { name: FieldNames, domain: FieldTypes }
+            ? Merge<{ [K in `${ Head['name']}`]: FieldTypeEquality[Head['domain']] } & FieldsToRecord<Tail>>
+            : never
+        : Record<string, never>
+
+export type ParseFields<T> = 
+    T extends connection['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends channel['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends exchange['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queue['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basic['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends confirm['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends tx['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionStart['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionStartOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionSecure['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionSecureOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionTune['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionTuneOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionOpen['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionOpenOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionClose['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionCloseOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionBlocked['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends connectionUnblocked['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends channelOpen['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends channelOpenOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends channelFlow['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends channelFlowOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends channelClose['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends channelCloseOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends exchangeDeclare['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends exchangeDeclareOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends exchangeDelete['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends exchangeDeleteOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends exchangeBind['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends exchangeBindOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends exchangeUnbind['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends exchangeUnbindOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queueDeclare['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queueDeclareOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queueBind['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queueBindOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queueUnbind['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queueUnbindOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queuePurge['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queuePurgeOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queueDelete['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends queueDeleteOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicQos['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicQosOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicConsume['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicConsumeOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicCancel['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicCancelOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicPublish['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicReturn['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicDeliver['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicGet['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicGetOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicGetEmpty['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicAck['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicReject['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicRecoverAsync['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicRecover['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicRecoverOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends basicNack['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends txSelect['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends txSelectOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends txCommit['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends txCommitOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends txRollback['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends txRollbackOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends confirmSelect['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    T extends confirmSelectOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
+    never;
+
+export type ParseFieldsFn = {
+  <T extends connection['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends channel['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends exchange['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queue['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basic['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends confirm['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends tx['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionStart['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionStartOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionSecure['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionSecureOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionTune['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionTuneOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionOpen['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionOpenOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionClose['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionCloseOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionBlocked['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends connectionUnblocked['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends channelOpen['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends channelOpenOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends channelFlow['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends channelFlowOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends channelClose['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends channelCloseOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends exchangeDeclare['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends exchangeDeclareOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends exchangeDelete['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends exchangeDeleteOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends exchangeBind['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends exchangeBindOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends exchangeUnbind['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends exchangeUnbindOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queueDeclare['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queueDeclareOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queueBind['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queueBindOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queueUnbind['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queueUnbindOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queuePurge['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queuePurgeOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queueDelete['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends queueDeleteOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicQos['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicQosOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicConsume['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicConsumeOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicCancel['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicCancelOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicPublish['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicReturn['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicDeliver['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicGet['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicGetOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicGetEmpty['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicAck['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicReject['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicRecoverAsync['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicRecover['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicRecoverOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends basicNack['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends txSelect['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends txSelectOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends txCommit['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends txCommitOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends txRollback['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends txRollbackOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends confirmSelect['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+  <T extends confirmSelectOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+}
+
+// type parsedFields = ReturnType<parseFields<basic['fields']>>

@@ -262,7 +262,7 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
                 ArgTypes[method.name] === null || ArgTypes[method.name]?.members.every(m => m.questionToken)
                     ? ts.factory.createToken(ts.SyntaxKind.QuestionToken) 
                     : undefined,
-                ArgTypes[method.name] ?? ts.factory.createTypeReferenceNode('{}')
+                ArgTypes[method.name] ?? ts.factory.createTypeReferenceNode('Record<string, never>')
             )
         ))
     )
@@ -303,7 +303,7 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
                     //ArgTypes[method.name] === null ? ts.factory.createTypeReferenceNode('{}') : ArgTypes[method.name]
                     // undefined,
                     // ts.factory.createTypeReferenceNode(`${methodArgTypes.name.text}[${methodNamesEnum.name.text}.${method.name}]`)
-                    ArgTypes[method.name] ?? ts.factory.createTypeReferenceNode('{}')
+                    ArgTypes[method.name] ?? ts.factory.createTypeReferenceNode('Record<string, never>')
                 )
             ])
         )
@@ -602,8 +602,13 @@ ${Object.values(methods).map((method) => (
 // type parsedFields = ReturnType<parseFields<basic['fields']>>
 `
 
+    const prepend = '/* eslint-disable semi */'
     await fs.writeFile(
         resolve(dest, resultFile.fileName), 
-        printer.printFile(ts.factory.updateSourceFile(resultFile, statements)) + '\n' + append
+        [
+            prepend,
+            printer.printFile(ts.factory.updateSourceFile(resultFile, statements)),
+            append
+        ].join('\n')
     )
 })()
