@@ -4,6 +4,9 @@
   "description": "",
   "main": "dist/index.js",
   "typings": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "gen-protocol": "pnpm exec -- ts-node ./bin/serialize.ts",
     "lint": "eslint './src/**/*.ts'",
