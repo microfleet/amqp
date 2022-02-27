@@ -1288,6 +1288,10 @@ describe 'Consumer', () ->
 
       if m.deliveryTag is 3
         async.series [
+          (next) ->
+            # so that we have time to send multiAck
+            setTimeout(next, 500)
+
           (next)->
             consumer.close(next)
 
@@ -1327,17 +1331,12 @@ describe 'Consumer', () ->
           next()
 
       (next)->
-        amqp.publish "amq.direct", queueName, {value: 1}, {confirm: true}, next
-
-      (next)->
-        amqp.publish "amq.direct", queueName, {value: 2}, {confirm: true}, next
-
-      (next)->
-        setTimeout next, 500
-
-      (next)->
-        amqp.publish "amq.direct", queueName, {value: 3}, {confirm: true}, next
-    ], (e,r)->
+        async.parallel [
+          (done) -> amqp.publish "amq.direct", queueName, {value: 1}, {confirm: true}, done
+          (done) -> amqp.publish "amq.direct", queueName, {value: 2}, {confirm: true}, done
+          (done) -> amqp.publish "amq.direct", queueName, {value: 3}, {confirm: true}, done  
+        ], next
+    ], (e, r)->
       should.not.exist e
 
   it 'test we can use flow control 498 autoAck', (done)->
