@@ -1,0 +1,19 @@
+{
+  "env": {
+    "node": true,
+    "es6": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2019
+  },
+  "parser": "eslint-plugin-coffee",
+  "plugins": [
+    "eslint-plugin-coffee"
+  ],
+  "extends": [
+    "plugin:coffee/eslint-recommended"
+  ],
+  "rules": {
+    "coffee/no-unused-vars": 1
+  }
+}

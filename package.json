@@ -1,50 +1,17 @@
 {
-  "name": "@microfleet/amqp-coffee",
-  "description": "AMQP driver for node",
-  "keywords": [
-    "amqp",
-    "rabbitmq"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "version": "1.3.1",
-  "author": {
-    "name": "David Barshow"
-  },
-  "contributors": [
-    "Vitaly Aminev <v@makeomatic.ca>"
-  ],
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://raw.github.com/dropbox/amqp-coffee/master/LICENSE.txt"
-    }
-  ],
-  "main": "./bin/src/amqp.js",
+  "name": "@microfleet/amqp",
+  "version": "0.0.0",
+  "private": true,
   "scripts": {
-    "test": "./scripts/test.sh",
-    "prepublish": "./scripts/compile.sh"
-  },
-  "dependencies": {
-    "async": "^3.1.0",
-    "bson": "^4.0.2",
-    "debug": "^4.1.1",
-    "lodash": "^4.17.14"
+    "semantic-release": "multi-semantic-release",
+    "prepare": "mdep install"
   },
   "devDependencies": {
-    "coffeescript": "^2.4.1",
-    "istanbul": "0.4.5",
-    "mocha": "^6.1.4",
-    "should": "13.2.3",
-    "underscore": "^1.9.1",
-    "uuid": "^3.3.2"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/dropbox/amqp-coffee.git"
-  },
-  "engines": {
-    "node": ">=8.9.0"
+    "@makeomatic/deploy": "^12.6.3",
+    "@node-rs/xxhash-linux-x64-musl": "^1.2.0",
+    "@swc-node/register": "^1.4.2",
+    "@swc/core-linux-x64-musl": "^1.2.145",
+    "multi-semantic-release": "^2.11.1",
+    "tsconfig-paths": "^3.12.0"
   }
 }

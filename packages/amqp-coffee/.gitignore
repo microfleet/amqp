@@ -1,0 +1,8 @@
+node_modules
+.DS_Store
+bin
+coverage
+npm-debug.log
+test/ssl/testca
+test/ssl/server
+test/ssl/client

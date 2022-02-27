@@ -1,0 +1,13 @@
+{
+  "require": [
+    "@swc-node/register",
+    "tsconfig-paths/register",
+    "coffeescript/register", 
+    "source-map-support/register"
+  ],
+  "reporter": "spec",
+  "ui": "bdd",
+  "timeout": 10000,
+  "bail": true,
+  "exit": true
+}

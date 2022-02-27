@@ -1,0 +1,12 @@
+{
+  "cache": true,
+  "clean": false,
+  "extension": [
+    "coffee",
+    "js",
+    "ts"
+  ],
+  "reporter": [
+    "text-summary"
+  ]
+}
