@@ -174,8 +174,8 @@ describe 'Connection Heartbeats', () ->
         , 4000
 
         async.until (cb)->
-          debug('eh?')
-          cb null, shouldStop
+          debug('eh?', shouldStop)
+          setTimeout(cb, 1, null, shouldStop)
         , (done)->
           debug('h+')
           amqp.publish '', queueName, 'message', done
