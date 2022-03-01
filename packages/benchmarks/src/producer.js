@@ -1,15 +1,12 @@
 'use strict';
 
-// require("@swc-node/register");
-// require("tsconfig-paths/register");
-// require("coffeescript/register");
-// require("source-map-support/register");
+const { once } = require('events');
+const AMQP = require('@microfleet/amqp-coffee');
+const async = require('async');
+const faker = require('faker');
+const { setTimeout } = require('timers/promises');
 
 (async () => {
-  const { once } = require('events');
-  const AMQP = require('@microfleet/amqp-coffee');
-  const async = require('async');
-  const faker = require('faker');
 
   const amqp = new AMQP({ host: process.env.RABBITMQ_HOST || 'rabbitmq' })
   await once(amqp, 'ready')
