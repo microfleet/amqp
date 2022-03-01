@@ -149,8 +149,8 @@ function parseValue(parser: Parser, buffer: Buffer): string | number | boolean |
 function parseTable(parser: Parser, buffer: Buffer): Record<string, unknown> {
   const length = parseInt4(parser, buffer)
   const endOfTable = parser.offset + length - 4
-  const table = Object.create(null)
 
+  const table = Object.create(null)
   while (parser.offset < endOfTable) {
     table[parseShortString(parser, buffer)] = parseValue(parser, buffer)
   }
@@ -254,6 +254,7 @@ export class Parser {
 
     this.handleResponse = options.handleResponse
     this.execute = this.execute.bind(this)
+    this.processChunk = this.processChunk.bind(this)
   }
 
   /**
@@ -266,20 +267,11 @@ export class Parser {
   }
 
   /**
-   * Parse the redis buffer
-   *
-   * Data flows in the following fashion:
-   *  |-------------------------------|-----------|
-   *  | frameType [1 byte]            |           |
-   *  | frameChannel [2 bytes]        |   Header  |
-   *  | frameSize [4 bytes]           |           |
-   *  |-------------------------------|-----------|
-   *  | Frame - <frameSize> bytes     |   Frame   |
-   *  |-------------------------------|-----------|
-   *  | FrameEnd - 1 byte [206]       |    End    |
-   *  --------------------------------------------|
+   * Handling data chunks
+   * @param buffer
+   * @returns 
    */
-  public execute(buffer: Buffer): void {
+  public processChunk(buffer: Buffer): number | undefined {
     if (this.buffer === null) {
       this.buffer = buffer
       this.offset = 0
@@ -298,7 +290,7 @@ export class Parser {
     // ensure that we have at least 8 bytes to read in the buffer
     // so that there is a chance we can parse a complete header + frame
     if (this.offset + HEADER_SIZE >= this.buffer.length) {
-      return
+      return undefined
     }
 
     while (this.offset < this.buffer.length) {
@@ -314,7 +306,7 @@ export class Parser {
       // that is why its > and not just >=
       if (this.offset + frameSize > this.buffer.length) {
         this.offset = offset
-        return
+        return frameSize - (this.buffer.length - 7 - this.offset)
       }
 
       // Frame
@@ -324,14 +316,38 @@ export class Parser {
       // Verify that we've correctly parsed everything
       if (this.buffer[this.offset++] !== INDICATOR_FRAME_END) {
         this.offset = 0 // reset offset
-        this.handleResponse(frameChannel, kMissingFrame)
+        process.nextTick(this.handleResponse, frameChannel, kMissingFrame)
       } else {
         // pass the response on to the client library
-        this.handleResponse(frameChannel, response)
+        process.nextTick(this.handleResponse, frameChannel, response)
       }
     }
 
     // once we've parsed the buffer completely -> remove ref to it
     this.buffer = null
+    return undefined
+  }
+
+  /**
+   * Parse the redis buffer
+   *
+   * Data flows in the following fashion:
+   *  |-------------------------------|-----------|
+   *  | frameType [1 byte]            |           |
+   *  | frameChannel [2 bytes]        |   Header  |
+   *  | frameSize [4 bytes]           |           |
+   *  |-------------------------------|-----------|
+   *  | Frame - <frameSize> bytes     |   Frame   |
+   *  |-------------------------------|-----------|
+   *  | FrameEnd - 1 byte [206]       |    End    |
+   *  --------------------------------------------|
+   */
+  public execute(readbleStream: NodeJS.ReadStream): void {
+    // There is some data to read now.
+    let data
+    let size: number | undefined = undefined
+    while ((data = readbleStream.read(size)) !== null) {
+      size = this.processChunk(data)
+    }
   }
 }

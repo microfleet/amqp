@@ -20,6 +20,8 @@ module.exports = {
       working_dir: `/src/packages/${dir}`,
       environment: {
         AMQP_TEST: '1',
+        // AMQP: '2',
+        // DEBUG: 'amqp:*',
       }
     }
   }

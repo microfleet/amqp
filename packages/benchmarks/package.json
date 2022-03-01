@@ -1,0 +1,10 @@
+{
+  "name": "@microfleet/amqp-benchmarks",
+  "private": true,
+  "main": "./src/service.js",
+  "dependencies": {
+    "@microfleet/amqp-coffee": "workspace:^",
+    "async": "^3.1.0",
+    "clinic": "^11.1.0"
+  }
+}

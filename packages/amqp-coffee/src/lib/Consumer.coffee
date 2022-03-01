@@ -31,7 +31,7 @@ class Consumer extends Channel
     @messageHandler  = null
 
     @incomingMessage = null
-    @outstandingDeliveryTags = {}
+    @outstandingDeliveryTags = new Map()
     return @
 
   consume: (queueName, options, messageHandler, cb)->
@@ -160,41 +160,49 @@ class Consumer extends Channel
       if !reason? then reason = {}
       @emit 'error', reason
 
-    @outstandingDeliveryTags = {}
+    @outstandingDeliveryTags = new Map()
     if @connection.state is 'open' and @consumerState is CONSUMER_STATE_OPEN
         @consumerState = CONSUMER_STATE_CHANNEL_CLOSED
         @_consume()
     else
       @consumerState = CONSUMER_STATE_CONNECTION_CLOSED
 
-  multiAck: (deliveryTag)->
-    if @qos and !@consumeOptions.noAck
-      @outstandingDeliveryTags = pickBy @outstandingDeliveryTags, (value, key) -> key > deliveryTag
+  `multiAck(deliveryTag) {
+    if (this.qos && !this.consumeOptions.noAck) {
+      const { outstandingDeliveryTags } = this;
+      for (const key of outstandingDeliveryTags.keys()) {
+        if (key <= deliveryTag) {
+          outstandingDeliveryTags.delete(key)
+        }
+      }
 
-      if @state is 'open'
-        basicAckOptions = { deliveryTag, multiple: true }
-        @connection._sendMethod @channel, methods.basicAck, basicAckOptions
+      if (this.state === 'open') {
+        const basicAckOptions = { deliveryTag, multiple: true };
+        this.connection._sendMethod(this.channel, methods.basicAck, basicAckOptions)
+      }
+    }
+  }`
 
   # QOS RELATED Callbacks
   ack: ()->
-    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags[@deliveryTag]?
-      delete @subscription.outstandingDeliveryTags[@deliveryTag]
+    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags.has(@deliveryTag)
+      @subscription.outstandingDeliveryTag.delete(@deliveryTag)
 
       if @subscription.state is 'open'
         basicAckOptions = { deliveryTag: @deliveryTag, multiple: false }
         @subscription.connection._sendMethod @subscription.channel, methods.basicAck, basicAckOptions
 
   reject: ()->
-    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags[@deliveryTag]?
-      delete @subscription.outstandingDeliveryTags[@deliveryTag]
+    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags.has(@deliveryTag)
+      @subscription.outstandingDeliveryTags.delete(@deliveryTag)
 
       if @subscription.state is 'open'
         basicAckOptions = { deliveryTag: @deliveryTag, requeue: false }
         @subscription.connection._sendMethod @subscription.channel, methods.basicReject, basicAckOptions
 
   retry: ()->
-    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags[@deliveryTag]?
-      delete @subscription.outstandingDeliveryTags[@deliveryTag]
+    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags.has(@deliveryTag)
+      @subscription.outstandingDeliveryTags.delete(@deliveryTag)
 
       if @subscription.state is 'open'
         basicAckOptions = { deliveryTag: @deliveryTag, requeue: true }
@@ -309,7 +317,7 @@ class Consumer extends Channel
         message.retry  = @retry
         message.subscription = @
 
-      @outstandingDeliveryTags[@incomingMessage.deliveryTag] = true
+      @outstandingDeliveryTags.set(@incomingMessage.deliveryTag, true)
       @messageHandler message
 
 module.exports = Consumer
