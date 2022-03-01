@@ -6,11 +6,9 @@ Channel = require('./Channel')
 async = require('async')
 defaults = require('./defaults')
 applyDefaults = require('lodash/defaults')
-pickBy = require('lodash/pickBy')
-
-bson = require('bson')
 
 { methods, MaxEmptyFrameSize } = require('@microfleet/amqp-codec')
+{ MessageFactory } = require('./message')
 
 CONSUMER_STATE_OPEN = 'open'
 CONSUMER_STATE_OPENING = 'opening'
@@ -20,7 +18,12 @@ CONSUMER_STATE_USER_CLOSED = 'user_closed'
 CONSUMER_STATE_CHANNEL_CLOSED = 'channel_closed'
 CONSUMER_STATE_CONNECTION_CLOSED = 'connection_closed'
 
-CONSUMER_STATES_CLOSED = [CONSUMER_STATE_CLOSED, CONSUMER_STATE_USER_CLOSED, CONSUMER_STATE_CONNECTION_CLOSED, CONSUMER_STATE_CHANNEL_CLOSED]
+CONSUMER_STATES_CLOSED = [
+  CONSUMER_STATE_CLOSED, 
+  CONSUMER_STATE_USER_CLOSED, 
+  CONSUMER_STATE_CONNECTION_CLOSED, 
+  CONSUMER_STATE_CHANNEL_CLOSED
+]
 
 class Consumer extends Channel
 
@@ -167,54 +170,80 @@ class Consumer extends Channel
     else
       @consumerState = CONSUMER_STATE_CONNECTION_CLOSED
 
+  # QOS RELATED Callbacks
   `multiAck(deliveryTag) {
-    if (this.qos && !this.consumeOptions.noAck) {
-      const { outstandingDeliveryTags } = this;
-      for (const key of outstandingDeliveryTags.keys()) {
-        if (key <= deliveryTag) {
-          outstandingDeliveryTags.delete(key)
-        }
-      }
+    if (!this.qosEnabled()) {
+      return
+    }
 
-      if (this.state === 'open') {
-        const basicAckOptions = { deliveryTag, multiple: true };
-        this.connection._sendMethod(this.channel, methods.basicAck, basicAckOptions)
+    const { outstandingDeliveryTags } = this;
+    for (const key of outstandingDeliveryTags.keys()) {
+      if (key <= deliveryTag) {
+        outstandingDeliveryTags.delete(key)
       }
+    }
+
+    if (this.state === 'open') {
+      const basicAckOptions = { deliveryTag, multiple: true };
+      this.connection._sendMethod(this.channel, methods.basicAck, basicAckOptions)
     }
   }`
 
-  # QOS RELATED Callbacks
-  ack: ()->
-    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags.has(@deliveryTag)
-      @subscription.outstandingDeliveryTag.delete(@deliveryTag)
+  `qosEnabled() {
+    return this.qos && !this.consumeOptions.noAck
+  }`
 
-      if @subscription.state is 'open'
-        basicAckOptions = { deliveryTag: @deliveryTag, multiple: false }
-        @subscription.connection._sendMethod @subscription.channel, methods.basicAck, basicAckOptions
+  `deliveryOutstanding(tag) {
+    return this.outstandingDeliveryTags.has(tag)
+  }`
 
-  reject: ()->
-    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags.has(@deliveryTag)
-      @subscription.outstandingDeliveryTags.delete(@deliveryTag)
+  `clearTag(tag) {
+    this.outstandingDeliveryTags.delete(tag)
+  }`
 
-      if @subscription.state is 'open'
-        basicAckOptions = { deliveryTag: @deliveryTag, requeue: false }
-        @subscription.connection._sendMethod @subscription.channel, methods.basicReject, basicAckOptions
+  `processTag(deliveryTag) {
+    if (!this.qosEnabled() || !this.deliveryOutstanding(deliveryTag)) {
+      return false
+    }
 
-  retry: ()->
-    if @subscription.qos and !@subscription.consumeOptions.noAck and @subscription.outstandingDeliveryTags.has(@deliveryTag)
-      @subscription.outstandingDeliveryTags.delete(@deliveryTag)
+    this.clearTag(deliveryTag)
 
-      if @subscription.state is 'open'
-        basicAckOptions = { deliveryTag: @deliveryTag, requeue: true }
-        @subscription.connection._sendMethod @subscription.channel, methods.basicReject, basicAckOptions
+    return this.state === 'open'
+  }`
+
+  `ack(deliveryTag) {
+    if (!this.processTag(deliveryTag)) {
+      return
+    }
+    
+    const basicAckOptions = { deliveryTag, multiple: false }
+    this.connection._sendMethod(this.channel, methods.basicAck, basicAckOptions)  
+  }`
+
+  `reject(deliveryTag) {
+    if (!this.processTag(deliveryTag)) {
+      return
+    }
+
+    const basicAckOptions = { deliveryTag, requeue: false }
+    this.connection._sendMethod(this.channel, methods.basicReject, basicAckOptions)
+  }`
+
+  `retry(deliveryTag) {
+    if (!this.processTag(deliveryTag)) {
+      return
+    }
+
+    const basicAckOptions = { deliveryTag, requeue: true }
+    this.connection._sendMethod(this.channel, methods.basicReject, basicAckOptions)
+  }`
 
   # CONTENT HANDLING
   _onMethod: (channel, method, args)->
     debug 3, ()->return "onMethod #{method.name}, #{JSON.stringify args}"
     switch method
       when methods.basicDeliver
-        delete args['consumerTag'] # TODO evaluate if this is a good idea
-        @incomingMessage = args
+        @incomingMessage = new MessageFactory(args)
 
       when methods.basicCancel
         debug 1, ()->return "basicCancel"
@@ -227,97 +256,28 @@ class Consumer extends Channel
           cancelError.code = 'basicCancel'
           @emit 'error', cancelError
 
+  `_onContentHeader(channel, classInfo, weight, properties, size) {
+    this.incomingMessage.setProperties(weight, size, properties)
+    this.incomingMessage.evaluateMaxFrame(this.connection.frameMax - MaxEmptyFrameSize)
 
-  _onContentHeader: (channel, classInfo, weight, properties, size)->
-    debug 3, ()->return "_onContentHeader #{JSON.stringify properties} #{size}"
-    Object.assign @incomingMessage, { weight, properties, size, used: 0 }
+    if (size == 0) {
+      this._onContent(channel, null)
+    }
+  }`
 
-    # if we're only expecting one packet lets just copy the buffer when we get it
-    # otherwise lets create a new incoming data buffer and pre alloc the space
-    if size > @connection.frameMax - MaxEmptyFrameSize
-      @incomingMessage.data = Buffer.allocUnsafe(size)
-      debug 3, "alloc data"
+  `_onContent(channel, chunk) {
+    const { incomingMessage } = this
 
-    if size == 0
-      @_onContent(channel, Buffer.allocUnsafe(0))
-      debug 3, "alloc empty data"
+    if (chunk !== null) {
+      debug('handling chunk')
+      incomingMessage.handleChunk(chunk)
+    }
 
-  _onContent: (channel, data)=>
-    debug 3, () => "size is #{@incomingMessage.size}, l is #{data.length}"
-
-    if !@incomingMessage.data? and @incomingMessage.size is data.length
-      # if our size is equal to the data we have, just replace the data object
-      @incomingMessage.data = data
-      @incomingMessage.used = data.length
-      debug 3, "alloc data onContent"
-
-    else
-      debug 3, "try to copy"
-      # if there are multiple packets just copy the data starting from the last used bit.
-      data.copy @incomingMessage.data, @incomingMessage.used
-      @incomingMessage.used += data.length
-
-    if @incomingMessage.used >= @incomingMessage.size || @incomingMessage.size == 0
-      message = Object.assign {}, @incomingMessage
-      message.raw = @incomingMessage.data
-
-      # DEFINE GETTERS ON THE DATA FIELD WHICH RETURN A COPY OF THE RAW DATA
-      if @incomingMessage.properties?.contentType is "application/json"
-
-        # we use defineProperty here because we want to keep our original message intact and dont want to pass around a special message
-        Object.defineProperty message, "data", {
-          get: () ->
-            try
-              return JSON.parse message.raw.toString()
-            catch e
-              console.error e
-              return message.raw
-        }
-
-      else if @incomingMessage.properties?.contentType is "application/bson"
-        # we use defineProperty here because we want to keep our original message intact and dont want to pass around a special message
-        Object.defineProperty message, "data", {
-          get: () ->
-            try
-              return bson.deserialize message.raw
-            catch e
-              console.error e
-              return message.raw
-        }
-
-      else if @incomingMessage.properties?.contentType is "string/utf8"
-        # we use defineProperty here because we want to keep our original message intact and dont want to pass around a special message
-        Object.defineProperty message, "data", {
-          get: () ->
-            try
-              return message.raw.toString('utf8')
-            catch e
-              console.error e
-              return message.raw
-        }
-
-
-      else if @incomingMessage.size == 0 and @incomingMessage.properties?.contentType is "application/undefined"
-        # we use defineProperty here because we want to keep our original message intact and dont want to pass around a special message
-        Object.defineProperty message, "data", {
-          get: () ->
-            return undefined
-        }
-
-
-      else
-        Object.defineProperty message, "data", {
-          get: () ->
-            return message.raw
-        }
-
-      if @qos
-        message.ack    = @ack
-        message.reject = @reject
-        message.retry  = @retry
-        message.subscription = @
-
-      @outstandingDeliveryTags.set(@incomingMessage.deliveryTag, true)
-      @messageHandler message
+    if (incomingMessage.ready()) {
+      const message = incomingMessage.create(this)
+      this.outstandingDeliveryTags.set(message.deliveryTag, true)
+      this.messageHandler(message)
+    }
+  }`
 
 module.exports = Consumer
