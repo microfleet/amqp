@@ -8,7 +8,7 @@ services:
       - 15672:15672
       - 5672:5672
 
-  perf:
+  perf_consumer:
     profiles: ["test"]
     image: pivotalrabbitmq/perf-test:latest
     depends_on:
@@ -21,7 +21,7 @@ services:
       "-ct",
       "1",
       "--rate",
-      "40000",
+      "70000",
       "--json-body",
       "--size",
       "256",
@@ -29,6 +29,36 @@ services:
       "1",
       "--consumers",
       "0",
+      "--exchange",
+      "bench.direct",
+      "--queue",
+      "consume-test",
+      "--predeclared",
+      "--routing-key",
+      "testing",
+      "--use-millis"
+    ]
+
+  perf_producer:
+    profiles: ["test"]
+    image: pivotalrabbitmq/perf-test:latest
+    depends_on:
+      - consumer
+    command: [
+      "-h",
+      "amqp://guest:guest@rabbitmq:5672/%2f",
+      "-z",
+      "2000",
+      "-ct",
+      "1",
+      "--producers",
+      "0",
+      "--consumers",
+      "1",
+      "--qos",
+      "100",
+      "--multi-ack-every",
+      "100",
       "--exchange",
       "bench.direct",
       "--queue",

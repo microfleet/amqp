@@ -74,14 +74,10 @@ describe 'Publisher', () ->
     queue = uuid()
     async.series [
       (next)->
-        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
-          should.not.exist e
-          next()
+        amqp = new AMQP {host:'rabbitmq'}, next
 
       (next)->
-        amqp.publish "amq.direct", queue, "test message", {}, (e,r)->
-          should.not.exist e
-          next()
+        amqp.publish "amq.direct", queue, "test message", {}, next
 
     ], done
 

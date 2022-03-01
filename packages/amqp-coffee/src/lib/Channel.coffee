@@ -3,7 +3,6 @@
 
 debug = require('./config').debug('amqp:Channel')
 async = require('async')
-defer = require('lodash/defer')
 
 { methods, classMethodsTable } = require('@microfleet/amqp-codec')
 
@@ -154,7 +153,7 @@ class Channel extends EventEmitter
       cb(err, res) if cb?
       if OVERFLOW_PROTECTION > 100
         OVERFLOW_PROTECTION = 0
-        defer done
+        process.nextTick(done)
       else
         OVERFLOW_PROTECTION++
         done()

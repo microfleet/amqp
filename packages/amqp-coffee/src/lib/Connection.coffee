@@ -448,6 +448,7 @@ class Connection extends EventEmitter
     for frame from @serializer.encode(channel, { type: FrameType.BODY, data: body })
       connection.write frame
     process.nextTick(() -> connection.uncork())
+    debug "send body bytes: #{body.length}"
 
     @_resetSendHeartbeatTimer()
     cb?()
