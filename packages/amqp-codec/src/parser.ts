@@ -150,12 +150,15 @@ function parseTable(parser: Parser, buffer: Buffer): Record<string, unknown> {
   const length = parseInt4(parser, buffer)
   const endOfTable = parser.offset + length - 4
 
-  const table = Object.create(null)
+  const entries = []
   while (parser.offset < endOfTable) {
-    table[parseShortString(parser, buffer)] = parseValue(parser, buffer)
+    entries.push([
+      parseShortString(parser, buffer),
+      parseValue(parser, buffer)
+    ])
   }
 
-  return table
+  return Object.fromEntries(entries)
 }
 
 function parseFields(parser: Parser, buffer: Buffer, fields: Field[]): Record<string, any> {
