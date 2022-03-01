@@ -1,6 +1,7 @@
 {
   "name": "@microfleet/amqp-benchmarks",
   "private": true,
+  "version": "0.0.0",
   "main": "./src/service.js",
   "dependencies": {
     "@microfleet/amqp-coffee": "workspace:^",
