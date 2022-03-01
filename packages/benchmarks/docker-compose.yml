@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.9-management-alpine
+    hostname: rabbitmq
+    ports:
+      - 15672:15672
+      - 5672:5672
+
+  perf:
+    profiles: ["test"]
+    image: pivotalrabbitmq/perf-test:latest
+    depends_on:
+      - consumer
+    command: [
+      "-h",
+      "amqp://guest:guest@rabbitmq:5672/%2f",
+      "-z",
+      "40",
+      "-ct",
+      "1",
+      "--rate",
+      "15500",
+      "--json-body",
+      "--size",
+      "256",
+      "--producers",
+      "1",
+      "--consumers",
+      "0",
+      "--exchange",
+      "bench.direct",
+      "--queue",
+      "consume-test",
+      "--predeclared",
+      "--routing-key",
+      "testing",
+      "--use-millis"
+    ]
+
+  consumer:
+    image: makeomatic/node:16-tester
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ../../:/src
+    working_dir: /src/packages/benchmarks
+    command: /bin/sh -c "pnpm -r run compile && exec tail -f /dev/null"
+    environment:
+      - NODE_ENV=production

@@ -5,6 +5,7 @@ net = require('net')
 tls = require('tls')
 async = require('async')
 
+bytes = require('bytes')
 once = require('lodash/once')
 applyDefaults = require('lodash/defaults')
 defer = require('lodash/defer')
@@ -16,6 +17,8 @@ defaults = require('./defaults')
 Queue = require('./Queue')
 Exchange = require('./Exchange')
 ChannelManager  = require('./ChannelManager')
+
+{ setSocketReadBuffer, setSocketWriteBuffer } = require('./utils/set-sock-opts')
 
 { 
   HandshakeFrame, 
@@ -226,8 +229,6 @@ class Connection extends EventEmitter
       else
         return cb?()
 
-      state = {write: @connection.writable, read: @connection.readable}
-
       forceConnectionClose = setTimeout () =>
         @connection.destroy()
         cb?()
@@ -250,6 +251,13 @@ class Connection extends EventEmitter
     debug 1, () => return "Connected to #{@connectionOptions.host}:#{@connectionOptions.port}"
 
   _connected: ()->
+    debug 1, () => return "Connected#generic to #{@connectionOptions.host}:#{@connectionOptions.port}"
+
+    debug 1, () => "setting bigger buffers at #{@connection._handle.fd}"
+    setSocketReadBuffer(@connection._handle.fd, bytes('4mb'))
+    setSocketWriteBuffer(@connection._handle.fd, bytes('4mb'))
+    debug 1, () => "buffers set"
+
     clearTimeout(@_connectTimeout)
     @_resetAllHeartbeatTimers()
     @_setupParser(@_reestablishChannels)
@@ -287,6 +295,11 @@ class Connection extends EventEmitter
           @connectionOptions.hosti = (@connectionOptions.hosti + 1) % @connectionOptions.hosts.length
           @updateConnectionOptionsHostInformation()
 
+        debug 1, ()=> return "reconnecting to #{JSON.stringify(@connectionOptions)}"
+        
+        # network --> parser
+        # send any connection data events to our parser
+        @connection.removeAllListeners('data') # cleanup reconnections
         @connection.connect @connectionOptions.port, @connectionOptions.host
       , @connectionOptions.reconnectDelayTime
 
@@ -318,8 +331,10 @@ class Connection extends EventEmitter
 
   _resetHeartbeatTimer: () =>
     debug 6, () -> return "_resetHeartbeatTimer"
-    clearInterval @heartbeatTimer
-    @heartbeatTimer = setInterval @_missedHeartbeat, @connectionOptions.heartbeat * 2
+    unless @heartbeatTimer
+      @heartbeatTimer = setInterval @_missedHeartbeat, @connectionOptions.heartbeat * 2
+    else
+      @heartbeatTimer.refresh()
 
   _clearHeartbeatTimer: () =>
     debug 6, () -> return "_clearHeartbeatTimer"
@@ -330,8 +345,11 @@ class Connection extends EventEmitter
 
   _resetSendHeartbeatTimer: () =>
     debug 6, () -> return "_resetSendHeartbeatTimer"
-    clearInterval  @sendHeartbeatTimer
-    @sendHeartbeatTimer = setInterval(@_sendHeartbeat, @connectionOptions.heartbeat)
+
+    unless @sendHeartbeatTimer
+      @sendHeartbeatTimer = setInterval(@_sendHeartbeat, @connectionOptions.heartbeat)
+    else
+      @sendHeartbeatTimer.refresh()
 
   _sendHeartbeat: () =>
     @connection.write @serializer.encode(0, { type: FrameType.HEARTBEAT })
@@ -366,6 +384,7 @@ class Connection extends EventEmitter
 
   _setupParser: (cb)->
     if @parser?
+      debug 1, () => return "parser reset"
       @parser.reset()
     else
       # setup the parser
@@ -373,10 +392,10 @@ class Connection extends EventEmitter
         handleResponse: @_onParserResponse
       }
 
-    # network --> parser
-    # send any connection data events to our parser
-    @connection.removeAllListeners('data') # cleanup reconnections
-    @connection.on 'data', @parser.execute
+    # local reff
+    # parser = @parser
+    @connection.on 'data', @parser.processChunk
+    # @connection.on 'data', parser.processChunk
     @connection.write HandshakeFrame
 
     if cb?
@@ -423,10 +442,12 @@ class Connection extends EventEmitter
       return false
 
     debug "sending header"
+    connection = @connection
+    connection.cork()
     @_sendHeader channel, body.length, args
-
     for frame from @serializer.encode(channel, { type: FrameType.BODY, data: body })
-      @connection.write frame
+      connection.write frame
+    process.nextTick(() -> connection.uncork())
 
     @_resetSendHeartbeatTimer()
     cb?()
