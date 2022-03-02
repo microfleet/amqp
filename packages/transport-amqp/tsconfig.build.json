@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+  },
+  "include": [
+    "src/**.js"
+  ],
+  "references": [{
+    "path": "../amqp-codec/tsconfig.build.json"
+  }]
+}
