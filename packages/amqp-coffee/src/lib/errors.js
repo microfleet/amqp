@@ -9,7 +9,7 @@ function BasicReturnError(err) {
 
   // assign properties
   this.replyCode = err.replyCode;
-  this.exchange= err.exchange;
+  this.exchange = err.exchange;
   this.routingKey = err.routingKey;
 
   // preserve back-compatibility
