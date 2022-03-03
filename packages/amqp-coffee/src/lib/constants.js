@@ -1,7 +1,7 @@
 module.exports = {
   CHANNEL_STATE: {
-    OPEN:    'open',
-    CLOSED:  'closed',
-    OPENING: 'opening'
-  }
-}
+    OPEN: 'open',
+    CLOSED: 'closed',
+    OPENING: 'opening',
+  },
+};

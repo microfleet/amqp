@@ -324,17 +324,17 @@ describe 'Exchange', () ->
           next()
 
       (next)->
-        _.keys(amqp.channels).length.should.eql 2
+        amqp.channels.size.should.eql 2
         _.delay next, 500
 
       (next)->
-        _.keys(amqp.channels).length.should.eql 1
+        amqp.channels.size.should.eql 1
         next()
 
       (next)->
         exchange.declare {}, (e,r)->
           should.not.exist e
-          _.keys(amqp.channels).length.should.eql 2
+          amqp.channels.size.should.eql 2
           next()
 
       (next)->

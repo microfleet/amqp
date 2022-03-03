@@ -2,7 +2,7 @@
 const os = require('os')
 
 const debug = require('./config').debug('amqp:Consumer')
-const Channel = require('./Channel')
+const Channel = require('./channel')
 const async = require('async')
 const defaults = require('./defaults')
 const applyDefaults = require('lodash/defaults')

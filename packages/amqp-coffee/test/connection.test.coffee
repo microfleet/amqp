@@ -34,7 +34,7 @@ describe 'Connection', () ->
     amqp.on 'error', ()->
       done()
 
-  it 'we can reconnect if the connection fails 532', (done)->
+  it.only 'we can reconnect if the connection fails 532', (done)->
     proxy = new Proxy.route(7001, 5672, "rabbitmq")
     amqp = null
 
@@ -49,6 +49,7 @@ describe 'Connection', () ->
         next()
 
       (next)->
+        console.log 'asking to create q'
         amqp.queue {queue:"test"}, (e, q)->
           should.not.exist e
           should.exist q

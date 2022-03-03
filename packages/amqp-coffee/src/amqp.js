@@ -1,3 +1,3 @@
-const Connection = require('./lib/Connection')
+const Connection = require('./lib/connection');
 
-module.exports = Connection
+module.exports = Connection;

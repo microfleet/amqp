@@ -38,6 +38,7 @@
     "debug": "^4.1.1",
     "ffi-napi": "^4.0.3",
     "lodash": "^4.17.14",
+    "read-pkg": "5",
     "ref-napi": "^3.0.3"
   },
   "devDependencies": {

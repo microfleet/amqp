@@ -518,11 +518,13 @@ describe 'Queue', () ->
         queue.unbind "amq.direct", "testing2", (e,r)->
           should.not.exist e
           next()
+
       (next)->
         _.delay ->
           openChannels = 0
-          for channelNumber,channel of amqp.channels
+          for channel from amqp.channels.values()
             openChannels++ if channel.state is 'open'
+          
           openChannels.should.eql 2
           next()
         , 10
@@ -530,7 +532,7 @@ describe 'Queue', () ->
       (next)->
         _.delay ->
           openChannels = 0
-          for channelNumber,channel of amqp.channels
+          for channel from amqp.channels.values()
             openChannels++ if channel.state is 'open'
           openChannels.should.eql 1
           next()
@@ -578,7 +580,7 @@ describe 'Queue', () ->
 
       (next)->
         openChannels = 0
-        for channelNumber,channel of amqp.channels
+        for channel from amqp.channels.values()
           openChannels++ if channel.state is 'open'
         openChannels.should.eql 1
         next()
@@ -645,7 +647,7 @@ describe 'Queue', () ->
 
       (next)->
         openChannels = 0
-        for channelNumber,channel of amqp.channels
+        for channel from amqp.channels.values()
           openChannels++ if channel.state is 'open'
         openChannels.should.eql 1
         next()
@@ -693,7 +695,7 @@ describe 'Queue', () ->
 
       (next)->
         openChannels = 0
-        for channelNumber,channel of amqp.channels
+        for channel from amqp.channels.values()
           openChannels++ if channel.state is 'open'
         openChannels.should.eql 1
         next()
@@ -725,17 +727,17 @@ describe 'Queue', () ->
           next()
 
       (next)->
-        _.keys(amqp.channels).length.should.eql 2
+        amqp.channels.size.should.eql 2
         _.delay next, 500
 
       (next)->
-        _.keys(amqp.channels).length.should.eql 1
+        amqp.channels.size.should.eql 1
         next()
 
       (next)->
         queue.declare {passive:false}, (e,r)->
           should.not.exist e
-          _.keys(amqp.channels).length.should.eql 2
+          amqp.channels.size.should.eql 2
           next()
 
     ], done
