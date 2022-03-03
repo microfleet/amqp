@@ -842,7 +842,9 @@ describe 'Consumer', () ->
 
         consumer.on 'cancel', (err, res)->
           should.exist err
-          err.should.eql "Server initiated basicCancel"
+          compareError = new Error('Server initiated basicCancel')
+          compareError.code = 'basicCancel'
+          err.should.eql compareError
           done()
 
         queueObj.delete(next)

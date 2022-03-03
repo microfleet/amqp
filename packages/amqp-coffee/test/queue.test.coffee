@@ -639,6 +639,7 @@ describe 'Queue', () ->
         _.delay next, 500
 
       (next)->
+        console.log '--- close consumer ---', typeof consumer
         consumer.close()
         _.delay next, 50
 
