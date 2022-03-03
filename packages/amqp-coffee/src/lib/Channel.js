@@ -1,6 +1,6 @@
 // Channel
 
-const {EventEmitter} = require('events')
+const { EventEmitter } = require('events')
 const debug = require('./config').debug('amqp:Channel')
 const async = require('async')
 const { methods, classMethodsTable } = require('@microfleet/amqp-codec')
@@ -287,7 +287,7 @@ class Channel extends EventEmitter {
       case methods.channelClose: {
         this.connection.channelManager.channelClosed(channel)
 
-        debug(1, () => ["Channel closed by server %j", args])
+        debug(1, () => ["Channel closed by server", args])
         this.state = 'closed'
 
         if (args.classId != null && args.methodId != null) {
