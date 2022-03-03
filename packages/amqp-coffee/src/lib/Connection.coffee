@@ -73,6 +73,15 @@ class Connection extends EventEmitter
 
     @channelManager = new ChannelManager(@)
 
+    unless args.lazyConnect
+      @connect cb
+      if cb? then @once 'ready', cb
+
+    @on 'close', @_closed
+
+    return @
+
+  connect: (cb) =>
     async.series [
 
       (next)=>
@@ -154,18 +163,13 @@ class Connection extends EventEmitter
           @_connectTimeout = setTimeout () =>
             debug 1, ()-> return "Connection timeout triggered"
             @close()
-            cb?({code:'T', message:'Connection Timeout', host:@connectionOptions.host, port:@connectionOptions.port})
+            cb?({ code:'T', message:'Connection Timeout', host:@connectionOptions.host, port:@connectionOptions.port })
           , @connectionOptions.connectTimeout
 
         next()
     ], (e, r)->
       if e? and cb?
         cb(e)
-
-    if cb? then @once 'ready', cb
-    @on 'close', @_closed
-
-    return @
 
   updateConnectionOptionsHostInformation: () =>
     @connectionOptions.host  = @connectionOptions.hosts[@connectionOptions.hosti].host
@@ -305,6 +309,7 @@ class Connection extends EventEmitter
 
 
   _reestablishChannels: () =>
+    debug(1, "reestablishing channels")
     async.forEachSeries keys(@channels), (channel, done)=>
       if channel is "0" then done() else
         # check to make sure the channel is still around before attempting to reset it
