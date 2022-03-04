@@ -1,16 +1,21 @@
-const readPkg = require('read-pkg')
-const { MaxFrameSize } = require('@microfleet/amqp-codec')
-const os = require('os')
+import readPkg = require('read-pkg')
+import { MaxFrameSize } from '@microfleet/amqp-codec'
+import os = require('os')
+import type { QueueDeleteOptions, QueueOptions } from './queue'
+import type { ConnectionOptions } from './connection'
+import { ConsumeOptions, QosOptions } from './consumer'
+import { ExchangeDeclareOptions, ExchangeDeleteOptions } from './exchange'
+import { PublishOptions } from './publisher'
 
 const clientVersion = readPkg.sync().version
 
-exports.defaults = {
+export const defaults = {
   defaultExchangeName: '',
   amqp  : 5672,
   amqps : 5671,
 }
 
-exports.connection = {
+export const connection: Omit<ConnectionOptions, 'hosti' | 'hosts'> = {
   host: "localhost",
   login: "guest",
   password: "guest",
@@ -18,6 +23,7 @@ exports.connection = {
   port : 5672,
   ssl: false,
   sslPort: 5671,
+  sslOptions: {},
   heartbeat: 10000, // in ms
   reconnect: true,
   reconnectDelayTime: 1000, // in ms
@@ -29,6 +35,7 @@ exports.connection = {
 
   temporaryChannelTimeout: 2000, // in ms
   temporaryChannelTimeoutCheck: 1000, // in ms
+  lazyConnect: false,
 
   clientProperties: {
     version: clientVersion,
@@ -37,13 +44,13 @@ exports.connection = {
   }
 }
 
-exports.basicPublish = {
+export const basicPublish: Partial<PublishOptions> = {
   mandatory:   false,
   immediate:   false,
   contentType: 'application/octet-stream',
 }
 
-exports.basicConsume = {
+export const basicConsume: Omit<ConsumeOptions, 'queue' | 'consumerTag'> = {
   /**
    * If the no­local field is set the server will not send messages to the
    * connection that published them.
@@ -62,7 +69,7 @@ exports.basicConsume = {
   arguments: {},
 }
 
-exports.basicQos = {
+export const basicQos: Omit<QosOptions, 'prefetchCount'> = {
   prefetchSize: 0,
   
   // RabbitMQ has reinterpreted this field. The original specification said:
@@ -78,7 +85,7 @@ exports.basicQos = {
 }
 
 
-exports.exchange = {
+export const exchange: Omit<ExchangeDeclareOptions, 'exchange'> = {
   type: "direct",
   passive: false,
   durable: false,
@@ -93,12 +100,12 @@ exports.exchange = {
   internal: false,
 }
 
-exports.exchangeDelete = {
+export const exchangeDelete: Omit<ExchangeDeleteOptions, 'exchange'> = {
   ifUnused: false,
   noWait: false,
 }
 
-exports.queueDelete = {
+export const queueDelete: Omit<QueueDeleteOptions, 'queue'> = {
     // If set, the server will only delete the queue if it has no consumers. 
     // If the queue has consumers the server does does not delete it but raises a channel exception instead.
     ifUnused: false,
@@ -106,36 +113,13 @@ exports.queueDelete = {
     // If set, the server will only delete the queue if it has no messages.
     ifEmpty: true,
     noWait: false,
-    arguments: {},
 }
   
-exports.queue = {
-  // Queue declare defaults
+export const queue: Omit<QueueOptions, 'queue'> = {
   autoDelete: true,
-  arguments: {},
   noWait:    false,
-
-
-  // Exclusive queues may only be accessed by the current connection, and are deleted when that connection
-  // closes. Passive declaration of an exclusive queue by other connections are not allowed.
-
-  // * The server MUST support both exclusive (private) and non-exclusive (shared) queues.
-  // * The client MAY NOT attempt to use a queue that was declared as exclusive by another still-open
-  // connection. Error code: resource-locked
   exclusive: false,
-
-
-  // If set when creating a new queue, the queue will be marked as durable. Durable queues remain active when a
-  // server restarts. Non-durable queues (transient queues) are purged if/when a server restarts. Note that
-  // durable queues do not necessarily hold persistent messages, although it does not make sense to send
-  // persistent messages to a transient queue.
   durable:   false,
-
-  // ###
-  // If set, the server will reply with Declare-Ok if the queue already exists with the same name, and raise an
-  // error if not. The client can use this to check whether a queue exists without modifying the server state.
-  // When set, all other method fields except name and no-wait are ignored. A declare with both passive and
-  // no-wait has no effect. Arguments are compared for semantic equivalence.
-  // ###
   passive:   false,
+  arguments: {},
 }

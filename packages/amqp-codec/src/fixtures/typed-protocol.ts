@@ -93,70 +93,7 @@ export const enum FieldNames {
     multiple = "multiple",
     requeue = "requeue"
 }
-export const enum MethodNames {
-    connectionStart = "connectionStart",
-    connectionStartOk = "connectionStartOk",
-    connectionSecure = "connectionSecure",
-    connectionSecureOk = "connectionSecureOk",
-    connectionTune = "connectionTune",
-    connectionTuneOk = "connectionTuneOk",
-    connectionOpen = "connectionOpen",
-    connectionOpenOk = "connectionOpenOk",
-    connectionClose = "connectionClose",
-    connectionCloseOk = "connectionCloseOk",
-    connectionBlocked = "connectionBlocked",
-    connectionUnblocked = "connectionUnblocked",
-    channelOpen = "channelOpen",
-    channelOpenOk = "channelOpenOk",
-    channelFlow = "channelFlow",
-    channelFlowOk = "channelFlowOk",
-    channelClose = "channelClose",
-    channelCloseOk = "channelCloseOk",
-    exchangeDeclare = "exchangeDeclare",
-    exchangeDeclareOk = "exchangeDeclareOk",
-    exchangeDelete = "exchangeDelete",
-    exchangeDeleteOk = "exchangeDeleteOk",
-    exchangeBind = "exchangeBind",
-    exchangeBindOk = "exchangeBindOk",
-    exchangeUnbind = "exchangeUnbind",
-    exchangeUnbindOk = "exchangeUnbindOk",
-    queueDeclare = "queueDeclare",
-    queueDeclareOk = "queueDeclareOk",
-    queueBind = "queueBind",
-    queueBindOk = "queueBindOk",
-    queueUnbind = "queueUnbind",
-    queueUnbindOk = "queueUnbindOk",
-    queuePurge = "queuePurge",
-    queuePurgeOk = "queuePurgeOk",
-    queueDelete = "queueDelete",
-    queueDeleteOk = "queueDeleteOk",
-    basicQos = "basicQos",
-    basicQosOk = "basicQosOk",
-    basicConsume = "basicConsume",
-    basicConsumeOk = "basicConsumeOk",
-    basicCancel = "basicCancel",
-    basicCancelOk = "basicCancelOk",
-    basicPublish = "basicPublish",
-    basicReturn = "basicReturn",
-    basicDeliver = "basicDeliver",
-    basicGet = "basicGet",
-    basicGetOk = "basicGetOk",
-    basicGetEmpty = "basicGetEmpty",
-    basicAck = "basicAck",
-    basicReject = "basicReject",
-    basicRecoverAsync = "basicRecoverAsync",
-    basicRecover = "basicRecover",
-    basicRecoverOk = "basicRecoverOk",
-    basicNack = "basicNack",
-    txSelect = "txSelect",
-    txSelectOk = "txSelectOk",
-    txCommit = "txCommit",
-    txCommitOk = "txCommitOk",
-    txRollback = "txRollback",
-    txRollbackOk = "txRollbackOk",
-    confirmSelect = "confirmSelect",
-    confirmSelectOk = "confirmSelectOk"
-}
+export type MethodNames = "connectionStart" | "connectionStartOk" | "connectionSecure" | "connectionSecureOk" | "connectionTune" | "connectionTuneOk" | "connectionOpen" | "connectionOpenOk" | "connectionClose" | "connectionCloseOk" | "connectionBlocked" | "connectionUnblocked" | "channelOpen" | "channelOpenOk" | "channelFlow" | "channelFlowOk" | "channelClose" | "channelCloseOk" | "exchangeDeclare" | "exchangeDeclareOk" | "exchangeDelete" | "exchangeDeleteOk" | "exchangeBind" | "exchangeBindOk" | "exchangeUnbind" | "exchangeUnbindOk" | "queueDeclare" | "queueDeclareOk" | "queueBind" | "queueBindOk" | "queueUnbind" | "queueUnbindOk" | "queuePurge" | "queuePurgeOk" | "queueDelete" | "queueDeleteOk" | "basicQos" | "basicQosOk" | "basicConsume" | "basicConsumeOk" | "basicCancel" | "basicCancelOk" | "basicPublish" | "basicReturn" | "basicDeliver" | "basicGet" | "basicGetOk" | "basicGetEmpty" | "basicAck" | "basicReject" | "basicRecoverAsync" | "basicRecover" | "basicRecoverOk" | "basicNack" | "txSelect" | "txSelectOk" | "txCommit" | "txCommitOk" | "txRollback" | "txRollbackOk" | "confirmSelect" | "confirmSelectOk";
 export const enum ClassNames {
     connection = "connection",
     channel = "channel",
@@ -181,74 +118,74 @@ export type Field = {
     domain: FieldTypes;
 };
 export type MethodArgTypes = {
-    [MethodNames.connectionStart]: {
+    "connectionStart": {
         [FieldNames.versionMajor]: number;
         [FieldNames.versionMinor]: number;
         [FieldNames.serverProperties]: Record<string, any>;
         [FieldNames.mechanisms]: string | Record<string, any>;
         [FieldNames.locales]: string | Record<string, any>;
     };
-    [MethodNames.connectionStartOk]: {
+    "connectionStartOk": {
         [FieldNames.clientProperties]: Record<string, any>;
         [FieldNames.mechanism]: string;
         [FieldNames.response]: string | Record<string, any>;
         [FieldNames.locale]: string;
     };
-    [MethodNames.connectionSecure]: {
+    "connectionSecure": {
         [FieldNames.challenge]: string | Record<string, any>;
     };
-    [MethodNames.connectionSecureOk]: {
+    "connectionSecureOk": {
         [FieldNames.response]: string | Record<string, any>;
     };
-    [MethodNames.connectionTune]: {
+    "connectionTune": {
         [FieldNames.channelMax]: number;
         [FieldNames.frameMax]: number;
         [FieldNames.heartbeat]: number;
     };
-    [MethodNames.connectionTuneOk]: {
+    "connectionTuneOk": {
         [FieldNames.channelMax]: number;
         [FieldNames.frameMax]: number;
         [FieldNames.heartbeat]: number;
     };
-    [MethodNames.connectionOpen]: {
+    "connectionOpen": {
         [FieldNames.virtualHost]: string;
         [FieldNames.reserved1]?: string;
         [FieldNames.reserved2]?: boolean;
     };
-    [MethodNames.connectionOpenOk]?: {
+    "connectionOpenOk"?: {
         [FieldNames.reserved1]?: string;
     };
-    [MethodNames.connectionClose]: {
+    "connectionClose": {
         [FieldNames.replyCode]: number;
         [FieldNames.replyText]: string;
         [FieldNames.classId]: number;
         [FieldNames.methodId]: number;
     };
-    [MethodNames.connectionCloseOk]?: Record<string, never>;
-    [MethodNames.connectionBlocked]: {
+    "connectionCloseOk"?: Record<string, never>;
+    "connectionBlocked": {
         [FieldNames.reason]: string;
     };
-    [MethodNames.connectionUnblocked]?: Record<string, never>;
-    [MethodNames.channelOpen]?: {
+    "connectionUnblocked"?: Record<string, never>;
+    "channelOpen"?: {
         [FieldNames.reserved1]?: string;
     };
-    [MethodNames.channelOpenOk]?: {
+    "channelOpenOk"?: {
         [FieldNames.reserved1]?: string | Record<string, any>;
     };
-    [MethodNames.channelFlow]: {
+    "channelFlow": {
         [FieldNames.active]: boolean;
     };
-    [MethodNames.channelFlowOk]: {
+    "channelFlowOk": {
         [FieldNames.active]: boolean;
     };
-    [MethodNames.channelClose]: {
+    "channelClose": {
         [FieldNames.replyCode]: number;
         [FieldNames.replyText]: string;
         [FieldNames.classId]: number;
         [FieldNames.methodId]: number;
     };
-    [MethodNames.channelCloseOk]?: Record<string, never>;
-    [MethodNames.exchangeDeclare]: {
+    "channelCloseOk"?: Record<string, never>;
+    "exchangeDeclare": {
         [FieldNames.reserved1]?: number;
         [FieldNames.exchange]: string;
         [FieldNames.type]: string;
@@ -259,15 +196,15 @@ export type MethodArgTypes = {
         [FieldNames.noWait]?: boolean;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.exchangeDeclareOk]?: Record<string, never>;
-    [MethodNames.exchangeDelete]: {
+    "exchangeDeclareOk"?: Record<string, never>;
+    "exchangeDelete": {
         [FieldNames.reserved1]?: number;
         [FieldNames.exchange]: string;
         [FieldNames.ifUnused]: boolean;
         [FieldNames.noWait]?: boolean;
     };
-    [MethodNames.exchangeDeleteOk]?: Record<string, never>;
-    [MethodNames.exchangeBind]: {
+    "exchangeDeleteOk"?: Record<string, never>;
+    "exchangeBind": {
         [FieldNames.reserved1]?: number;
         [FieldNames.destination]: string;
         [FieldNames.source]: string;
@@ -275,8 +212,8 @@ export type MethodArgTypes = {
         [FieldNames.noWait]?: boolean;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.exchangeBindOk]?: Record<string, never>;
-    [MethodNames.exchangeUnbind]: {
+    "exchangeBindOk"?: Record<string, never>;
+    "exchangeUnbind": {
         [FieldNames.reserved1]?: number;
         [FieldNames.destination]: string;
         [FieldNames.source]: string;
@@ -284,8 +221,8 @@ export type MethodArgTypes = {
         [FieldNames.noWait]?: boolean;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.exchangeUnbindOk]?: Record<string, never>;
-    [MethodNames.queueDeclare]: {
+    "exchangeUnbindOk"?: Record<string, never>;
+    "queueDeclare": {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
         [FieldNames.passive]: boolean;
@@ -295,12 +232,12 @@ export type MethodArgTypes = {
         [FieldNames.noWait]?: boolean;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.queueDeclareOk]: {
+    "queueDeclareOk": {
         [FieldNames.queue]: string;
         [FieldNames.messageCount]: number;
         [FieldNames.consumerCount]: number;
     };
-    [MethodNames.queueBind]: {
+    "queueBind": {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
         [FieldNames.exchange]: string;
@@ -308,40 +245,40 @@ export type MethodArgTypes = {
         [FieldNames.noWait]?: boolean;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.queueBindOk]?: Record<string, never>;
-    [MethodNames.queueUnbind]: {
+    "queueBindOk"?: Record<string, never>;
+    "queueUnbind": {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
         [FieldNames.exchange]: string;
         [FieldNames.routingKey]: string;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.queueUnbindOk]?: Record<string, never>;
-    [MethodNames.queuePurge]: {
+    "queueUnbindOk"?: Record<string, never>;
+    "queuePurge": {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
         [FieldNames.noWait]?: boolean;
     };
-    [MethodNames.queuePurgeOk]: {
+    "queuePurgeOk": {
         [FieldNames.messageCount]: number;
     };
-    [MethodNames.queueDelete]: {
+    "queueDelete": {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
         [FieldNames.ifUnused]: boolean;
         [FieldNames.ifEmpty]: boolean;
         [FieldNames.noWait]?: boolean;
     };
-    [MethodNames.queueDeleteOk]: {
+    "queueDeleteOk": {
         [FieldNames.messageCount]: number;
     };
-    [MethodNames.basicQos]: {
+    "basicQos": {
         [FieldNames.prefetchSize]: number;
         [FieldNames.prefetchCount]: number;
         [FieldNames.global]: boolean;
     };
-    [MethodNames.basicQosOk]?: Record<string, never>;
-    [MethodNames.basicConsume]: {
+    "basicQosOk"?: Record<string, never>;
+    "basicConsume": {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
         [FieldNames.consumerTag]: string;
@@ -351,84 +288,84 @@ export type MethodArgTypes = {
         [FieldNames.noWait]?: boolean;
         [FieldNames.arguments]: Record<string, any>;
     };
-    [MethodNames.basicConsumeOk]: {
+    "basicConsumeOk": {
         [FieldNames.consumerTag]: string;
     };
-    [MethodNames.basicCancel]: {
+    "basicCancel": {
         [FieldNames.consumerTag]: string;
         [FieldNames.noWait]?: boolean;
     };
-    [MethodNames.basicCancelOk]: {
+    "basicCancelOk": {
         [FieldNames.consumerTag]: string;
     };
-    [MethodNames.basicPublish]: {
+    "basicPublish": {
         [FieldNames.reserved1]?: number;
         [FieldNames.exchange]: string;
         [FieldNames.routingKey]: string;
         [FieldNames.mandatory]: boolean;
         [FieldNames.immediate]: boolean;
     };
-    [MethodNames.basicReturn]: {
+    "basicReturn": {
         [FieldNames.replyCode]: number;
         [FieldNames.replyText]: string;
         [FieldNames.exchange]: string;
         [FieldNames.routingKey]: string;
     };
-    [MethodNames.basicDeliver]: {
+    "basicDeliver": {
         [FieldNames.consumerTag]: string;
         [FieldNames.deliveryTag]: number;
         [FieldNames.redelivered]: boolean;
         [FieldNames.exchange]: string;
         [FieldNames.routingKey]: string;
     };
-    [MethodNames.basicGet]: {
+    "basicGet": {
         [FieldNames.reserved1]?: number;
         [FieldNames.queue]: string;
         [FieldNames.noAck]: boolean;
     };
-    [MethodNames.basicGetOk]: {
+    "basicGetOk": {
         [FieldNames.deliveryTag]: number;
         [FieldNames.redelivered]: boolean;
         [FieldNames.exchange]: string;
         [FieldNames.routingKey]: string;
         [FieldNames.messageCount]: number;
     };
-    [MethodNames.basicGetEmpty]?: {
+    "basicGetEmpty"?: {
         [FieldNames.reserved1]?: string;
     };
-    [MethodNames.basicAck]: {
+    "basicAck": {
         [FieldNames.deliveryTag]: number;
         [FieldNames.multiple]: boolean;
     };
-    [MethodNames.basicReject]: {
+    "basicReject": {
         [FieldNames.deliveryTag]: number;
         [FieldNames.requeue]: boolean;
     };
-    [MethodNames.basicRecoverAsync]: {
+    "basicRecoverAsync": {
         [FieldNames.requeue]: boolean;
     };
-    [MethodNames.basicRecover]: {
+    "basicRecover": {
         [FieldNames.requeue]: boolean;
     };
-    [MethodNames.basicRecoverOk]?: Record<string, never>;
-    [MethodNames.basicNack]: {
+    "basicRecoverOk"?: Record<string, never>;
+    "basicNack": {
         [FieldNames.deliveryTag]: number;
         [FieldNames.multiple]: boolean;
         [FieldNames.requeue]: boolean;
     };
-    [MethodNames.txSelect]?: Record<string, never>;
-    [MethodNames.txSelectOk]?: Record<string, never>;
-    [MethodNames.txCommit]?: Record<string, never>;
-    [MethodNames.txCommitOk]?: Record<string, never>;
-    [MethodNames.txRollback]?: Record<string, never>;
-    [MethodNames.txRollbackOk]?: Record<string, never>;
-    [MethodNames.confirmSelect]?: {
+    "txSelect"?: Record<string, never>;
+    "txSelectOk"?: Record<string, never>;
+    "txCommit"?: Record<string, never>;
+    "txCommitOk"?: Record<string, never>;
+    "txRollback"?: Record<string, never>;
+    "txRollbackOk"?: Record<string, never>;
+    "confirmSelect"?: {
         [FieldNames.noWait]?: boolean;
     };
-    [MethodNames.confirmSelectOk]?: Record<string, never>;
+    "confirmSelectOk"?: Record<string, never>;
 };
 export type connectionStart = {
-    name: MethodNames.connectionStart;
+    name: "connectionStart";
     classIndex: ClassIds.connection;
     methodIndex: 10;
     fields: [
@@ -455,7 +392,7 @@ export type connectionStart = {
     ];
 };
 export type connectionStartOk = {
-    name: MethodNames.connectionStartOk;
+    name: "connectionStartOk";
     classIndex: ClassIds.connection;
     methodIndex: 11;
     fields: [
@@ -478,7 +415,7 @@ export type connectionStartOk = {
     ];
 };
 export type connectionSecure = {
-    name: MethodNames.connectionSecure;
+    name: "connectionSecure";
     classIndex: ClassIds.connection;
     methodIndex: 20;
     fields: [
@@ -489,7 +426,7 @@ export type connectionSecure = {
     ];
 };
 export type connectionSecureOk = {
-    name: MethodNames.connectionSecureOk;
+    name: "connectionSecureOk";
     classIndex: ClassIds.connection;
     methodIndex: 21;
     fields: [
@@ -500,7 +437,7 @@ export type connectionSecureOk = {
     ];
 };
 export type connectionTune = {
-    name: MethodNames.connectionTune;
+    name: "connectionTune";
     classIndex: ClassIds.connection;
     methodIndex: 30;
     fields: [
@@ -519,7 +456,7 @@ export type connectionTune = {
     ];
 };
 export type connectionTuneOk = {
-    name: MethodNames.connectionTuneOk;
+    name: "connectionTuneOk";
     classIndex: ClassIds.connection;
     methodIndex: 31;
     fields: [
@@ -538,7 +475,7 @@ export type connectionTuneOk = {
     ];
 };
 export type connectionOpen = {
-    name: MethodNames.connectionOpen;
+    name: "connectionOpen";
     classIndex: ClassIds.connection;
     methodIndex: 40;
     fields: [
@@ -557,7 +494,7 @@ export type connectionOpen = {
     ];
 };
 export type connectionOpenOk = {
-    name: MethodNames.connectionOpenOk;
+    name: "connectionOpenOk";
     classIndex: ClassIds.connection;
     methodIndex: 41;
     fields: [
@@ -568,7 +505,7 @@ export type connectionOpenOk = {
     ];
 };
 export type connectionClose = {
-    name: MethodNames.connectionClose;
+    name: "connectionClose";
     classIndex: ClassIds.connection;
     methodIndex: 50;
     fields: [
@@ -591,14 +528,14 @@ export type connectionClose = {
     ];
 };
 export type connectionCloseOk = {
-    name: MethodNames.connectionCloseOk;
+    name: "connectionCloseOk";
     classIndex: ClassIds.connection;
     methodIndex: 51;
     fields: [
     ];
 };
 export type connectionBlocked = {
-    name: MethodNames.connectionBlocked;
+    name: "connectionBlocked";
     classIndex: ClassIds.connection;
     methodIndex: 60;
     fields: [
@@ -609,14 +546,14 @@ export type connectionBlocked = {
     ];
 };
 export type connectionUnblocked = {
-    name: MethodNames.connectionUnblocked;
+    name: "connectionUnblocked";
     classIndex: ClassIds.connection;
     methodIndex: 61;
     fields: [
     ];
 };
 export type channelOpen = {
-    name: MethodNames.channelOpen;
+    name: "channelOpen";
     classIndex: ClassIds.channel;
     methodIndex: 10;
     fields: [
@@ -627,7 +564,7 @@ export type channelOpen = {
     ];
 };
 export type channelOpenOk = {
-    name: MethodNames.channelOpenOk;
+    name: "channelOpenOk";
     classIndex: ClassIds.channel;
     methodIndex: 11;
     fields: [
@@ -638,7 +575,7 @@ export type channelOpenOk = {
     ];
 };
 export type channelFlow = {
-    name: MethodNames.channelFlow;
+    name: "channelFlow";
     classIndex: ClassIds.channel;
     methodIndex: 20;
     fields: [
@@ -649,7 +586,7 @@ export type channelFlow = {
     ];
 };
 export type channelFlowOk = {
-    name: MethodNames.channelFlowOk;
+    name: "channelFlowOk";
     classIndex: ClassIds.channel;
     methodIndex: 21;
     fields: [
@@ -660,7 +597,7 @@ export type channelFlowOk = {
     ];
 };
 export type channelClose = {
-    name: MethodNames.channelClose;
+    name: "channelClose";
     classIndex: ClassIds.channel;
     methodIndex: 40;
     fields: [
@@ -683,14 +620,14 @@ export type channelClose = {
     ];
 };
 export type channelCloseOk = {
-    name: MethodNames.channelCloseOk;
+    name: "channelCloseOk";
     classIndex: ClassIds.channel;
     methodIndex: 41;
     fields: [
     ];
 };
 export type exchangeDeclare = {
-    name: MethodNames.exchangeDeclare;
+    name: "exchangeDeclare";
     classIndex: ClassIds.exchange;
     methodIndex: 10;
     fields: [
@@ -733,14 +670,14 @@ export type exchangeDeclare = {
     ];
 };
 export type exchangeDeclareOk = {
-    name: MethodNames.exchangeDeclareOk;
+    name: "exchangeDeclareOk";
     classIndex: ClassIds.exchange;
     methodIndex: 11;
     fields: [
     ];
 };
 export type exchangeDelete = {
-    name: MethodNames.exchangeDelete;
+    name: "exchangeDelete";
     classIndex: ClassIds.exchange;
     methodIndex: 20;
     fields: [
@@ -763,14 +700,14 @@ export type exchangeDelete = {
     ];
 };
 export type exchangeDeleteOk = {
-    name: MethodNames.exchangeDeleteOk;
+    name: "exchangeDeleteOk";
     classIndex: ClassIds.exchange;
     methodIndex: 21;
     fields: [
     ];
 };
 export type exchangeBind = {
-    name: MethodNames.exchangeBind;
+    name: "exchangeBind";
     classIndex: ClassIds.exchange;
     methodIndex: 30;
     fields: [
@@ -801,14 +738,14 @@ export type exchangeBind = {
     ];
 };
 export type exchangeBindOk = {
-    name: MethodNames.exchangeBindOk;
+    name: "exchangeBindOk";
     classIndex: ClassIds.exchange;
     methodIndex: 31;
     fields: [
     ];
 };
 export type exchangeUnbind = {
-    name: MethodNames.exchangeUnbind;
+    name: "exchangeUnbind";
     classIndex: ClassIds.exchange;
     methodIndex: 40;
     fields: [
@@ -839,14 +776,14 @@ export type exchangeUnbind = {
     ];
 };
 export type exchangeUnbindOk = {
-    name: MethodNames.exchangeUnbindOk;
+    name: "exchangeUnbindOk";
     classIndex: ClassIds.exchange;
     methodIndex: 51;
     fields: [
     ];
 };
 export type queueDeclare = {
-    name: MethodNames.queueDeclare;
+    name: "queueDeclare";
     classIndex: ClassIds.queue;
     methodIndex: 10;
     fields: [
@@ -885,7 +822,7 @@ export type queueDeclare = {
     ];
 };
 export type queueDeclareOk = {
-    name: MethodNames.queueDeclareOk;
+    name: "queueDeclareOk";
     classIndex: ClassIds.queue;
     methodIndex: 11;
     fields: [
@@ -904,7 +841,7 @@ export type queueDeclareOk = {
     ];
 };
 export type queueBind = {
-    name: MethodNames.queueBind;
+    name: "queueBind";
     classIndex: ClassIds.queue;
     methodIndex: 20;
     fields: [
@@ -935,14 +872,14 @@ export type queueBind = {
     ];
 };
 export type queueBindOk = {
-    name: MethodNames.queueBindOk;
+    name: "queueBindOk";
     classIndex: ClassIds.queue;
     methodIndex: 21;
     fields: [
     ];
 };
 export type queueUnbind = {
-    name: MethodNames.queueUnbind;
+    name: "queueUnbind";
     classIndex: ClassIds.queue;
     methodIndex: 50;
     fields: [
@@ -969,14 +906,14 @@ export type queueUnbind = {
     ];
 };
 export type queueUnbindOk = {
-    name: MethodNames.queueUnbindOk;
+    name: "queueUnbindOk";
     classIndex: ClassIds.queue;
     methodIndex: 51;
     fields: [
     ];
 };
 export type queuePurge = {
-    name: MethodNames.queuePurge;
+    name: "queuePurge";
     classIndex: ClassIds.queue;
     methodIndex: 30;
     fields: [
@@ -995,7 +932,7 @@ export type queuePurge = {
     ];
 };
 export type queuePurgeOk = {
-    name: MethodNames.queuePurgeOk;
+    name: "queuePurgeOk";
     classIndex: ClassIds.queue;
     methodIndex: 31;
     fields: [
@@ -1006,7 +943,7 @@ export type queuePurgeOk = {
     ];
 };
 export type queueDelete = {
-    name: MethodNames.queueDelete;
+    name: "queueDelete";
     classIndex: ClassIds.queue;
     methodIndex: 40;
     fields: [
@@ -1033,7 +970,7 @@ export type queueDelete = {
     ];
 };
 export type queueDeleteOk = {
-    name: MethodNames.queueDeleteOk;
+    name: "queueDeleteOk";
     classIndex: ClassIds.queue;
     methodIndex: 41;
     fields: [
@@ -1044,7 +981,7 @@ export type queueDeleteOk = {
     ];
 };
 export type basicQos = {
-    name: MethodNames.basicQos;
+    name: "basicQos";
     classIndex: ClassIds.basic;
     methodIndex: 10;
     fields: [
@@ -1063,14 +1000,14 @@ export type basicQos = {
     ];
 };
 export type basicQosOk = {
-    name: MethodNames.basicQosOk;
+    name: "basicQosOk";
     classIndex: ClassIds.basic;
     methodIndex: 11;
     fields: [
     ];
 };
 export type basicConsume = {
-    name: MethodNames.basicConsume;
+    name: "basicConsume";
     classIndex: ClassIds.basic;
     methodIndex: 20;
     fields: [
@@ -1109,7 +1046,7 @@ export type basicConsume = {
     ];
 };
 export type basicConsumeOk = {
-    name: MethodNames.basicConsumeOk;
+    name: "basicConsumeOk";
     classIndex: ClassIds.basic;
     methodIndex: 21;
     fields: [
@@ -1120,7 +1057,7 @@ export type basicConsumeOk = {
     ];
 };
 export type basicCancel = {
-    name: MethodNames.basicCancel;
+    name: "basicCancel";
     classIndex: ClassIds.basic;
     methodIndex: 30;
     fields: [
@@ -1135,7 +1072,7 @@ export type basicCancel = {
     ];
 };
 export type basicCancelOk = {
-    name: MethodNames.basicCancelOk;
+    name: "basicCancelOk";
     classIndex: ClassIds.basic;
     methodIndex: 31;
     fields: [
@@ -1146,7 +1083,7 @@ export type basicCancelOk = {
     ];
 };
 export type basicPublish = {
-    name: MethodNames.basicPublish;
+    name: "basicPublish";
     classIndex: ClassIds.basic;
     methodIndex: 40;
     fields: [
@@ -1173,7 +1110,7 @@ export type basicPublish = {
     ];
 };
 export type basicReturn = {
-    name: MethodNames.basicReturn;
+    name: "basicReturn";
     classIndex: ClassIds.basic;
     methodIndex: 50;
     fields: [
@@ -1196,7 +1133,7 @@ export type basicReturn = {
     ];
 };
 export type basicDeliver = {
-    name: MethodNames.basicDeliver;
+    name: "basicDeliver";
     classIndex: ClassIds.basic;
     methodIndex: 60;
     fields: [
@@ -1223,7 +1160,7 @@ export type basicDeliver = {
     ];
 };
 export type basicGet = {
-    name: MethodNames.basicGet;
+    name: "basicGet";
     classIndex: ClassIds.basic;
     methodIndex: 70;
     fields: [
@@ -1242,7 +1179,7 @@ export type basicGet = {
     ];
 };
 export type basicGetOk = {
-    name: MethodNames.basicGetOk;
+    name: "basicGetOk";
     classIndex: ClassIds.basic;
     methodIndex: 71;
     fields: [
@@ -1269,7 +1206,7 @@ export type basicGetOk = {
     ];
 };
 export type basicGetEmpty = {
-    name: MethodNames.basicGetEmpty;
+    name: "basicGetEmpty";
     classIndex: ClassIds.basic;
     methodIndex: 72;
     fields: [
@@ -1280,7 +1217,7 @@ export type basicGetEmpty = {
     ];
 };
 export type basicAck = {
-    name: MethodNames.basicAck;
+    name: "basicAck";
     classIndex: ClassIds.basic;
     methodIndex: 80;
     fields: [
@@ -1295,7 +1232,7 @@ export type basicAck = {
     ];
 };
 export type basicReject = {
-    name: MethodNames.basicReject;
+    name: "basicReject";
     classIndex: ClassIds.basic;
     methodIndex: 90;
     fields: [
@@ -1310,7 +1247,7 @@ export type basicReject = {
     ];
 };
 export type basicRecoverAsync = {
-    name: MethodNames.basicRecoverAsync;
+    name: "basicRecoverAsync";
     classIndex: ClassIds.basic;
     methodIndex: 100;
     fields: [
@@ -1321,7 +1258,7 @@ export type basicRecoverAsync = {
     ];
 };
 export type basicRecover = {
-    name: MethodNames.basicRecover;
+    name: "basicRecover";
     classIndex: ClassIds.basic;
     methodIndex: 110;
     fields: [
@@ -1332,14 +1269,14 @@ export type basicRecover = {
     ];
 };
 export type basicRecoverOk = {
-    name: MethodNames.basicRecoverOk;
+    name: "basicRecoverOk";
     classIndex: ClassIds.basic;
     methodIndex: 111;
     fields: [
     ];
 };
 export type basicNack = {
-    name: MethodNames.basicNack;
+    name: "basicNack";
     classIndex: ClassIds.basic;
     methodIndex: 120;
     fields: [
@@ -1358,49 +1295,49 @@ export type basicNack = {
     ];
 };
 export type txSelect = {
-    name: MethodNames.txSelect;
+    name: "txSelect";
     classIndex: ClassIds.tx;
     methodIndex: 10;
     fields: [
     ];
 };
 export type txSelectOk = {
-    name: MethodNames.txSelectOk;
+    name: "txSelectOk";
     classIndex: ClassIds.tx;
     methodIndex: 11;
     fields: [
     ];
 };
 export type txCommit = {
-    name: MethodNames.txCommit;
+    name: "txCommit";
     classIndex: ClassIds.tx;
     methodIndex: 20;
     fields: [
     ];
 };
 export type txCommitOk = {
-    name: MethodNames.txCommitOk;
+    name: "txCommitOk";
     classIndex: ClassIds.tx;
     methodIndex: 21;
     fields: [
     ];
 };
 export type txRollback = {
-    name: MethodNames.txRollback;
+    name: "txRollback";
     classIndex: ClassIds.tx;
     methodIndex: 30;
     fields: [
     ];
 };
 export type txRollbackOk = {
-    name: MethodNames.txRollbackOk;
+    name: "txRollbackOk";
     classIndex: ClassIds.tx;
     methodIndex: 31;
     fields: [
     ];
 };
 export type confirmSelect = {
-    name: MethodNames.confirmSelect;
+    name: "confirmSelect";
     classIndex: ClassIds.confirm;
     methodIndex: 10;
     fields: [
@@ -1411,7 +1348,7 @@ export type confirmSelect = {
     ];
 };
 export type confirmSelectOk = {
-    name: MethodNames.confirmSelectOk;
+    name: "confirmSelectOk";
     classIndex: ClassIds.confirm;
     methodIndex: 11;
     fields: [
@@ -1592,136 +1529,136 @@ export type tx = {
     ];
 };
 export type MethodsTable = {
-    [MethodNames.connectionStart]: connectionStart;
-    [MethodNames.connectionStartOk]: connectionStartOk;
-    [MethodNames.connectionSecure]: connectionSecure;
-    [MethodNames.connectionSecureOk]: connectionSecureOk;
-    [MethodNames.connectionTune]: connectionTune;
-    [MethodNames.connectionTuneOk]: connectionTuneOk;
-    [MethodNames.connectionOpen]: connectionOpen;
-    [MethodNames.connectionOpenOk]: connectionOpenOk;
-    [MethodNames.connectionClose]: connectionClose;
-    [MethodNames.connectionCloseOk]: connectionCloseOk;
-    [MethodNames.connectionBlocked]: connectionBlocked;
-    [MethodNames.connectionUnblocked]: connectionUnblocked;
-    [MethodNames.channelOpen]: channelOpen;
-    [MethodNames.channelOpenOk]: channelOpenOk;
-    [MethodNames.channelFlow]: channelFlow;
-    [MethodNames.channelFlowOk]: channelFlowOk;
-    [MethodNames.channelClose]: channelClose;
-    [MethodNames.channelCloseOk]: channelCloseOk;
-    [MethodNames.exchangeDeclare]: exchangeDeclare;
-    [MethodNames.exchangeDeclareOk]: exchangeDeclareOk;
-    [MethodNames.exchangeDelete]: exchangeDelete;
-    [MethodNames.exchangeDeleteOk]: exchangeDeleteOk;
-    [MethodNames.exchangeBind]: exchangeBind;
-    [MethodNames.exchangeBindOk]: exchangeBindOk;
-    [MethodNames.exchangeUnbind]: exchangeUnbind;
-    [MethodNames.exchangeUnbindOk]: exchangeUnbindOk;
-    [MethodNames.queueDeclare]: queueDeclare;
-    [MethodNames.queueDeclareOk]: queueDeclareOk;
-    [MethodNames.queueBind]: queueBind;
-    [MethodNames.queueBindOk]: queueBindOk;
-    [MethodNames.queueUnbind]: queueUnbind;
-    [MethodNames.queueUnbindOk]: queueUnbindOk;
-    [MethodNames.queuePurge]: queuePurge;
-    [MethodNames.queuePurgeOk]: queuePurgeOk;
-    [MethodNames.queueDelete]: queueDelete;
-    [MethodNames.queueDeleteOk]: queueDeleteOk;
-    [MethodNames.basicQos]: basicQos;
-    [MethodNames.basicQosOk]: basicQosOk;
-    [MethodNames.basicConsume]: basicConsume;
-    [MethodNames.basicConsumeOk]: basicConsumeOk;
-    [MethodNames.basicCancel]: basicCancel;
-    [MethodNames.basicCancelOk]: basicCancelOk;
-    [MethodNames.basicPublish]: basicPublish;
-    [MethodNames.basicReturn]: basicReturn;
-    [MethodNames.basicDeliver]: basicDeliver;
-    [MethodNames.basicGet]: basicGet;
-    [MethodNames.basicGetOk]: basicGetOk;
-    [MethodNames.basicGetEmpty]: basicGetEmpty;
-    [MethodNames.basicAck]: basicAck;
-    [MethodNames.basicReject]: basicReject;
-    [MethodNames.basicRecoverAsync]: basicRecoverAsync;
-    [MethodNames.basicRecover]: basicRecover;
-    [MethodNames.basicRecoverOk]: basicRecoverOk;
-    [MethodNames.basicNack]: basicNack;
-    [MethodNames.txSelect]: txSelect;
-    [MethodNames.txSelectOk]: txSelectOk;
-    [MethodNames.txCommit]: txCommit;
-    [MethodNames.txCommitOk]: txCommitOk;
-    [MethodNames.txRollback]: txRollback;
-    [MethodNames.txRollbackOk]: txRollbackOk;
-    [MethodNames.confirmSelect]: confirmSelect;
-    [MethodNames.confirmSelectOk]: confirmSelectOk;
+    connectionStart: connectionStart;
+    connectionStartOk: connectionStartOk;
+    connectionSecure: connectionSecure;
+    connectionSecureOk: connectionSecureOk;
+    connectionTune: connectionTune;
+    connectionTuneOk: connectionTuneOk;
+    connectionOpen: connectionOpen;
+    connectionOpenOk: connectionOpenOk;
+    connectionClose: connectionClose;
+    connectionCloseOk: connectionCloseOk;
+    connectionBlocked: connectionBlocked;
+    connectionUnblocked: connectionUnblocked;
+    channelOpen: channelOpen;
+    channelOpenOk: channelOpenOk;
+    channelFlow: channelFlow;
+    channelFlowOk: channelFlowOk;
+    channelClose: channelClose;
+    channelCloseOk: channelCloseOk;
+    exchangeDeclare: exchangeDeclare;
+    exchangeDeclareOk: exchangeDeclareOk;
+    exchangeDelete: exchangeDelete;
+    exchangeDeleteOk: exchangeDeleteOk;
+    exchangeBind: exchangeBind;
+    exchangeBindOk: exchangeBindOk;
+    exchangeUnbind: exchangeUnbind;
+    exchangeUnbindOk: exchangeUnbindOk;
+    queueDeclare: queueDeclare;
+    queueDeclareOk: queueDeclareOk;
+    queueBind: queueBind;
+    queueBindOk: queueBindOk;
+    queueUnbind: queueUnbind;
+    queueUnbindOk: queueUnbindOk;
+    queuePurge: queuePurge;
+    queuePurgeOk: queuePurgeOk;
+    queueDelete: queueDelete;
+    queueDeleteOk: queueDeleteOk;
+    basicQos: basicQos;
+    basicQosOk: basicQosOk;
+    basicConsume: basicConsume;
+    basicConsumeOk: basicConsumeOk;
+    basicCancel: basicCancel;
+    basicCancelOk: basicCancelOk;
+    basicPublish: basicPublish;
+    basicReturn: basicReturn;
+    basicDeliver: basicDeliver;
+    basicGet: basicGet;
+    basicGetOk: basicGetOk;
+    basicGetEmpty: basicGetEmpty;
+    basicAck: basicAck;
+    basicReject: basicReject;
+    basicRecoverAsync: basicRecoverAsync;
+    basicRecover: basicRecover;
+    basicRecoverOk: basicRecoverOk;
+    basicNack: basicNack;
+    txSelect: txSelect;
+    txSelectOk: txSelectOk;
+    txCommit: txCommit;
+    txCommitOk: txCommitOk;
+    txRollback: txRollback;
+    txRollbackOk: txRollbackOk;
+    confirmSelect: confirmSelect;
+    confirmSelectOk: confirmSelectOk;
 };
 export const methods: MethodsTable = {
-    connectionStart: { name: MethodNames.connectionStart, classIndex: 10, methodIndex: 10, fields: [{ domain: FieldTypes.octet, name: FieldNames.versionMajor }, { domain: FieldTypes.octet, name: FieldNames.versionMinor }, { domain: FieldTypes.table, name: FieldNames.serverProperties }, { domain: FieldTypes.longstr, name: FieldNames.mechanisms }, { domain: FieldTypes.longstr, name: FieldNames.locales }] },
-    connectionStartOk: { name: MethodNames.connectionStartOk, classIndex: 10, methodIndex: 11, fields: [{ domain: FieldTypes.table, name: FieldNames.clientProperties }, { domain: FieldTypes.shortstr, name: FieldNames.mechanism }, { domain: FieldTypes.longstr, name: FieldNames.response }, { domain: FieldTypes.shortstr, name: FieldNames.locale }] },
-    connectionSecure: { name: MethodNames.connectionSecure, classIndex: 10, methodIndex: 20, fields: [{ domain: FieldTypes.longstr, name: FieldNames.challenge }] },
-    connectionSecureOk: { name: MethodNames.connectionSecureOk, classIndex: 10, methodIndex: 21, fields: [{ domain: FieldTypes.longstr, name: FieldNames.response }] },
-    connectionTune: { name: MethodNames.connectionTune, classIndex: 10, methodIndex: 30, fields: [{ domain: FieldTypes.short, name: FieldNames.channelMax }, { domain: FieldTypes.long, name: FieldNames.frameMax }, { domain: FieldTypes.short, name: FieldNames.heartbeat }] },
-    connectionTuneOk: { name: MethodNames.connectionTuneOk, classIndex: 10, methodIndex: 31, fields: [{ domain: FieldTypes.short, name: FieldNames.channelMax }, { domain: FieldTypes.long, name: FieldNames.frameMax }, { domain: FieldTypes.short, name: FieldNames.heartbeat }] },
-    connectionOpen: { name: MethodNames.connectionOpen, classIndex: 10, methodIndex: 40, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.virtualHost }, { domain: FieldTypes.shortstr, name: FieldNames.reserved1 }, { domain: FieldTypes.bit, name: FieldNames.reserved2 }] },
-    connectionOpenOk: { name: MethodNames.connectionOpenOk, classIndex: 10, methodIndex: 41, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.reserved1 }] },
-    connectionClose: { name: MethodNames.connectionClose, classIndex: 10, methodIndex: 50, fields: [{ domain: FieldTypes.short, name: FieldNames.replyCode }, { domain: FieldTypes.shortstr, name: FieldNames.replyText }, { domain: FieldTypes.short, name: FieldNames.classId }, { domain: FieldTypes.short, name: FieldNames.methodId }] },
-    connectionCloseOk: { name: MethodNames.connectionCloseOk, classIndex: 10, methodIndex: 51, fields: [] },
-    connectionBlocked: { name: MethodNames.connectionBlocked, classIndex: 10, methodIndex: 60, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.reason }] },
-    connectionUnblocked: { name: MethodNames.connectionUnblocked, classIndex: 10, methodIndex: 61, fields: [] },
-    channelOpen: { name: MethodNames.channelOpen, classIndex: 20, methodIndex: 10, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.reserved1 }] },
-    channelOpenOk: { name: MethodNames.channelOpenOk, classIndex: 20, methodIndex: 11, fields: [{ domain: FieldTypes.longstr, name: FieldNames.reserved1 }] },
-    channelFlow: { name: MethodNames.channelFlow, classIndex: 20, methodIndex: 20, fields: [{ domain: FieldTypes.bit, name: FieldNames.active }] },
-    channelFlowOk: { name: MethodNames.channelFlowOk, classIndex: 20, methodIndex: 21, fields: [{ domain: FieldTypes.bit, name: FieldNames.active }] },
-    channelClose: { name: MethodNames.channelClose, classIndex: 20, methodIndex: 40, fields: [{ domain: FieldTypes.short, name: FieldNames.replyCode }, { domain: FieldTypes.shortstr, name: FieldNames.replyText }, { domain: FieldTypes.short, name: FieldNames.classId }, { domain: FieldTypes.short, name: FieldNames.methodId }] },
-    channelCloseOk: { name: MethodNames.channelCloseOk, classIndex: 20, methodIndex: 41, fields: [] },
-    exchangeDeclare: { name: MethodNames.exchangeDeclare, classIndex: 40, methodIndex: 10, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.type }, { domain: FieldTypes.bit, name: FieldNames.passive }, { domain: FieldTypes.bit, name: FieldNames.durable }, { domain: FieldTypes.bit, name: FieldNames.autoDelete }, { domain: FieldTypes.bit, name: FieldNames.internal }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
-    exchangeDeclareOk: { name: MethodNames.exchangeDeclareOk, classIndex: 40, methodIndex: 11, fields: [] },
-    exchangeDelete: { name: MethodNames.exchangeDelete, classIndex: 40, methodIndex: 20, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.bit, name: FieldNames.ifUnused }, { domain: FieldTypes.bit, name: FieldNames.noWait }] },
-    exchangeDeleteOk: { name: MethodNames.exchangeDeleteOk, classIndex: 40, methodIndex: 21, fields: [] },
-    exchangeBind: { name: MethodNames.exchangeBind, classIndex: 40, methodIndex: 30, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.destination }, { domain: FieldTypes.shortstr, name: FieldNames.source }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
-    exchangeBindOk: { name: MethodNames.exchangeBindOk, classIndex: 40, methodIndex: 31, fields: [] },
-    exchangeUnbind: { name: MethodNames.exchangeUnbind, classIndex: 40, methodIndex: 40, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.destination }, { domain: FieldTypes.shortstr, name: FieldNames.source }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
-    exchangeUnbindOk: { name: MethodNames.exchangeUnbindOk, classIndex: 40, methodIndex: 51, fields: [] },
-    queueDeclare: { name: MethodNames.queueDeclare, classIndex: 50, methodIndex: 10, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.bit, name: FieldNames.passive }, { domain: FieldTypes.bit, name: FieldNames.durable }, { domain: FieldTypes.bit, name: FieldNames.exclusive }, { domain: FieldTypes.bit, name: FieldNames.autoDelete }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
-    queueDeclareOk: { name: MethodNames.queueDeclareOk, classIndex: 50, methodIndex: 11, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.long, name: FieldNames.messageCount }, { domain: FieldTypes.long, name: FieldNames.consumerCount }] },
-    queueBind: { name: MethodNames.queueBind, classIndex: 50, methodIndex: 20, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
-    queueBindOk: { name: MethodNames.queueBindOk, classIndex: 50, methodIndex: 21, fields: [] },
-    queueUnbind: { name: MethodNames.queueUnbind, classIndex: 50, methodIndex: 50, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
-    queueUnbindOk: { name: MethodNames.queueUnbindOk, classIndex: 50, methodIndex: 51, fields: [] },
-    queuePurge: { name: MethodNames.queuePurge, classIndex: 50, methodIndex: 30, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.bit, name: FieldNames.noWait }] },
-    queuePurgeOk: { name: MethodNames.queuePurgeOk, classIndex: 50, methodIndex: 31, fields: [{ domain: FieldTypes.long, name: FieldNames.messageCount }] },
-    queueDelete: { name: MethodNames.queueDelete, classIndex: 50, methodIndex: 40, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.bit, name: FieldNames.ifUnused }, { domain: FieldTypes.bit, name: FieldNames.ifEmpty }, { domain: FieldTypes.bit, name: FieldNames.noWait }] },
-    queueDeleteOk: { name: MethodNames.queueDeleteOk, classIndex: 50, methodIndex: 41, fields: [{ domain: FieldTypes.long, name: FieldNames.messageCount }] },
-    basicQos: { name: MethodNames.basicQos, classIndex: 60, methodIndex: 10, fields: [{ domain: FieldTypes.long, name: FieldNames.prefetchSize }, { domain: FieldTypes.short, name: FieldNames.prefetchCount }, { domain: FieldTypes.bit, name: FieldNames.global }] },
-    basicQosOk: { name: MethodNames.basicQosOk, classIndex: 60, methodIndex: 11, fields: [] },
-    basicConsume: { name: MethodNames.basicConsume, classIndex: 60, methodIndex: 20, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.shortstr, name: FieldNames.consumerTag }, { domain: FieldTypes.bit, name: FieldNames.noLocal }, { domain: FieldTypes.bit, name: FieldNames.noAck }, { domain: FieldTypes.bit, name: FieldNames.exclusive }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
-    basicConsumeOk: { name: MethodNames.basicConsumeOk, classIndex: 60, methodIndex: 21, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.consumerTag }] },
-    basicCancel: { name: MethodNames.basicCancel, classIndex: 60, methodIndex: 30, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.consumerTag }, { domain: FieldTypes.bit, name: FieldNames.noWait }] },
-    basicCancelOk: { name: MethodNames.basicCancelOk, classIndex: 60, methodIndex: 31, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.consumerTag }] },
-    basicPublish: { name: MethodNames.basicPublish, classIndex: 60, methodIndex: 40, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.bit, name: FieldNames.mandatory }, { domain: FieldTypes.bit, name: FieldNames.immediate }] },
-    basicReturn: { name: MethodNames.basicReturn, classIndex: 60, methodIndex: 50, fields: [{ domain: FieldTypes.short, name: FieldNames.replyCode }, { domain: FieldTypes.shortstr, name: FieldNames.replyText }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }] },
-    basicDeliver: { name: MethodNames.basicDeliver, classIndex: 60, methodIndex: 60, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.consumerTag }, { domain: FieldTypes.longlong, name: FieldNames.deliveryTag }, { domain: FieldTypes.bit, name: FieldNames.redelivered }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }] },
-    basicGet: { name: MethodNames.basicGet, classIndex: 60, methodIndex: 70, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.bit, name: FieldNames.noAck }] },
-    basicGetOk: { name: MethodNames.basicGetOk, classIndex: 60, methodIndex: 71, fields: [{ domain: FieldTypes.longlong, name: FieldNames.deliveryTag }, { domain: FieldTypes.bit, name: FieldNames.redelivered }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.long, name: FieldNames.messageCount }] },
-    basicGetEmpty: { name: MethodNames.basicGetEmpty, classIndex: 60, methodIndex: 72, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.reserved1 }] },
-    basicAck: { name: MethodNames.basicAck, classIndex: 60, methodIndex: 80, fields: [{ domain: FieldTypes.longlong, name: FieldNames.deliveryTag }, { domain: FieldTypes.bit, name: FieldNames.multiple }] },
-    basicReject: { name: MethodNames.basicReject, classIndex: 60, methodIndex: 90, fields: [{ domain: FieldTypes.longlong, name: FieldNames.deliveryTag }, { domain: FieldTypes.bit, name: FieldNames.requeue }] },
-    basicRecoverAsync: { name: MethodNames.basicRecoverAsync, classIndex: 60, methodIndex: 100, fields: [{ domain: FieldTypes.bit, name: FieldNames.requeue }] },
-    basicRecover: { name: MethodNames.basicRecover, classIndex: 60, methodIndex: 110, fields: [{ domain: FieldTypes.bit, name: FieldNames.requeue }] },
-    basicRecoverOk: { name: MethodNames.basicRecoverOk, classIndex: 60, methodIndex: 111, fields: [] },
-    basicNack: { name: MethodNames.basicNack, classIndex: 60, methodIndex: 120, fields: [{ domain: FieldTypes.longlong, name: FieldNames.deliveryTag }, { domain: FieldTypes.bit, name: FieldNames.multiple }, { domain: FieldTypes.bit, name: FieldNames.requeue }] },
-    txSelect: { name: MethodNames.txSelect, classIndex: 90, methodIndex: 10, fields: [] },
-    txSelectOk: { name: MethodNames.txSelectOk, classIndex: 90, methodIndex: 11, fields: [] },
-    txCommit: { name: MethodNames.txCommit, classIndex: 90, methodIndex: 20, fields: [] },
-    txCommitOk: { name: MethodNames.txCommitOk, classIndex: 90, methodIndex: 21, fields: [] },
-    txRollback: { name: MethodNames.txRollback, classIndex: 90, methodIndex: 30, fields: [] },
-    txRollbackOk: { name: MethodNames.txRollbackOk, classIndex: 90, methodIndex: 31, fields: [] },
-    confirmSelect: { name: MethodNames.confirmSelect, classIndex: 85, methodIndex: 10, fields: [{ domain: FieldTypes.bit, name: FieldNames.noWait }] },
-    confirmSelectOk: { name: MethodNames.confirmSelectOk, classIndex: 85, methodIndex: 11, fields: [] }
+    connectionStart: { name: "connectionStart", classIndex: 10, methodIndex: 10, fields: [{ domain: FieldTypes.octet, name: FieldNames.versionMajor }, { domain: FieldTypes.octet, name: FieldNames.versionMinor }, { domain: FieldTypes.table, name: FieldNames.serverProperties }, { domain: FieldTypes.longstr, name: FieldNames.mechanisms }, { domain: FieldTypes.longstr, name: FieldNames.locales }] },
+    connectionStartOk: { name: "connectionStartOk", classIndex: 10, methodIndex: 11, fields: [{ domain: FieldTypes.table, name: FieldNames.clientProperties }, { domain: FieldTypes.shortstr, name: FieldNames.mechanism }, { domain: FieldTypes.longstr, name: FieldNames.response }, { domain: FieldTypes.shortstr, name: FieldNames.locale }] },
+    connectionSecure: { name: "connectionSecure", classIndex: 10, methodIndex: 20, fields: [{ domain: FieldTypes.longstr, name: FieldNames.challenge }] },
+    connectionSecureOk: { name: "connectionSecureOk", classIndex: 10, methodIndex: 21, fields: [{ domain: FieldTypes.longstr, name: FieldNames.response }] },
+    connectionTune: { name: "connectionTune", classIndex: 10, methodIndex: 30, fields: [{ domain: FieldTypes.short, name: FieldNames.channelMax }, { domain: FieldTypes.long, name: FieldNames.frameMax }, { domain: FieldTypes.short, name: FieldNames.heartbeat }] },
+    connectionTuneOk: { name: "connectionTuneOk", classIndex: 10, methodIndex: 31, fields: [{ domain: FieldTypes.short, name: FieldNames.channelMax }, { domain: FieldTypes.long, name: FieldNames.frameMax }, { domain: FieldTypes.short, name: FieldNames.heartbeat }] },
+    connectionOpen: { name: "connectionOpen", classIndex: 10, methodIndex: 40, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.virtualHost }, { domain: FieldTypes.shortstr, name: FieldNames.reserved1 }, { domain: FieldTypes.bit, name: FieldNames.reserved2 }] },
+    connectionOpenOk: { name: "connectionOpenOk", classIndex: 10, methodIndex: 41, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.reserved1 }] },
+    connectionClose: { name: "connectionClose", classIndex: 10, methodIndex: 50, fields: [{ domain: FieldTypes.short, name: FieldNames.replyCode }, { domain: FieldTypes.shortstr, name: FieldNames.replyText }, { domain: FieldTypes.short, name: FieldNames.classId }, { domain: FieldTypes.short, name: FieldNames.methodId }] },
+    connectionCloseOk: { name: "connectionCloseOk", classIndex: 10, methodIndex: 51, fields: [] },
+    connectionBlocked: { name: "connectionBlocked", classIndex: 10, methodIndex: 60, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.reason }] },
+    connectionUnblocked: { name: "connectionUnblocked", classIndex: 10, methodIndex: 61, fields: [] },
+    channelOpen: { name: "channelOpen", classIndex: 20, methodIndex: 10, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.reserved1 }] },
+    channelOpenOk: { name: "channelOpenOk", classIndex: 20, methodIndex: 11, fields: [{ domain: FieldTypes.longstr, name: FieldNames.reserved1 }] },
+    channelFlow: { name: "channelFlow", classIndex: 20, methodIndex: 20, fields: [{ domain: FieldTypes.bit, name: FieldNames.active }] },
+    channelFlowOk: { name: "channelFlowOk", classIndex: 20, methodIndex: 21, fields: [{ domain: FieldTypes.bit, name: FieldNames.active }] },
+    channelClose: { name: "channelClose", classIndex: 20, methodIndex: 40, fields: [{ domain: FieldTypes.short, name: FieldNames.replyCode }, { domain: FieldTypes.shortstr, name: FieldNames.replyText }, { domain: FieldTypes.short, name: FieldNames.classId }, { domain: FieldTypes.short, name: FieldNames.methodId }] },
+    channelCloseOk: { name: "channelCloseOk", classIndex: 20, methodIndex: 41, fields: [] },
+    exchangeDeclare: { name: "exchangeDeclare", classIndex: 40, methodIndex: 10, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.type }, { domain: FieldTypes.bit, name: FieldNames.passive }, { domain: FieldTypes.bit, name: FieldNames.durable }, { domain: FieldTypes.bit, name: FieldNames.autoDelete }, { domain: FieldTypes.bit, name: FieldNames.internal }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
+    exchangeDeclareOk: { name: "exchangeDeclareOk", classIndex: 40, methodIndex: 11, fields: [] },
+    exchangeDelete: { name: "exchangeDelete", classIndex: 40, methodIndex: 20, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.bit, name: FieldNames.ifUnused }, { domain: FieldTypes.bit, name: FieldNames.noWait }] },
+    exchangeDeleteOk: { name: "exchangeDeleteOk", classIndex: 40, methodIndex: 21, fields: [] },
+    exchangeBind: { name: "exchangeBind", classIndex: 40, methodIndex: 30, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.destination }, { domain: FieldTypes.shortstr, name: FieldNames.source }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
+    exchangeBindOk: { name: "exchangeBindOk", classIndex: 40, methodIndex: 31, fields: [] },
+    exchangeUnbind: { name: "exchangeUnbind", classIndex: 40, methodIndex: 40, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.destination }, { domain: FieldTypes.shortstr, name: FieldNames.source }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
+    exchangeUnbindOk: { name: "exchangeUnbindOk", classIndex: 40, methodIndex: 51, fields: [] },
+    queueDeclare: { name: "queueDeclare", classIndex: 50, methodIndex: 10, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.bit, name: FieldNames.passive }, { domain: FieldTypes.bit, name: FieldNames.durable }, { domain: FieldTypes.bit, name: FieldNames.exclusive }, { domain: FieldTypes.bit, name: FieldNames.autoDelete }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
+    queueDeclareOk: { name: "queueDeclareOk", classIndex: 50, methodIndex: 11, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.long, name: FieldNames.messageCount }, { domain: FieldTypes.long, name: FieldNames.consumerCount }] },
+    queueBind: { name: "queueBind", classIndex: 50, methodIndex: 20, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
+    queueBindOk: { name: "queueBindOk", classIndex: 50, methodIndex: 21, fields: [] },
+    queueUnbind: { name: "queueUnbind", classIndex: 50, methodIndex: 50, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
+    queueUnbindOk: { name: "queueUnbindOk", classIndex: 50, methodIndex: 51, fields: [] },
+    queuePurge: { name: "queuePurge", classIndex: 50, methodIndex: 30, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.bit, name: FieldNames.noWait }] },
+    queuePurgeOk: { name: "queuePurgeOk", classIndex: 50, methodIndex: 31, fields: [{ domain: FieldTypes.long, name: FieldNames.messageCount }] },
+    queueDelete: { name: "queueDelete", classIndex: 50, methodIndex: 40, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.bit, name: FieldNames.ifUnused }, { domain: FieldTypes.bit, name: FieldNames.ifEmpty }, { domain: FieldTypes.bit, name: FieldNames.noWait }] },
+    queueDeleteOk: { name: "queueDeleteOk", classIndex: 50, methodIndex: 41, fields: [{ domain: FieldTypes.long, name: FieldNames.messageCount }] },
+    basicQos: { name: "basicQos", classIndex: 60, methodIndex: 10, fields: [{ domain: FieldTypes.long, name: FieldNames.prefetchSize }, { domain: FieldTypes.short, name: FieldNames.prefetchCount }, { domain: FieldTypes.bit, name: FieldNames.global }] },
+    basicQosOk: { name: "basicQosOk", classIndex: 60, methodIndex: 11, fields: [] },
+    basicConsume: { name: "basicConsume", classIndex: 60, methodIndex: 20, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.shortstr, name: FieldNames.consumerTag }, { domain: FieldTypes.bit, name: FieldNames.noLocal }, { domain: FieldTypes.bit, name: FieldNames.noAck }, { domain: FieldTypes.bit, name: FieldNames.exclusive }, { domain: FieldTypes.bit, name: FieldNames.noWait }, { domain: FieldTypes.table, name: FieldNames.arguments }] },
+    basicConsumeOk: { name: "basicConsumeOk", classIndex: 60, methodIndex: 21, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.consumerTag }] },
+    basicCancel: { name: "basicCancel", classIndex: 60, methodIndex: 30, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.consumerTag }, { domain: FieldTypes.bit, name: FieldNames.noWait }] },
+    basicCancelOk: { name: "basicCancelOk", classIndex: 60, methodIndex: 31, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.consumerTag }] },
+    basicPublish: { name: "basicPublish", classIndex: 60, methodIndex: 40, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.bit, name: FieldNames.mandatory }, { domain: FieldTypes.bit, name: FieldNames.immediate }] },
+    basicReturn: { name: "basicReturn", classIndex: 60, methodIndex: 50, fields: [{ domain: FieldTypes.short, name: FieldNames.replyCode }, { domain: FieldTypes.shortstr, name: FieldNames.replyText }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }] },
+    basicDeliver: { name: "basicDeliver", classIndex: 60, methodIndex: 60, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.consumerTag }, { domain: FieldTypes.longlong, name: FieldNames.deliveryTag }, { domain: FieldTypes.bit, name: FieldNames.redelivered }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }] },
+    basicGet: { name: "basicGet", classIndex: 60, methodIndex: 70, fields: [{ domain: FieldTypes.short, name: FieldNames.reserved1 }, { domain: FieldTypes.shortstr, name: FieldNames.queue }, { domain: FieldTypes.bit, name: FieldNames.noAck }] },
+    basicGetOk: { name: "basicGetOk", classIndex: 60, methodIndex: 71, fields: [{ domain: FieldTypes.longlong, name: FieldNames.deliveryTag }, { domain: FieldTypes.bit, name: FieldNames.redelivered }, { domain: FieldTypes.shortstr, name: FieldNames.exchange }, { domain: FieldTypes.shortstr, name: FieldNames.routingKey }, { domain: FieldTypes.long, name: FieldNames.messageCount }] },
+    basicGetEmpty: { name: "basicGetEmpty", classIndex: 60, methodIndex: 72, fields: [{ domain: FieldTypes.shortstr, name: FieldNames.reserved1 }] },
+    basicAck: { name: "basicAck", classIndex: 60, methodIndex: 80, fields: [{ domain: FieldTypes.longlong, name: FieldNames.deliveryTag }, { domain: FieldTypes.bit, name: FieldNames.multiple }] },
+    basicReject: { name: "basicReject", classIndex: 60, methodIndex: 90, fields: [{ domain: FieldTypes.longlong, name: FieldNames.deliveryTag }, { domain: FieldTypes.bit, name: FieldNames.requeue }] },
+    basicRecoverAsync: { name: "basicRecoverAsync", classIndex: 60, methodIndex: 100, fields: [{ domain: FieldTypes.bit, name: FieldNames.requeue }] },
+    basicRecover: { name: "basicRecover", classIndex: 60, methodIndex: 110, fields: [{ domain: FieldTypes.bit, name: FieldNames.requeue }] },
+    basicRecoverOk: { name: "basicRecoverOk", classIndex: 60, methodIndex: 111, fields: [] },
+    basicNack: { name: "basicNack", classIndex: 60, methodIndex: 120, fields: [{ domain: FieldTypes.longlong, name: FieldNames.deliveryTag }, { domain: FieldTypes.bit, name: FieldNames.multiple }, { domain: FieldTypes.bit, name: FieldNames.requeue }] },
+    txSelect: { name: "txSelect", classIndex: 90, methodIndex: 10, fields: [] },
+    txSelectOk: { name: "txSelectOk", classIndex: 90, methodIndex: 11, fields: [] },
+    txCommit: { name: "txCommit", classIndex: 90, methodIndex: 20, fields: [] },
+    txCommitOk: { name: "txCommitOk", classIndex: 90, methodIndex: 21, fields: [] },
+    txRollback: { name: "txRollback", classIndex: 90, methodIndex: 30, fields: [] },
+    txRollbackOk: { name: "txRollbackOk", classIndex: 90, methodIndex: 31, fields: [] },
+    confirmSelect: { name: "confirmSelect", classIndex: 85, methodIndex: 10, fields: [{ domain: FieldTypes.bit, name: FieldNames.noWait }] },
+    confirmSelectOk: { name: "confirmSelectOk", classIndex: 85, methodIndex: 11, fields: [] }
 };
 export type MethodFrameConnectionStart = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionStart;
+    name: "connectionStart";
     method: connectionStart;
     args: {
         [FieldNames.versionMajor]: number;
@@ -1733,7 +1670,7 @@ export type MethodFrameConnectionStart = {
 };
 export type MethodFrameConnectionStartOk = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionStartOk;
+    name: "connectionStartOk";
     method: connectionStartOk;
     args: {
         [FieldNames.clientProperties]: Record<string, any>;
@@ -1744,7 +1681,7 @@ export type MethodFrameConnectionStartOk = {
 };
 export type MethodFrameConnectionSecure = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionSecure;
+    name: "connectionSecure";
     method: connectionSecure;
     args: {
         [FieldNames.challenge]: string | Record<string, any>;
@@ -1752,7 +1689,7 @@ export type MethodFrameConnectionSecure = {
 };
 export type MethodFrameConnectionSecureOk = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionSecureOk;
+    name: "connectionSecureOk";
     method: connectionSecureOk;
     args: {
         [FieldNames.response]: string | Record<string, any>;
@@ -1760,7 +1697,7 @@ export type MethodFrameConnectionSecureOk = {
 };
 export type MethodFrameConnectionTune = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionTune;
+    name: "connectionTune";
     method: connectionTune;
     args: {
         [FieldNames.channelMax]: number;
@@ -1770,7 +1707,7 @@ export type MethodFrameConnectionTune = {
 };
 export type MethodFrameConnectionTuneOk = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionTuneOk;
+    name: "connectionTuneOk";
     method: connectionTuneOk;
     args: {
         [FieldNames.channelMax]: number;
@@ -1780,7 +1717,7 @@ export type MethodFrameConnectionTuneOk = {
 };
 export type MethodFrameConnectionOpen = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionOpen;
+    name: "connectionOpen";
     method: connectionOpen;
     args: {
         [FieldNames.virtualHost]: string;
@@ -1790,7 +1727,7 @@ export type MethodFrameConnectionOpen = {
 };
 export type MethodFrameConnectionOpenOk = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionOpenOk;
+    name: "connectionOpenOk";
     method: connectionOpenOk;
     args?: {
         [FieldNames.reserved1]?: string;
@@ -1798,7 +1735,7 @@ export type MethodFrameConnectionOpenOk = {
 };
 export type MethodFrameConnectionClose = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionClose;
+    name: "connectionClose";
     method: connectionClose;
     args: {
         [FieldNames.replyCode]: number;
@@ -1809,13 +1746,13 @@ export type MethodFrameConnectionClose = {
 };
 export type MethodFrameConnectionCloseOk = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionCloseOk;
+    name: "connectionCloseOk";
     method: connectionCloseOk;
     args?: Record<string, never>;
 };
 export type MethodFrameConnectionBlocked = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionBlocked;
+    name: "connectionBlocked";
     method: connectionBlocked;
     args: {
         [FieldNames.reason]: string;
@@ -1823,13 +1760,13 @@ export type MethodFrameConnectionBlocked = {
 };
 export type MethodFrameConnectionUnblocked = {
     type: FrameType.METHOD;
-    name: MethodNames.connectionUnblocked;
+    name: "connectionUnblocked";
     method: connectionUnblocked;
     args?: Record<string, never>;
 };
 export type MethodFrameChannelOpen = {
     type: FrameType.METHOD;
-    name: MethodNames.channelOpen;
+    name: "channelOpen";
     method: channelOpen;
     args?: {
         [FieldNames.reserved1]?: string;
@@ -1837,7 +1774,7 @@ export type MethodFrameChannelOpen = {
 };
 export type MethodFrameChannelOpenOk = {
     type: FrameType.METHOD;
-    name: MethodNames.channelOpenOk;
+    name: "channelOpenOk";
     method: channelOpenOk;
     args?: {
         [FieldNames.reserved1]?: string | Record<string, any>;
@@ -1845,7 +1782,7 @@ export type MethodFrameChannelOpenOk = {
 };
 export type MethodFrameChannelFlow = {
     type: FrameType.METHOD;
-    name: MethodNames.channelFlow;
+    name: "channelFlow";
     method: channelFlow;
     args: {
         [FieldNames.active]: boolean;
@@ -1853,7 +1790,7 @@ export type MethodFrameChannelFlow = {
 };
 export type MethodFrameChannelFlowOk = {
     type: FrameType.METHOD;
-    name: MethodNames.channelFlowOk;
+    name: "channelFlowOk";
     method: channelFlowOk;
     args: {
         [FieldNames.active]: boolean;
@@ -1861,7 +1798,7 @@ export type MethodFrameChannelFlowOk = {
 };
 export type MethodFrameChannelClose = {
     type: FrameType.METHOD;
-    name: MethodNames.channelClose;
+    name: "channelClose";
     method: channelClose;
     args: {
         [FieldNames.replyCode]: number;
@@ -1872,13 +1809,13 @@ export type MethodFrameChannelClose = {
 };
 export type MethodFrameChannelCloseOk = {
     type: FrameType.METHOD;
-    name: MethodNames.channelCloseOk;
+    name: "channelCloseOk";
     method: channelCloseOk;
     args?: Record<string, never>;
 };
 export type MethodFrameExchangeDeclare = {
     type: FrameType.METHOD;
-    name: MethodNames.exchangeDeclare;
+    name: "exchangeDeclare";
     method: exchangeDeclare;
     args: {
         [FieldNames.reserved1]?: number;
@@ -1894,13 +1831,13 @@ export type MethodFrameExchangeDeclare = {
 };
 export type MethodFrameExchangeDeclareOk = {
     type: FrameType.METHOD;
-    name: MethodNames.exchangeDeclareOk;
+    name: "exchangeDeclareOk";
     method: exchangeDeclareOk;
     args?: Record<string, never>;
 };
 export type MethodFrameExchangeDelete = {
     type: FrameType.METHOD;
-    name: MethodNames.exchangeDelete;
+    name: "exchangeDelete";
     method: exchangeDelete;
     args: {
         [FieldNames.reserved1]?: number;
@@ -1911,13 +1848,13 @@ export type MethodFrameExchangeDelete = {
 };
 export type MethodFrameExchangeDeleteOk = {
     type: FrameType.METHOD;
-    name: MethodNames.exchangeDeleteOk;
+    name: "exchangeDeleteOk";
     method: exchangeDeleteOk;
     args?: Record<string, never>;
 };
 export type MethodFrameExchangeBind = {
     type: FrameType.METHOD;
-    name: MethodNames.exchangeBind;
+    name: "exchangeBind";
     method: exchangeBind;
     args: {
         [FieldNames.reserved1]?: number;
@@ -1930,13 +1867,13 @@ export type MethodFrameExchangeBind = {
 };
 export type MethodFrameExchangeBindOk = {
     type: FrameType.METHOD;
-    name: MethodNames.exchangeBindOk;
+    name: "exchangeBindOk";
     method: exchangeBindOk;
     args?: Record<string, never>;
 };
 export type MethodFrameExchangeUnbind = {
     type: FrameType.METHOD;
-    name: MethodNames.exchangeUnbind;
+    name: "exchangeUnbind";
     method: exchangeUnbind;
     args: {
         [FieldNames.reserved1]?: number;
@@ -1949,13 +1886,13 @@ export type MethodFrameExchangeUnbind = {
 };
 export type MethodFrameExchangeUnbindOk = {
     type: FrameType.METHOD;
-    name: MethodNames.exchangeUnbindOk;
+    name: "exchangeUnbindOk";
     method: exchangeUnbindOk;
     args?: Record<string, never>;
 };
 export type MethodFrameQueueDeclare = {
     type: FrameType.METHOD;
-    name: MethodNames.queueDeclare;
+    name: "queueDeclare";
     method: queueDeclare;
     args: {
         [FieldNames.reserved1]?: number;
@@ -1970,7 +1907,7 @@ export type MethodFrameQueueDeclare = {
 };
 export type MethodFrameQueueDeclareOk = {
     type: FrameType.METHOD;
-    name: MethodNames.queueDeclareOk;
+    name: "queueDeclareOk";
     method: queueDeclareOk;
     args: {
         [FieldNames.queue]: string;
@@ -1980,7 +1917,7 @@ export type MethodFrameQueueDeclareOk = {
 };
 export type MethodFrameQueueBind = {
     type: FrameType.METHOD;
-    name: MethodNames.queueBind;
+    name: "queueBind";
     method: queueBind;
     args: {
         [FieldNames.reserved1]?: number;
@@ -1993,13 +1930,13 @@ export type MethodFrameQueueBind = {
 };
 export type MethodFrameQueueBindOk = {
     type: FrameType.METHOD;
-    name: MethodNames.queueBindOk;
+    name: "queueBindOk";
     method: queueBindOk;
     args?: Record<string, never>;
 };
 export type MethodFrameQueueUnbind = {
     type: FrameType.METHOD;
-    name: MethodNames.queueUnbind;
+    name: "queueUnbind";
     method: queueUnbind;
     args: {
         [FieldNames.reserved1]?: number;
@@ -2011,13 +1948,13 @@ export type MethodFrameQueueUnbind = {
 };
 export type MethodFrameQueueUnbindOk = {
     type: FrameType.METHOD;
-    name: MethodNames.queueUnbindOk;
+    name: "queueUnbindOk";
     method: queueUnbindOk;
     args?: Record<string, never>;
 };
 export type MethodFrameQueuePurge = {
     type: FrameType.METHOD;
-    name: MethodNames.queuePurge;
+    name: "queuePurge";
     method: queuePurge;
     args: {
         [FieldNames.reserved1]?: number;
@@ -2027,7 +1964,7 @@ export type MethodFrameQueuePurge = {
 };
 export type MethodFrameQueuePurgeOk = {
     type: FrameType.METHOD;
-    name: MethodNames.queuePurgeOk;
+    name: "queuePurgeOk";
     method: queuePurgeOk;
     args: {
         [FieldNames.messageCount]: number;
@@ -2035,7 +1972,7 @@ export type MethodFrameQueuePurgeOk = {
 };
 export type MethodFrameQueueDelete = {
     type: FrameType.METHOD;
-    name: MethodNames.queueDelete;
+    name: "queueDelete";
     method: queueDelete;
     args: {
         [FieldNames.reserved1]?: number;
@@ -2047,7 +1984,7 @@ export type MethodFrameQueueDelete = {
 };
 export type MethodFrameQueueDeleteOk = {
     type: FrameType.METHOD;
-    name: MethodNames.queueDeleteOk;
+    name: "queueDeleteOk";
     method: queueDeleteOk;
     args: {
         [FieldNames.messageCount]: number;
@@ -2055,7 +1992,7 @@ export type MethodFrameQueueDeleteOk = {
 };
 export type MethodFrameBasicQos = {
     type: FrameType.METHOD;
-    name: MethodNames.basicQos;
+    name: "basicQos";
     method: basicQos;
     args: {
         [FieldNames.prefetchSize]: number;
@@ -2065,13 +2002,13 @@ export type MethodFrameBasicQos = {
 };
 export type MethodFrameBasicQosOk = {
     type: FrameType.METHOD;
-    name: MethodNames.basicQosOk;
+    name: "basicQosOk";
     method: basicQosOk;
     args?: Record<string, never>;
 };
 export type MethodFrameBasicConsume = {
     type: FrameType.METHOD;
-    name: MethodNames.basicConsume;
+    name: "basicConsume";
     method: basicConsume;
     args: {
         [FieldNames.reserved1]?: number;
@@ -2086,7 +2023,7 @@ export type MethodFrameBasicConsume = {
 };
 export type MethodFrameBasicConsumeOk = {
     type: FrameType.METHOD;
-    name: MethodNames.basicConsumeOk;
+    name: "basicConsumeOk";
     method: basicConsumeOk;
     args: {
         [FieldNames.consumerTag]: string;
@@ -2094,7 +2031,7 @@ export type MethodFrameBasicConsumeOk = {
 };
 export type MethodFrameBasicCancel = {
     type: FrameType.METHOD;
-    name: MethodNames.basicCancel;
+    name: "basicCancel";
     method: basicCancel;
     args: {
         [FieldNames.consumerTag]: string;
@@ -2103,7 +2040,7 @@ export type MethodFrameBasicCancel = {
 };
 export type MethodFrameBasicCancelOk = {
     type: FrameType.METHOD;
-    name: MethodNames.basicCancelOk;
+    name: "basicCancelOk";
     method: basicCancelOk;
     args: {
         [FieldNames.consumerTag]: string;
@@ -2111,7 +2048,7 @@ export type MethodFrameBasicCancelOk = {
 };
 export type MethodFrameBasicPublish = {
     type: FrameType.METHOD;
-    name: MethodNames.basicPublish;
+    name: "basicPublish";
     method: basicPublish;
     args: {
         [FieldNames.reserved1]?: number;
@@ -2123,7 +2060,7 @@ export type MethodFrameBasicPublish = {
 };
 export type MethodFrameBasicReturn = {
     type: FrameType.METHOD;
-    name: MethodNames.basicReturn;
+    name: "basicReturn";
     method: basicReturn;
     args: {
         [FieldNames.replyCode]: number;
@@ -2134,7 +2071,7 @@ export type MethodFrameBasicReturn = {
 };
 export type MethodFrameBasicDeliver = {
     type: FrameType.METHOD;
-    name: MethodNames.basicDeliver;
+    name: "basicDeliver";
     method: basicDeliver;
     args: {
         [FieldNames.consumerTag]: string;
@@ -2146,7 +2083,7 @@ export type MethodFrameBasicDeliver = {
 };
 export type MethodFrameBasicGet = {
     type: FrameType.METHOD;
-    name: MethodNames.basicGet;
+    name: "basicGet";
     method: basicGet;
     args: {
         [FieldNames.reserved1]?: number;
@@ -2156,7 +2093,7 @@ export type MethodFrameBasicGet = {
 };
 export type MethodFrameBasicGetOk = {
     type: FrameType.METHOD;
-    name: MethodNames.basicGetOk;
+    name: "basicGetOk";
     method: basicGetOk;
     args: {
         [FieldNames.deliveryTag]: number;
@@ -2168,7 +2105,7 @@ export type MethodFrameBasicGetOk = {
 };
 export type MethodFrameBasicGetEmpty = {
     type: FrameType.METHOD;
-    name: MethodNames.basicGetEmpty;
+    name: "basicGetEmpty";
     method: basicGetEmpty;
     args?: {
         [FieldNames.reserved1]?: string;
@@ -2176,7 +2113,7 @@ export type MethodFrameBasicGetEmpty = {
 };
 export type MethodFrameBasicAck = {
     type: FrameType.METHOD;
-    name: MethodNames.basicAck;
+    name: "basicAck";
     method: basicAck;
     args: {
         [FieldNames.deliveryTag]: number;
@@ -2185,7 +2122,7 @@ export type MethodFrameBasicAck = {
 };
 export type MethodFrameBasicReject = {
     type: FrameType.METHOD;
-    name: MethodNames.basicReject;
+    name: "basicReject";
     method: basicReject;
     args: {
         [FieldNames.deliveryTag]: number;
@@ -2194,7 +2131,7 @@ export type MethodFrameBasicReject = {
 };
 export type MethodFrameBasicRecoverAsync = {
     type: FrameType.METHOD;
-    name: MethodNames.basicRecoverAsync;
+    name: "basicRecoverAsync";
     method: basicRecoverAsync;
     args: {
         [FieldNames.requeue]: boolean;
@@ -2202,7 +2139,7 @@ export type MethodFrameBasicRecoverAsync = {
 };
 export type MethodFrameBasicRecover = {
     type: FrameType.METHOD;
-    name: MethodNames.basicRecover;
+    name: "basicRecover";
     method: basicRecover;
     args: {
         [FieldNames.requeue]: boolean;
@@ -2210,13 +2147,13 @@ export type MethodFrameBasicRecover = {
 };
 export type MethodFrameBasicRecoverOk = {
     type: FrameType.METHOD;
-    name: MethodNames.basicRecoverOk;
+    name: "basicRecoverOk";
     method: basicRecoverOk;
     args?: Record<string, never>;
 };
 export type MethodFrameBasicNack = {
     type: FrameType.METHOD;
-    name: MethodNames.basicNack;
+    name: "basicNack";
     method: basicNack;
     args: {
         [FieldNames.deliveryTag]: number;
@@ -2226,43 +2163,43 @@ export type MethodFrameBasicNack = {
 };
 export type MethodFrameTxSelect = {
     type: FrameType.METHOD;
-    name: MethodNames.txSelect;
+    name: "txSelect";
     method: txSelect;
     args?: Record<string, never>;
 };
 export type MethodFrameTxSelectOk = {
     type: FrameType.METHOD;
-    name: MethodNames.txSelectOk;
+    name: "txSelectOk";
     method: txSelectOk;
     args?: Record<string, never>;
 };
 export type MethodFrameTxCommit = {
     type: FrameType.METHOD;
-    name: MethodNames.txCommit;
+    name: "txCommit";
     method: txCommit;
     args?: Record<string, never>;
 };
 export type MethodFrameTxCommitOk = {
     type: FrameType.METHOD;
-    name: MethodNames.txCommitOk;
+    name: "txCommitOk";
     method: txCommitOk;
     args?: Record<string, never>;
 };
 export type MethodFrameTxRollback = {
     type: FrameType.METHOD;
-    name: MethodNames.txRollback;
+    name: "txRollback";
     method: txRollback;
     args?: Record<string, never>;
 };
 export type MethodFrameTxRollbackOk = {
     type: FrameType.METHOD;
-    name: MethodNames.txRollbackOk;
+    name: "txRollbackOk";
     method: txRollbackOk;
     args?: Record<string, never>;
 };
 export type MethodFrameConfirmSelect = {
     type: FrameType.METHOD;
-    name: MethodNames.confirmSelect;
+    name: "confirmSelect";
     method: confirmSelect;
     args?: {
         [FieldNames.noWait]?: boolean;
@@ -2270,7 +2207,7 @@ export type MethodFrameConfirmSelect = {
 };
 export type MethodFrameConfirmSelectOk = {
     type: FrameType.METHOD;
-    name: MethodNames.confirmSelectOk;
+    name: "confirmSelectOk";
     method: confirmSelectOk;
     args?: Record<string, never>;
 };
@@ -2543,166 +2480,87 @@ export const classes: Classes = {
 };
 
 
-export interface IParser {
-    offset: number
-    buffer?: Buffer
-    bitIndex: number
-
-    execute(buffer: Buffer): void
-    reset(): void
-}
-
 type _<T> = T;
 export type Merge<T> = _<{ [k in keyof T]: T[k] }>;
 export type FieldsToRecord<T extends any[]> =
-    T extends [infer Head, ...infer Tail]
+    T extends [infer Head]
         ? Head extends { name: FieldNames, domain: FieldTypes }
-            ? Merge<{ [K in `${ Head['name']}`]: FieldTypeEquality[Head['domain']] } & FieldsToRecord<Tail>>
+            ? { [K in `${Head['name']}`]: FieldTypeEquality[Head['domain']] }
             : never
-        : Record<string, never>
+    : T extends [infer Head, ...infer Tail]
+        ? Head extends { name: FieldNames, domain: FieldTypes }
+            ? Merge<{ [K in `${Head['name']}`]: FieldTypeEquality[Head['domain']] } & FieldsToRecord<Tail>>
+            : never
+        : Record<string, never>;
 
-export type ParseFields<T> = 
-    T extends connection['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends channel['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends exchange['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queue['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basic['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends confirm['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends tx['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionStart['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionStartOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionSecure['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionSecureOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionTune['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionTuneOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionOpen['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionOpenOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionClose['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionCloseOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionBlocked['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends connectionUnblocked['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends channelOpen['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends channelOpenOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends channelFlow['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends channelFlowOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends channelClose['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends channelCloseOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends exchangeDeclare['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends exchangeDeclareOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends exchangeDelete['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends exchangeDeleteOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends exchangeBind['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends exchangeBindOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends exchangeUnbind['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends exchangeUnbindOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queueDeclare['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queueDeclareOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queueBind['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queueBindOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queueUnbind['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queueUnbindOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queuePurge['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queuePurgeOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queueDelete['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends queueDeleteOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicQos['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicQosOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicConsume['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicConsumeOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicCancel['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicCancelOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicPublish['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicReturn['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicDeliver['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicGet['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicGetOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicGetEmpty['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicAck['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicReject['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicRecoverAsync['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicRecover['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicRecoverOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends basicNack['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends txSelect['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends txSelectOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends txCommit['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends txCommitOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends txRollback['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends txRollbackOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends confirmSelect['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    T extends confirmSelectOk['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :
-    never;
-
-export type ParseFieldsFn = {
-  <T extends connection['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends channel['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends exchange['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queue['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basic['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends confirm['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends tx['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionStart['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionStartOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionSecure['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionSecureOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionTune['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionTuneOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionOpen['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionOpenOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionClose['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionCloseOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionBlocked['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends connectionUnblocked['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends channelOpen['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends channelOpenOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends channelFlow['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends channelFlowOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends channelClose['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends channelCloseOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends exchangeDeclare['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends exchangeDeclareOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends exchangeDelete['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends exchangeDeleteOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends exchangeBind['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends exchangeBindOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends exchangeUnbind['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends exchangeUnbindOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queueDeclare['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queueDeclareOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queueBind['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queueBindOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queueUnbind['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queueUnbindOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queuePurge['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queuePurgeOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queueDelete['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends queueDeleteOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicQos['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicQosOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicConsume['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicConsumeOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicCancel['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicCancelOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicPublish['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicReturn['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicDeliver['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicGet['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicGetOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicGetEmpty['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicAck['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicReject['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicRecoverAsync['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicRecover['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicRecoverOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends basicNack['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends txSelect['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends txSelectOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends txCommit['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends txCommitOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends txRollback['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends txRollbackOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends confirmSelect['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
-  <T extends confirmSelectOk['fields']>(parser: IParser, fields: T): FieldsToRecord<T>
+export type GenericMethodFrame = {
+    type: FrameType.METHOD,
+    name: MethodNames,
+    method: MethodFrame['method'],
+    args: MethodFrame['args']
 }
 
-// type parsedFields = ReturnType<parseFields<basic['fields']>>
+export type SpecificMethodFrame<T> =
+    T extends { name: "connectionStart", type: FrameType.METHOD } ? MethodFrameConnectionStart :
+T extends { name: "connectionStartOk", type: FrameType.METHOD } ? MethodFrameConnectionStartOk :
+T extends { name: "connectionSecure", type: FrameType.METHOD } ? MethodFrameConnectionSecure :
+T extends { name: "connectionSecureOk", type: FrameType.METHOD } ? MethodFrameConnectionSecureOk :
+T extends { name: "connectionTune", type: FrameType.METHOD } ? MethodFrameConnectionTune :
+T extends { name: "connectionTuneOk", type: FrameType.METHOD } ? MethodFrameConnectionTuneOk :
+T extends { name: "connectionOpen", type: FrameType.METHOD } ? MethodFrameConnectionOpen :
+T extends { name: "connectionOpenOk", type: FrameType.METHOD } ? MethodFrameConnectionOpenOk :
+T extends { name: "connectionClose", type: FrameType.METHOD } ? MethodFrameConnectionClose :
+T extends { name: "connectionCloseOk", type: FrameType.METHOD } ? MethodFrameConnectionCloseOk :
+T extends { name: "connectionBlocked", type: FrameType.METHOD } ? MethodFrameConnectionBlocked :
+T extends { name: "connectionUnblocked", type: FrameType.METHOD } ? MethodFrameConnectionUnblocked :
+T extends { name: "channelOpen", type: FrameType.METHOD } ? MethodFrameChannelOpen :
+T extends { name: "channelOpenOk", type: FrameType.METHOD } ? MethodFrameChannelOpenOk :
+T extends { name: "channelFlow", type: FrameType.METHOD } ? MethodFrameChannelFlow :
+T extends { name: "channelFlowOk", type: FrameType.METHOD } ? MethodFrameChannelFlowOk :
+T extends { name: "channelClose", type: FrameType.METHOD } ? MethodFrameChannelClose :
+T extends { name: "channelCloseOk", type: FrameType.METHOD } ? MethodFrameChannelCloseOk :
+T extends { name: "exchangeDeclare", type: FrameType.METHOD } ? MethodFrameExchangeDeclare :
+T extends { name: "exchangeDeclareOk", type: FrameType.METHOD } ? MethodFrameExchangeDeclareOk :
+T extends { name: "exchangeDelete", type: FrameType.METHOD } ? MethodFrameExchangeDelete :
+T extends { name: "exchangeDeleteOk", type: FrameType.METHOD } ? MethodFrameExchangeDeleteOk :
+T extends { name: "exchangeBind", type: FrameType.METHOD } ? MethodFrameExchangeBind :
+T extends { name: "exchangeBindOk", type: FrameType.METHOD } ? MethodFrameExchangeBindOk :
+T extends { name: "exchangeUnbind", type: FrameType.METHOD } ? MethodFrameExchangeUnbind :
+T extends { name: "exchangeUnbindOk", type: FrameType.METHOD } ? MethodFrameExchangeUnbindOk :
+T extends { name: "queueDeclare", type: FrameType.METHOD } ? MethodFrameQueueDeclare :
+T extends { name: "queueDeclareOk", type: FrameType.METHOD } ? MethodFrameQueueDeclareOk :
+T extends { name: "queueBind", type: FrameType.METHOD } ? MethodFrameQueueBind :
+T extends { name: "queueBindOk", type: FrameType.METHOD } ? MethodFrameQueueBindOk :
+T extends { name: "queueUnbind", type: FrameType.METHOD } ? MethodFrameQueueUnbind :
+T extends { name: "queueUnbindOk", type: FrameType.METHOD } ? MethodFrameQueueUnbindOk :
+T extends { name: "queuePurge", type: FrameType.METHOD } ? MethodFrameQueuePurge :
+T extends { name: "queuePurgeOk", type: FrameType.METHOD } ? MethodFrameQueuePurgeOk :
+T extends { name: "queueDelete", type: FrameType.METHOD } ? MethodFrameQueueDelete :
+T extends { name: "queueDeleteOk", type: FrameType.METHOD } ? MethodFrameQueueDeleteOk :
+T extends { name: "basicQos", type: FrameType.METHOD } ? MethodFrameBasicQos :
+T extends { name: "basicQosOk", type: FrameType.METHOD } ? MethodFrameBasicQosOk :
+T extends { name: "basicConsume", type: FrameType.METHOD } ? MethodFrameBasicConsume :
+T extends { name: "basicConsumeOk", type: FrameType.METHOD } ? MethodFrameBasicConsumeOk :
+T extends { name: "basicCancel", type: FrameType.METHOD } ? MethodFrameBasicCancel :
+T extends { name: "basicCancelOk", type: FrameType.METHOD } ? MethodFrameBasicCancelOk :
+T extends { name: "basicPublish", type: FrameType.METHOD } ? MethodFrameBasicPublish :
+T extends { name: "basicReturn", type: FrameType.METHOD } ? MethodFrameBasicReturn :
+T extends { name: "basicDeliver", type: FrameType.METHOD } ? MethodFrameBasicDeliver :
+T extends { name: "basicGet", type: FrameType.METHOD } ? MethodFrameBasicGet :
+T extends { name: "basicGetOk", type: FrameType.METHOD } ? MethodFrameBasicGetOk :
+T extends { name: "basicGetEmpty", type: FrameType.METHOD } ? MethodFrameBasicGetEmpty :
+T extends { name: "basicAck", type: FrameType.METHOD } ? MethodFrameBasicAck :
+T extends { name: "basicReject", type: FrameType.METHOD } ? MethodFrameBasicReject :
+T extends { name: "basicRecoverAsync", type: FrameType.METHOD } ? MethodFrameBasicRecoverAsync :
+T extends { name: "basicRecover", type: FrameType.METHOD } ? MethodFrameBasicRecover :
+T extends { name: "basicRecoverOk", type: FrameType.METHOD } ? MethodFrameBasicRecoverOk :
+T extends { name: "basicNack", type: FrameType.METHOD } ? MethodFrameBasicNack :
+T extends { name: "txSelect", type: FrameType.METHOD } ? MethodFrameTxSelect :
+T extends { name: "txSelectOk", type: FrameType.METHOD } ? MethodFrameTxSelectOk :
+T extends { name: "txCommit", type: FrameType.METHOD } ? MethodFrameTxCommit :
+T extends { name: "txCommitOk", type: FrameType.METHOD } ? MethodFrameTxCommitOk :
+T extends { name: "txRollback", type: FrameType.METHOD } ? MethodFrameTxRollback :
+T extends { name: "txRollbackOk", type: FrameType.METHOD } ? MethodFrameTxRollbackOk :
+T extends { name: "confirmSelect", type: FrameType.METHOD } ? MethodFrameConfirmSelect :
+T extends { name: "confirmSelectOk", type: FrameType.METHOD } ? MethodFrameConfirmSelectOk :
+        never;

@@ -99,20 +99,20 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         )
     }
 
-    // const unionFromSet = (name: string, set: Set<string>): ts.TypeAliasDeclaration => {
-    //     return ts.factory.createTypeAliasDeclaration(
-    //         undefined,
-    //         [
-    //             ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
-    //             ts.factory.createModifier(ts.SyntaxKind.ConstKeyword)
-    //         ],
-    //         name,
-    //         undefined,
-    //         ts.factory.createUnionTypeNode(Array.from(set, (member) => ts.factory.createLiteralTypeNode(
-    //             ts.factory.createStringLiteral(member)
-    //         )))
-    //     )
-    // }
+    const unionFromSet = (name: string, set: Set<string>): ts.TypeAliasDeclaration => {
+        return ts.factory.createTypeAliasDeclaration(
+            undefined,
+            [
+                ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
+                // ts.factory.createModifier(ts.SyntaxKind.ConstKeyword)
+            ],
+            name,
+            undefined,
+            ts.factory.createUnionTypeNode(Array.from(set, (member) => ts.factory.createLiteralTypeNode(
+                ts.factory.createStringLiteral(member)
+            )))
+        )
+    }
 
     const frameTypes = ts.factory.createEnumDeclaration(
         undefined,
@@ -130,12 +130,12 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     // domain types
     const fieldTypesEnum = enumFromSet('FieldTypes', domains)
     const fieldNamesEnum = enumFromSet('FieldNames', fieldNames)
-    const methodNamesEnum = enumFromSet('MethodNames', methodNames)
+    // const methodNamesEnum = enumFromSet('MethodNames', methodNames)
     const classNamesEnum = enumFromSet('ClassNames', classNames)
 
     // const fieldTypesUnion = unionFromSet('FieldTypes', domains)
     // const fieldNamesUnion = unionFromSet('FieldNames', fieldNames)
-    // const methodNamesUnion = unionFromSet('MethodNames', methodNames)
+    const methodNamesUnion = unionFromSet('MethodNames', methodNames)
     // const classNamesUnion = unionFromSet('ClassNames', classNames)
 
     const fieldTypeConversion = ts.factory.createTypeAliasDeclaration(
@@ -205,7 +205,8 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
             undefined,
             ts.factory.createTypeLiteralNode([
                 ts.factory.createPropertySignature(undefined, 'name', undefined, ts.factory.createTypeReferenceNode(
-                    `${methodNamesEnum.name.text}.${method.name}`
+                    // `${methodNamesEnum.name.text}.${method.name}`
+                    `"${method.name}"`
                 )),
                 ts.factory.createPropertySignature(undefined, 'classIndex', undefined, ts.factory.createTypeReferenceNode(
                     `${classIdsEnum.name.text}.${classes[method.classIndex].name}`
@@ -258,7 +259,8 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         ts.factory.createTypeLiteralNode(Object.values(methods).map((method) => 
             ts.factory.createPropertySignature(
                 undefined,
-                ts.factory.createIdentifier(`[${methodNamesEnum.name.text}.${method.name}]`),
+                // ts.factory.createIdentifier(`[${methodNamesEnum.name.text}.${method.name}]`),
+                ts.factory.createIdentifier(`"${method.name}"`),
                 ArgTypes[method.name] === null || ArgTypes[method.name]?.members.every(m => m.questionToken)
                     ? ts.factory.createToken(ts.SyntaxKind.QuestionToken) 
                     : undefined,
@@ -267,11 +269,14 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         ))
     )
 
-    const methodFrameTypes: ts.TypeAliasDeclaration[] = Object.values(methods).map((method) => (
-        ts.factory.createTypeAliasDeclaration(
+    const methodFrameNames = Object.create(null)
+    const methodFrameTypes: ts.TypeAliasDeclaration[] = Object.entries(methods).map(([name, method]) => {
+        const frameName = `MethodFrame${method.name[0].toUpperCase()}${method.name.slice(1)}`
+        methodFrameNames[name] = frameName
+        return ts.factory.createTypeAliasDeclaration(
             undefined,
             [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
-            ts.factory.createIdentifier(`MethodFrame${method.name[0].toUpperCase()}${method.name.slice(1)}`),
+            ts.factory.createIdentifier(frameName),
             undefined,
             ts.factory.createTypeLiteralNode([
                 ts.factory.createPropertySignature(
@@ -284,8 +289,8 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
                     undefined,
                     ts.factory.createIdentifier('name'),
                     undefined,
-                    // ts.factory.createTypeReferenceNode(method.name)
-                    ts.factory.createTypeReferenceNode(`${methodNamesEnum.name.text}.${method.name}`)
+                    ts.factory.createTypeReferenceNode(`"${method.name}"`)
+                    // ts.factory.createTypeReferenceNode(`${methodNamesEnum.name.text}.${method.name}`)
                 ),
                 ts.factory.createPropertySignature(
                     undefined,
@@ -307,7 +312,7 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
                 )
             ])
         )
-    ))
+    })
 
     // --- Discriminating Union
     const methodFrame = ts.factory.createTypeAliasDeclaration(
@@ -399,7 +404,8 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         ts.factory.createTypeLiteralNode(Object.entries(methods).map(([methodName, method]) => (
             ts.factory.createPropertySignature(
                 undefined,
-                ts.factory.createIdentifier(`[${methodNamesEnum.name.text}.${methodName}]`),
+                // ts.factory.createIdentifier(`[${methodNamesEnum.name.text}.${methodName}]`),
+                ts.factory.createIdentifier(methodName),
                 undefined,
                 ts.factory.createTypeReferenceNode(method.name),
             )
@@ -413,7 +419,8 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         ts.factory.createObjectLiteralExpression(Object.entries(methods).map(([key, method]) => {
             return ts.factory.createPropertyAssignment(key, ts.factory.createObjectLiteralExpression([
                 ts.factory.createPropertyAssignment('name',
-                    ts.factory.createPropertyAccessExpression(methodNamesEnum.name, method.name)
+                    // ts.factory.createPropertyAccessExpression(methodNamesEnum.name, method.name)
+                    ts.factory.createIdentifier(`"${method.name}"`)
                 ),
                 ts.factory.createPropertyAssignment('classIndex', ts.factory.createNumericLiteral(method.classIndex)),
                 ts.factory.createPropertyAssignment('methodIndex', ts.factory.createNumericLiteral(method.methodIndex)),
@@ -543,7 +550,8 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         fieldTypeConversion,
         fieldTypesEnum, 
         fieldNamesEnum,
-        methodNamesEnum,
+        // methodNamesEnum,
+        methodNamesUnion,
         classNamesEnum,
         classIdsEnum,
         classMethodIdsEnum,
@@ -563,43 +571,31 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     ]
 
     const append = `
-export interface IParser {
-    offset: number
-    buffer?: Buffer
-    bitIndex: number
-
-    execute(buffer: Buffer): void
-    reset(): void
-}
-
 type _<T> = T;
 export type Merge<T> = _<{ [k in keyof T]: T[k] }>;
 export type FieldsToRecord<T extends any[]> =
-    T extends [infer Head, ...infer Tail]
+    T extends [infer Head]
         ? Head extends { name: FieldNames, domain: FieldTypes }
-            ? Merge<{ [K in \`\${ Head['name']}\`]: FieldTypeEquality[Head['domain']] } & FieldsToRecord<Tail>>
+            ? { [K in \`\${Head['name']}\`]: FieldTypeEquality[Head['domain']] }
             : never
-        : Record<string, never>
+    : T extends [infer Head, ...infer Tail]
+        ? Head extends { name: FieldNames, domain: FieldTypes }
+            ? Merge<{ [K in \`\${Head['name']}\`]: FieldTypeEquality[Head['domain']] } & FieldsToRecord<Tail>>
+            : never
+        : Record<string, never>;
 
-export type ParseFields<T> = 
-${Object.values(classes).map((classInfo) => (
-  `${' '.repeat(4)}T extends ${classInfo.name}['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :`
-)).join('\n')}
-${Object.values(methods).map((method) => (
-  `${' '.repeat(4)}T extends ${method.name}['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :`
-)).join('\n')}
-    never;
-
-export type ParseFieldsFn = {
-${Object.values(classes).map((classInfo) => (
-  `${' '.repeat(2)}<T extends ${classInfo.name}['fields']>(parser: IParser, fields: T): FieldsToRecord<T>`
-)).join('\n')}
-${Object.values(methods).map((method) => (
-  `${' '.repeat(2)}<T extends ${method.name}['fields']>(parser: IParser, fields: T): FieldsToRecord<T>`
-)).join('\n')}
+export type GenericMethodFrame = {
+    type: FrameType.METHOD,
+    name: MethodNames,
+    method: MethodFrame['method'],
+    args: MethodFrame['args']
 }
 
-// type parsedFields = ReturnType<parseFields<basic['fields']>>
+export type SpecificMethodFrame<T> =
+    ${Object.entries(methods).map(([name, method]) => (
+        `T extends { name: "${method.name}", type: FrameType.METHOD } ? ${methodFrameNames[name]} :`
+    )).join('\n')}
+        never;
 `
 
     const prepend = '/* eslint-disable semi */'
@@ -612,3 +608,31 @@ ${Object.values(methods).map((method) => (
         ].join('\n')
     )
 })()
+
+// export interface IParser {
+//     offset: number
+//     buffer?: Buffer
+//     bitIndex: number
+
+//     execute(buffer: Buffer): void
+//     reset(): void
+// }
+// export type ParseFields<T> = 
+// ${Object.values(classes).map((classInfo) => (
+//   `${' '.repeat(4)}T extends ${classInfo.name}['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :`
+// )).join('\n')}
+// ${Object.values(methods).map((method) => (
+//   `${' '.repeat(4)}T extends ${method.name}['fields'] ? (parser: IParser, fields: T) => FieldsToRecord<T> :`
+// )).join('\n')}
+//     never;
+
+// export type ParseFieldsFn = {
+// ${Object.values(classes).map((classInfo) => (
+//   `${' '.repeat(2)}<T extends ${classInfo.name}['fields']>(parser: IParser, fields: T): FieldsToRecord<T>`
+// )).join('\n')}
+// ${Object.values(methods).map((method) => (
+//   `${' '.repeat(2)}<T extends ${method.name}['fields']>(parser: IParser, fields: T): FieldsToRecord<T>`
+// )).join('\n')}
+// }
+
+// // type parsedFields = ReturnType<parseFields<basic['fields']>>

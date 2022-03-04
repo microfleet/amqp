@@ -4,7 +4,7 @@ _        = require('underscore')
 Proxy    = require('./proxy')
 sinon    = require('sinon')
 
-AMQP = require('../src/amqp')
+AMQP = require('../src/amqp').Connection
 debug = require('debug')('heartbeat')
 
 describe 'Connection Heartbeats', () ->

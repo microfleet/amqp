@@ -4,7 +4,7 @@ _        = require('underscore')
 proxy    = require('./proxy')
 uuid = require('uuid').v4
 
-AMQP = require('../src/amqp')
+AMQP = require('../src/amqp').Connection
 
 
 bson    = require('bson')
@@ -842,9 +842,10 @@ describe 'Consumer', () ->
 
         consumer.on 'cancel', (err, res)->
           should.exist err
-          compareError = new Error('Server initiated basicCancel')
-          compareError.code = 'basicCancel'
-          err.should.eql compareError
+
+          err.code.should.eql 'basicCancel'
+          err.name.should.eql 'AMQP_ServerCancel'
+
           done()
 
         queueObj.delete(next)

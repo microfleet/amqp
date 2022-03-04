@@ -6,8 +6,9 @@ echo $SCRIPT_PATH
 rm -rf $SCRIPT_PATH/../bin
 mkdir $SCRIPT_PATH/../bin
 
-cp -r $SCRIPT_PATH/../src $SCRIPT_PATH/../bin/
+pnpm exec -- tsc -b ./tsconfig.build.json
 
+# cp -r $SCRIPT_PATH/../src $SCRIPT_PATH/../bin/
 # compile all coffeescript files
 # find $SCRIPT_PATH/../bin -name "*.coffee" | xargs $SCRIPT_PATH/../node_modules/coffeescript/bin/coffee --compile
 # remove all coffeescript files

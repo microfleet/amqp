@@ -3,7 +3,7 @@ async    = require('async')
 _        = require('underscore')
 uuid = require('uuid').v4
 
-AMQP = require('../src/amqp')
+AMQP = require('../src/amqp').Connection
 
 describe 'Exchange', () ->
 
