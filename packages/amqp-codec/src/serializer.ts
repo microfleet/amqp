@@ -14,9 +14,9 @@ import {
   Field,
   FieldTypes,
   ContentHeader,
-  MethodFrame,
   Content,
   Heartbeat,
+  GenericMethodFrame
 } from './protocol'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -341,7 +341,7 @@ function serializeFields(
   }
 }
 
-function encodeMethod(serializer: Serializer, channel: number, data: MethodFrame): Buffer {
+function encodeMethod(serializer: Serializer, channel: number, data: GenericMethodFrame): Buffer {
   serializer.offset = 1 // reset used offset
   const { buffer } = serializer
   const { method } = data
@@ -504,8 +504,10 @@ export class Serializer {
   }
 
   public encode(channel: number, data: Content): Generator<Buffer, void, void>
-  public encode(channel: number, data: MethodFrame | Omit<ContentHeader, 'classInfo' | 'weight'> | Heartbeat): Buffer
-  public encode(channel: number, data: MethodFrame | Omit<ContentHeader, 'classInfo' | 'weight'> | Heartbeat | Content): Buffer | Generator<Buffer, void, never>  {
+  public encode(channel: number, data: GenericMethodFrame): Buffer
+  public encode(channel: number, data: Omit<ContentHeader, 'classInfo' | 'weight'>): Buffer
+  public encode(channel: number, data: Heartbeat): Buffer
+  public encode(channel: number, data: GenericMethodFrame | Omit<ContentHeader, 'classInfo' | 'weight'> | Heartbeat | Content): Buffer | Generator<Buffer, void, never>  {
     switch (data.type) {
       case FrameType.METHOD: return encodeMethod(this, channel, data)
       case FrameType.HEADER: return encodeHeader(this, channel, data)

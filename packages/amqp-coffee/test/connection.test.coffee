@@ -4,7 +4,7 @@ _        = require('underscore')
 Proxy    = require('./proxy')
 
 describe 'Connection', () ->
-  AMQP = require('../src/amqp')
+  AMQP = require('../src/amqp').Connection
   amqp = null
   proxy = null
 
@@ -34,7 +34,7 @@ describe 'Connection', () ->
     amqp.on 'error', ()->
       done()
 
-  it.only 'we can reconnect if the connection fails 532', (done)->
+  it 'we can reconnect if the connection fails 532', (done)->
     proxy = new Proxy.route(7001, 5672, "rabbitmq")
     amqp = null
 

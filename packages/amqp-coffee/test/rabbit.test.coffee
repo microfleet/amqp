@@ -4,7 +4,7 @@ _        = require('underscore')
 
 uuid = require('uuid').v4
 
-AMQP = require('../src/amqp')
+AMQP = require('../src/amqp').Connection
 
 describe 'Rabbit Plugin', () ->
   it 'tests we can connect with a master node for a non-existent queue', (done) ->
@@ -107,7 +107,7 @@ describe 'Rabbit Plugin', () ->
           next()
 
       (next)->
-        amqp.connectionOptions.host.should.eql 'rabbitmq'
+        amqp.activeHost.should.eql 'rabbitmq'
         next()
 
     ], done
