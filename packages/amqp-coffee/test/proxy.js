@@ -1,111 +1,111 @@
 // Stolen from Devendra Tewari
 // (http://delog.wordpress.com/2011/04/08/a-simple-tcp-proxy-in-node-js/)
 
-var net = require('net');
-var debug = require('debug')('proxy');
+var net = require('net')
+var debug = require('debug')('proxy')
 
 module.exports.route = function (proxyPort, servicePort, serviceHost) {
-  var proxyRoute = this;
-  proxyRoute.proxyPort = proxyPort || 9001;
-  var servicePort = servicePort || 5672;
-  var serviceHost = serviceHost || 'rabbitmq';
+  var proxyRoute = this
+  proxyRoute.proxyPort = proxyPort || 9001
+  var servicePort = servicePort || 5672
+  var serviceHost = serviceHost || 'rabbitmq'
 
   debug('created proxy', proxyPort, servicePort, serviceHost)
 
-  proxyRoute.operational = true;
-  proxyRoute.serviceSockets = [];
-  proxyRoute.proxySockets = [];
+  proxyRoute.operational = true
+  proxyRoute.serviceSockets = []
+  proxyRoute.proxySockets = []
 
   proxyRoute.server = net.createServer(function (proxySocket) {
     // If we're "experiencing trouble", immediately end the connection.
     if (!proxyRoute.operational) {
-      proxySocket.end();
-      return;
+      proxySocket.end()
+      return
     }
 
     // If we're operating normally, accept the connection and begin proxying traffic.
-    proxyRoute.proxySockets.push(proxySocket);
+    proxyRoute.proxySockets.push(proxySocket)
 
-    var connected = false;
-    var buffers = [];
-    var serviceSocket = new net.Socket();
-    proxyRoute.serviceSockets.push(serviceSocket);
-    serviceSocket.connect(parseInt(servicePort, 10), serviceHost);
+    var connected = false
+    var buffers = []
+    var serviceSocket = new net.Socket()
+    proxyRoute.serviceSockets.push(serviceSocket)
+    serviceSocket.connect(parseInt(servicePort, 10), serviceHost)
     serviceSocket.on('connect', function() {
-      connected = true;
+      connected = true
       for (var i in buffers) {
-        serviceSocket.write(buffers[i]);
+        serviceSocket.write(buffers[i])
       }
-      buffers = [];
-    });
+      buffers = []
+    })
     proxySocket.on('error', function (e) {
-      serviceSocket.end();
-    });
+      serviceSocket.end()
+    })
     serviceSocket.on('error', function (e) {
-      debug('Could not connect to service at host ' + serviceHost + ', port ' + servicePort);
-      proxySocket.end();
-    });
+      debug('Could not connect to service at host ' + serviceHost + ', port ' + servicePort)
+      proxySocket.end()
+    })
     proxySocket.on("data", function (data) {
       if (proxyRoute.operational) {
         if (connected) {
-          serviceSocket.write(data);
+          serviceSocket.write(data)
         } else {
-          buffers.push(data);
+          buffers.push(data)
         }
       }
-    });
+    })
     serviceSocket.on("data", function(data) {
       if (proxyRoute.operational) {
-        proxySocket.write(data);
+        proxySocket.write(data)
       }
-    });
+    })
     proxySocket.on("close", function(had_error) {
-      serviceSocket.end();
-    });
+      serviceSocket.end()
+    })
     serviceSocket.on("close", function(had_error) {
-      proxySocket.end();
-    });
-  });
-  proxyRoute.listen();
-};
+      proxySocket.end()
+    })
+  })
+  proxyRoute.listen()
+}
 module.exports.route.prototype.listen = function () {
-  var proxyRoute = this;
-  debug('listening for proxy connection...');
-  proxyRoute.operational = true;
-  proxyRoute.server.listen(proxyRoute.proxyPort);
-};
+  var proxyRoute = this
+  debug('listening for proxy connection...')
+  proxyRoute.operational = true
+  proxyRoute.server.listen(proxyRoute.proxyPort)
+}
 module.exports.route.prototype.close = function () {
-  var proxyRoute = this;
-  debug('closing proxy connection...');
-  proxyRoute.operational = false;
+  var proxyRoute = this
+  debug('closing proxy connection...')
+  proxyRoute.operational = false
   for (var index in proxyRoute.serviceSockets) {
-    proxyRoute.serviceSockets[index].destroy();
+    proxyRoute.serviceSockets[index].destroy()
   }
-  proxyRoute.serviceSockets = [];
+  proxyRoute.serviceSockets = []
   for (var index in proxyRoute.proxySockets) {
-    proxyRoute.proxySockets[index].destroy();
+    proxyRoute.proxySockets[index].destroy()
   }
-  proxyRoute.proxySockets = [];
-  proxyRoute.server.close();
-};
+  proxyRoute.proxySockets = []
+  proxyRoute.server.close()
+}
 module.exports.route.prototype.interrupt = function (howLong) {
-  var proxyRoute = this;
-  debug('interrupting proxy connection...');
-  proxyRoute.close();
+  var proxyRoute = this
+  debug('interrupting proxy connection...')
+  proxyRoute.close()
   setTimeout(function () {
-    proxyRoute.listen();
-  }, howLong || 50);
-};
+    proxyRoute.listen()
+  }, howLong || 50)
+}
 
 if (!module.parent) {
-  var proxyPort = process.argv[2];
-  var servicePort = process.argv[3];
-  var serviceHost = process.argv[4];
-  var proxyRoute = new module.exports.route(proxyPort, servicePort, serviceHost);
+  var proxyPort = process.argv[2]
+  var servicePort = process.argv[3]
+  var serviceHost = process.argv[4]
+  var proxyRoute = new module.exports.route(proxyPort, servicePort, serviceHost)
   // Don't exit until parent kills us.
   setInterval(function () {
     if (process.argv[5]) {
-      proxyRoute.interrupt();
+      proxyRoute.interrupt()
     }
-  }, parseInt(process.argv[5]) || 1000);
+  }, parseInt(process.argv[5]) || 1000)
 }

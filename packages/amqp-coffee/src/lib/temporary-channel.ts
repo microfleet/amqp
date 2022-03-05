@@ -19,7 +19,7 @@ export class TemporaryChannel extends Channel {
   }
 
   _channelOpen() {
-    debug(1, () => [this.channel, 'temp channel open'])
+    debug('temp channel open')
     this.cb?.(null, this)
     this.cb = null
   }

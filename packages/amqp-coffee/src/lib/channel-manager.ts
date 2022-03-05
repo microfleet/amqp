@@ -31,6 +31,7 @@ export class ChannelManager {
   private publisherChannels: Publisher[] = []
 
   private tempChannel: TemporaryChannel | null = null
+  private tempChannel$P: Promise<TemporaryChannel> | null = null
 
   constructor(private connection: Connection) {
     this.channels = this.connection.channels
@@ -58,11 +59,40 @@ export class ChannelManager {
     return pool[i]
   }
 
+  async temporaryChannelAsync(): Promise<TemporaryChannel> {
+    if (this.tempChannel !== null) {
+      return this.tempChannel
+    }
+
+    if (this.tempChannel$P !== null) {
+      return this.tempChannel$P
+    }
+
+    this.tempChannel$P = new Promise((resolve, reject) => {
+      const channel = this.nextChannelNumber()
+      const tempChannel = new TemporaryChannel(this.connection, channel, (err) => {
+        if (err) {
+          return reject(err)
+        }
+
+        this.tempChannel = tempChannel
+        resolve(tempChannel)
+      })
+      this.channels.set(channel, tempChannel)
+    })
+
+    try {
+      return this.tempChannel$P
+    } finally {
+      this.tempChannel$P = null
+    }
+  }
+
   temporaryChannel(cb?: TemporaryChannelCb): TemporaryChannel {
     if (this.tempChannel != null) {
       debug('returning temp channel')
       cb?.(null, this.tempChannel)
-      return this.tempChannel
+      
     }
 
     const channel = this.nextChannelNumber()

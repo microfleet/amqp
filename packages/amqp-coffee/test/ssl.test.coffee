@@ -1,8 +1,8 @@
-should  = require('should')
+should   = require('should')
 async    = require('async')
-_        = require('underscore')
-SslProxy    = require('./sslproxy')
-Proxy = require('./proxy')
+SslProxy = require('./sslproxy')
+Proxy    = require('./proxy')
+{ setTimeout } = require('timers/promises')
 
 AMQP = require('../src/amqp').Connection
 
@@ -19,90 +19,44 @@ describe 'SSL Connection', () ->
     sslProxyConnection?.close()
     done()
 
-  afterEach (done) ->
-    amqp?.close()
+  afterEach () ->
+    await amqp?.close()
     proxy?.close()
-    done()
-
-  it 'tests it can connect to localhost using ssl', (done) ->
-    amqp = new AMQP {host:'localhost', ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
-      should.not.exist e
-      done()
-
-  it 'we can reconnect if the connection fails ssl', (done)->
-    proxy = new Proxy.route(7051, 5671, "localhost")
     amqp = null
+    proxy = null
 
-    async.series [
-      (next)->
-        amqp = new AMQP {host:'localhost', sslPort: 7051, ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
-          should.not.exist e
-          next()
+  it 'tests it can connect to localhost using ssl', () ->
+    amqp = new AMQP {host:'localhost', ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}
+    await amqp.connect()
 
-      (next)->
-        proxy.interrupt()
-        next()
+  it 'we can reconnect if the connection fails ssl', ()->
+    proxy = new Proxy.route(7051, 5671, "localhost")
+    amqp = new AMQP {host:'localhost', sslPort: 7051, ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}
+    await amqp.connect()
+    proxy.interrupt()
 
-      (next)->
-        amqp.queue {queue:"test"}, (e, q)->
-          should.not.exist e
-          should.exist q
-          next()
+    await amqp.queue {queue:"test"}
 
-    ], ()->
-      amqp.close()
-      proxy.close()
-      done()
-
-  it 'we emit only one close event ssl', (done)->
+  it 'we emit only one close event ssl', ()->
     proxy = new Proxy.route(9010, 5671, "localhost")
-    amqp  = null
+    amqp = new AMQP {host:'localhost', sslPort: 9010, ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}
     closes = 0
 
-    async.series [
-      (next)->
-        amqp = new AMQP {host:'localhost', sslPort: 9010, ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
-          should.not.exist e
-          next()
-
-      (next)->
-        amqp.on 'close', ()->
-          closes++
-          amqp.close()
-
-          _.delay ()->
-            closes.should.eql 1
-            amqp.close()
-            done()
-          , 300
-
-
-        proxy.close()
-        next()
-
-    ], (e,r)->
-      should.not.exist e
-
-
-  it 'we disconnect ssl', (done)->
-    amqp = null
-
-    async.series [
-      (next)->
-        amqp = new AMQP {host:'localhost', ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}, (e, r)->
-          should.not.exist e
-          next()
-
-      (next)->
+    await amqp.connect()
+    await new Promise (resolve) ->
+      amqp.on 'close', ()->
+        closes++
         amqp.close()
-        next()
 
-      (next)->
-        setTimeout next, 100
+        await setTimeout(300)
+        closes.should.eql 1
+        amqp.close()
+        resolve()
 
-      (next)->
-        amqp.state.should.eql 'destroyed'
-        next()
+      proxy.close()
 
-    ], done
-
+  it 'we disconnect ssl', ()->
+    amqp = amqp = new AMQP {host:'localhost', ssl: true, sslOptions: {ca: [require('fs').readFileSync('./test/ssl/testca/cacert.pem')]}}
+    await amqp.connect()
+    await amqp.close()
+    amqp.state.should.eql 'destroyed'

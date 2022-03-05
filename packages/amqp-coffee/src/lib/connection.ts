@@ -4,7 +4,6 @@ import tls = require('tls')
 import async = require('async')
 
 import bytes = require('bytes')
-import once = require('lodash/once')
 import applyDefaults = require('lodash/defaults')
 
 import {
@@ -30,6 +29,7 @@ import { PublishOptions } from './publisher'
 import { TemporaryChannel } from './temporary-channel'
 import { ConnectionTimeoutError, ServerVersionError, ServerClosedError } from './errors'
 import { Channel, InferOptions, Methods } from './channel'
+import { once } from 'events'
 
 const debug = _debug('amqp:Connection')
 
@@ -87,7 +87,6 @@ export class Connection extends EventEmitter {
   
   // private stuff
   public readonly connectionOptions: ConnectionOptions
-  private cb?: (err?: Error | null) => void
 
   // setup our defaults
   public channels: Map<number, Connection | Channel> = new Map([[0, this]])
@@ -101,6 +100,7 @@ export class Connection extends EventEmitter {
   private _connectTimeout: NodeJS.Timer | null = null
   private heartbeatTimer: NodeJS.Timer | null = null
   private sendHeartbeatTimer: NodeJS.Timer | null = null
+  private opening$P: Promise<void> | undefined
 
   // connection to work with
   public connection!: tls.TLSSocket | net.Socket
@@ -117,25 +117,10 @@ export class Connection extends EventEmitter {
   //   hostRandom: default false, if host is an array
   //   @state : opening | open | closed | reconnecting | destroyed
   // ###
-  constructor(config: Partial<ConnectionOptions> | ((err?: Error | null) => void) = {}, onConnect?: (err?: Error | null) => void) {
+  constructor(config: Partial<ConnectionOptions> = {}) {
     super()
 
-    let args = config
-    let cb = onConnect
-
-    if (typeof args === 'function') {
-      cb = args
-      args = {}
-    }
-
-    // this is the main connect event
-    cb = cb ? once(cb) : cb
-    this.cb = cb
-
-    this.connectionOptions = applyDefaults(args, defaults.connection)
-
-    // this.queues = new Map()
-    // this.exchanges = new Map()
+    this.connectionOptions = applyDefaults({}, config, defaults.connection)
 
     // bind functions
     this._connectionErrorEvent = this._connectionErrorEvent.bind(this)
@@ -150,10 +135,10 @@ export class Connection extends EventEmitter {
     this.channelManager = new ChannelManager(this)
 
     if (!this.connectionOptions.lazyConnect) {
-      this.connect(cb)
-      if (cb) {
-        this.once('ready', cb)
-      }
+      // initiate auto-connection and emit error on failure
+      this.connect().catch((err: Error) => {
+        this.emit('error', err)
+      })
     }
 
     this.on('close', this._closed)
@@ -193,91 +178,85 @@ export class Connection extends EventEmitter {
     }
   }
 
-  connect(cb?: (err?: Error | null) => void) {
+  public async connect(): Promise<void> {
     // noop in case we are already opening the connection
     if (this.state === ConnectionState.opening) {
-      cb?.(new Error('connection is already being opened'))
-      return
+      return this.opening$P
     }
 
     this.state = ConnectionState.opening
-    async.series([
-      (next) => {
-        this._prepareHostList()
-        this.updateConnectionOptionsHostInformation()
-        next()
-      },
-      (next) => {
-        if (this.connectionOptions.rabbitMasterNode?.queue != null) {
-          rabbitmAdminPlugin.masterNode(this, this.connectionOptions.rabbitMasterNode.queue, next)
-        } else {
-          next()
-        }
-      },
-      (next) => {
-        const setupConnectionListeners = () => {
-          const connectionEvent = this.connectionOptions.ssl
-            ? 'secureConnect'
-            : 'connect'
+    this.opening$P = (async () => {
+      this._prepareHostList()
+      this.updateConnectionOptionsHostInformation()
 
-          this.connection.once(connectionEvent, () => this._connectedFirst())
-          this.connection.on(connectionEvent, () => this._connected())
-          this.connection.on('error', this._connectionErrorEvent)
-          this.connection.on('close', this._connectionClosedEvent)
-        }
+      if (this.connectionOptions.rabbitMasterNode?.queue != null) {
+        await rabbitmAdminPlugin.masterNode(this, this.connectionOptions.rabbitMasterNode.queue)
+      }
 
-        if (this.connectionOptions.ssl) {
-          const tlsOptions = this.connectionOptions.sslOptions ?? {}
-          const setupTlsConnection = (port: number, host: string) => {
-            if (this.connection != null) {
-              this.connection.removeAllListeners()
-              // @ts-expect-error not on public types
-              this.connection.socket?.end()
-            }
+      const setupConnectionListeners = () => {
+        const connectionEvent = this.connectionOptions.ssl
+          ? 'secureConnect'
+          : 'connect'
 
-            this.connection = tls.connect(port, host, tlsOptions, () => {
-              this.connection.on('error', (err) => {
-                this.connection.emit('close', err)
-              })
-            })
-            
-            // TODO: remove that
-            // @ts-expect-error we monkey patch, its bad
-            this.connection.connect = setupTlsConnection
+        this.connection.once(connectionEvent, () => this._connectedFirst())
+        this.connection.on(connectionEvent, () => this._connected())
+        this.connection.on('error', this._connectionErrorEvent)
+        this.connection.on('close', this._connectionClosedEvent)
+      }
 
-            setupConnectionListeners()
-            return this.connection
+      if (this.connectionOptions.ssl) {
+        const tlsOptions = this.connectionOptions.sslOptions ?? {}
+        const setupTlsConnection = (port: number, host: string) => {
+          if (this.connection != null) {
+            this.connection.removeAllListeners()
+            // @ts-expect-error not on public types
+            this.connection.socket?.end()
           }
 
-          setupTlsConnection(this.activePort, this.activeHost)
-        } else {
-          this.connection = net.connect(this.activePort, this.activeHost)
+          this.connection = tls.connect(port, host, tlsOptions, () => {
+            this.connection.on('error', (err) => {
+              this.connection.emit('close', err)
+            })
+          })
+
+          // TODO: remove that
+          // @ts-expect-error we monkey patch, its bad
+          this.connection.connect = setupTlsConnection
+
           setupConnectionListeners()
+          return this.connection
         }
 
-        if (this.connectionOptions.noDelay) {
-          this.connection.setNoDelay()
+        setupTlsConnection(this.activePort, this.activeHost)
+      } else {
+        this.connection = net.connect(this.activePort, this.activeHost)
+        setupConnectionListeners()
+      }
+
+      if (this.connectionOptions.noDelay) {
+        this.connection.setNoDelay()
+      }
+
+      // start listening for timeouts
+      if (this.connectionOptions.connectTimeout && !this.connectionOptions.reconnect) {
+        if (this._connectTimeout) {
+          clearTimeout(this._connectTimeout)
         }
 
-        // start listening for timeouts
+        this._connectTimeout = setTimeout(() => {
+          debug(1, () => 'Connection timeout triggered')
+          this.close(new ConnectionTimeoutError(this.activeHost, this.activePort))
+        }, this.connectionOptions.connectTimeout)
+      }
 
-        if (this.connectionOptions.connectTimeout && !this.connectionOptions.reconnect) {
-          if (this._connectTimeout) clearTimeout(this._connectTimeout)
-          this._connectTimeout = setTimeout(() => {
-            debug(1, () => 'Connection timeout triggered')
+      await once(this, 'ready')
+    })()
 
-            this.close()
-            const err = new ConnectionTimeoutError(this.activeHost, this.activePort)
-            
-            cb?.(err)
-          }, this.connectionOptions.connectTimeout)
-        }
-
-        next()
-      },
-    ], (e) => {
-      if (e) cb?.(e)
-    })
+    try {
+      await this.opening$P
+    } finally {
+      this.opening$P = undefined
+    }
   }
 
   public updateConnectionOptionsHostInformation(): void {
@@ -287,28 +266,9 @@ export class Connection extends EventEmitter {
   }
 
   // User called functions
-  public queue(args: QueueOptions): Queue
-  public queue(args: QueueOptions, cb: (err: Error | null, queue?: Queue) => void): TemporaryChannel
-  public queue(args: QueueOptions, cb?: (err: Error | null, queue?: Queue) => void): Queue | TemporaryChannel {
-    if (!cb) {
-      return new Queue(this.channelManager.temporaryChannel(), args)
-    }
-
-    return this.channelManager.temporaryChannel((err, channel) => {
-      if (err) {
-        return cb(err)
-      }
-
-      if (!channel) {
-        return cb(new Error('couldnt acquire temp channel'))
-      }
-
-      try {
-        new Queue(channel, args, cb)
-      } catch (e: any) {
-        return cb(e)
-      }
-    })
+  public async queue(args: Partial<QueueOptions>): Promise<Queue> {
+    const tempChannel = await this.channelManager.temporaryChannelAsync()
+    return new Queue(tempChannel, args)
   }
 
   public exchange(args: ExchangeDeclareOptions): Exchange
@@ -335,47 +295,48 @@ export class Connection extends EventEmitter {
     })
   }
 
-  public consume(queueName: string, options: ConsumeHandlerOpts, messageHandler: MessageHandler, cb?: (err?: Error | null) => void): Consumer {
+  public async consume(queueName: string, options: ConsumeHandlerOpts, messageHandler: MessageHandler): Promise<Consumer> {
     const consumerChannel = this.channelManager.consumerChannel()
-    return consumerChannel.consume(queueName, { options, messageHandler, cb })
+    await consumerChannel.consumeAsync(queueName, { options, messageHandler })
+    return consumerChannel
   }
 
-  // channel is optional!
-  public publish(exchange: string, routingKey: string, data: any, options: Partial<PublishOptions>, cb?: (err?: Error | null) => void) {
-    const confirm = !!(cb && options.confirm)
-    const publishChannel = this.channelManager.publisherChannel(confirm)
-    return publishChannel.publish(exchange, routingKey, data, options, cb)
+  public async publish(exchange: string, routingKey: string, data: any, options: Partial<PublishOptions>): Promise<void> {
+    const publishChannel = this.channelManager.publisherChannel(options.confirm)
+    return publishChannel.publishAsync(exchange, routingKey, data, options)
   }
 
-  public close(cb?: () => void) {
+  public async close(err?: Error): Promise<void> {
     // should close all the things and reset for a new clean guy
     // @connection.removeAllListeners() TODO evaluate this
     this._clearHeartbeatTimer()
+    if (this.state === ConnectionState.destroyed) {
+      return
+    }
+
+    this.state = ConnectionState.destroyed
+    if (!this.connection || this.connection.destroyed) {
+      return
+    }
 
     process.nextTick(() => {
-      this.state = ConnectionState.destroyed
-
-      if (cb) cb = once(cb)
-
       // only atempt to cleanly close the connection if our current connection is writable
       if (this.connection.writable) {
         this._sendMethod(0, methods.connectionClose, {
           classId: 0, methodId: 0, replyCode: 200, replyText: 'closed',
         })
-      } else {
-        return cb?.()
       }
 
       const forceConnectionClose = setTimeout(() => {
-        this.connection.destroy()
-        cb?.()
+        this.connection.destroy(err)
       }, 1000)
 
       this.connection.once('close', () => {
         clearTimeout(forceConnectionClose)
-        cb?.()
       })
     })
+
+    await once(this.connection, 'close')
   }
 
   // TESTING OUT OF ORDER OPERATION
@@ -410,16 +371,12 @@ export class Connection extends EventEmitter {
 
   _connectionErrorEvent(e: Error) {
     if (this.state !== ConnectionState.destroyed) {
-      debug(1, () => ['Connection Error ', e, this.connectionOptions.host])
+      debug(1, () => ['Connection Error', e, this.connectionOptions.host])
     }
 
     // if we are to keep trying we wont callback until we're successful, or we've hit a timeout.
     if (!this.connectionOptions.reconnect) {
-      if (this.cb) {
-        this.cb(e)
-      } else {
-        this.emit('error', e)
-      }
+      this.emit('error', e)
     }
   }
 

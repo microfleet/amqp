@@ -5,7 +5,6 @@ import { AMQPResponse, Channel, InferOptions } from './channel'
 
 import { debug as _debug } from './config'
 import * as defaults from './defaults'
-import { strict as assert } from 'assert'
 
 const debug = _debug('amqp:Queue')
 
@@ -16,27 +15,26 @@ export interface QueueOptions extends QueueDeclareOptions {
 
 export type QueueUnbindOptions = InferOptions<typeof methods.queueUnbind>
 export type QueueUnbindArgs = QueueUnbindOptions['arguments']
-export type QueueUnbindCb = AMQPResponse<typeof methods.queueUnbindOk>
+export type QueueUnbindResponse = InferOptions<typeof methods.queueUnbindOk>
 
 export type QueueBindOptions = InferOptions<typeof methods.queueBind>
-export type QueueBindCb = AMQPResponse<typeof methods.queueBindOk>
+export type QueueBindResponse = InferOptions<typeof methods.queueBindOk>
 export type QueueBindArgs = QueueBindOptions['arguments']
 
 export type QueueDeclareOptions = InferOptions<typeof methods.queueDeclare>
-export type QueueDeclareCb = AMQPResponse<typeof methods.queueDeclareOk>
-export type QueueDeclareArgs = QueueDeclareOptions['arguments']
+export type QueueDeclareResponse = InferOptions<typeof methods.queueDeclareOk>
 
 export type QueueMessageCountCb = AMQPResponse<typeof methods.queueDeclareOk, number>
 export type QueueConsumerCountCb = AMQPResponse<typeof methods.queueDeclareOk, number>
 
 export type QueueDeleteOptions = InferOptions<typeof methods.queueDelete>
-export type QueueDeleteCb = AMQPResponse<typeof methods.queueDeleteOk>
+export type QueueDeleteResponse = InferOptions<typeof methods.queueDeleteOk>
 
 export class Queue {
   public readonly queueOptions: QueueDeclareOptions
-  private taskPush: Channel['taskPush']
+  public readonly channel: Channel
 
-  constructor(channel: Channel, args: QueueOptions, cb?: (err: Error | null, queue?: Queue) => void) {
+  constructor(channel: Channel, args: Partial<QueueOptions>) {
     debug(3, () => ['New queue', JSON.stringify(args)])
 
     if (args.queue == null && args.name != null) {
@@ -44,57 +42,32 @@ export class Queue {
       delete args.name
     }
 
-    if (args.queue == null) {
+    const { queue } = args
+    if (queue == null) {
       throw new Error('args.queue is required')
     }
 
-    this.queueOptions = applyDefaults(args, defaults.queue)
-    this.taskPush = channel.taskPush
-
-    if (cb) {
-      setImmediate(cb, null, this)
-    }
+    this.queueOptions = applyDefaults({ queue }, args, defaults.queue)
+    this.channel = channel
   }
 
-  declare(args: QueueDeclareCb): Queue
-  declare(args: Partial<QueueDeclareOptions>, cb?: QueueDeclareCb): Queue
-  declare(args: QueueDeclareCb | Partial<QueueDeclareOptions> = {}, cb?: QueueDeclareCb): Queue {  
-    let declareOptions: QueueDeclareOptions
-    let queueNameSpecified = false
+  async declare(args: Partial<QueueDeclareOptions> = {}): Promise<QueueDeclareResponse> {  
+    const queueNameSpecified = !!args.queue
+    const declareOptions: QueueDeclareOptions = applyDefaults(args, this.queueOptions)
+    const res = await this.channel.taskPushAsync(methods.queueDeclare, declareOptions, methods.queueDeclareOk)
 
-    if (typeof args === 'function') {
-      cb = args
-      args = {}
-      declareOptions = { ...this.queueOptions }
-    } else {
-      queueNameSpecified = !!args.queue
-      declareOptions = applyDefaults(args, this.queueOptions)
+    if (!queueNameSpecified) {
+      this.queueOptions.queue = res.queue
     }
 
-    this.taskPush(methods.queueDeclare, declareOptions, methods.queueDeclareOk, (err, res) => {
-      if (!queueNameSpecified && !err && res?.queue != null) {
-        this.queueOptions.queue = res.queue
-      }
-
-      cb?.(err, res)
-    })
-
-    return this
+    return res
   }
 
-  bind(exchange: string, routingKey: string, opts?: string, _cb?: QueueBindCb): Queue
-  bind(exchange: string, routingKey: string, opts?: QueueBindOptions, _cb?: QueueBindCb): Queue
-  bind(exchange: string, routingKey: string, opts?: QueueBindCb): Queue
-  bind(exchange: string, routingKey: string, opts?: string | QueueBindOptions | QueueBindCb, _cb?: QueueBindCb): Queue {
+  async bind(exchange: string, routingKey: string, opts?: string | Partial<QueueBindOptions>): Promise<QueueBindResponse> {
     let queueName: string
     let args: QueueBindArgs
-    let cb: QueueBindCb | undefined = _cb
 
-    if (typeof opts === 'function') {
-      cb = opts
-      queueName = this.queueOptions.queue
-      args = {}
-    } else if (typeof opts === 'string') {
+    if (typeof opts === 'string') {
       queueName = opts
       args = {}
       // cb is either undefined or present, both are good opts
@@ -115,24 +88,11 @@ export class Queue {
       noWait: false
     }
 
-    this.taskPush(methods.queueBind, queueBindOptions, methods.queueBindOk, cb)
-
-    return this
+    return this.channel.taskPushAsync(methods.queueBind, queueBindOptions, methods.queueBindOk)
   }
 
-  unbind(exchange: string, routingKey: string, _queueName: QueueUnbindCb): Queue
-  unbind(exchange: string, routingKey: string, _queueName: string, _cb?: QueueUnbindCb): Queue
-  unbind(exchange: string, routingKey: string, _queueName: string | QueueUnbindCb, _cb?: QueueUnbindCb): Queue {
-    let cb: QueueUnbindCb | undefined = _cb
-    let queueName: string
-
-    if (typeof _queueName !== 'string') {
-      cb = _queueName
-      queueName = this.queueOptions.queue
-    } else {
-      queueName = _queueName
-    }
-
+  unbind(exchange: string, routingKey: string, _queueName?: string): Promise<QueueUnbindResponse> {
+    const queueName = _queueName ?? this.queueOptions.queue
     const queueUnbindOptions: QueueUnbindOptions = {
       queue: queueName,
       exchange,
@@ -140,78 +100,23 @@ export class Queue {
       arguments: {},
     }
 
-    this.taskPush(methods.queueUnbind, queueUnbindOptions, methods.queueUnbindOk, cb)
-
-    return this
+    return this.channel.taskPushAsync(methods.queueUnbind, queueUnbindOptions, methods.queueUnbindOk)
   }
 
-  messageCount(args: QueueMessageCountCb): Queue
-  messageCount(args: Partial<QueueDeclareOptions>, _cb: QueueMessageCountCb): Queue
-  messageCount(args: QueueMessageCountCb | Partial<QueueDeclareOptions>, _cb?: QueueMessageCountCb): Queue {
-    let cb: QueueMessageCountCb
-    if (typeof args === 'function') {
-      cb = args
-      args = {}
-    } else {
-      assert(_cb)
-      cb = _cb
-    }
-
+  async messageCount(args: Partial<QueueDeclareOptions> = {}): Promise<number> {
     const declareOptions = applyDefaults(args, this.queueOptions)
-
-    return this.declare(declareOptions, (err, res) => {
-      if (err) {
-        cb(err)
-        return
-      }
-
-      if (res?.messageCount != null) {
-        cb(null, res.messageCount)
-      } else {
-        cb(new Error('messageCount not returned'))
-      }
-    })
+    const { messageCount } = await this.declare(declareOptions)
+    return messageCount
   }
 
-  consumerCount(args: QueueConsumerCountCb): Queue
-  consumerCount(args: Partial<QueueDeclareOptions>, _cb: QueueConsumerCountCb): Queue
-  consumerCount(args: QueueConsumerCountCb | Partial<QueueDeclareOptions> = {}, _cb?: QueueConsumerCountCb): Queue {
-    let cb: QueueConsumerCountCb
-    if (typeof args === 'function') {
-      cb = args
-      args = {}
-    } else {
-      assert(_cb)
-      cb = _cb
-    }
-
+  async consumerCount(args: Partial<QueueDeclareOptions> = {}): Promise<number> {
     const declareOptions = applyDefaults(args, this.queueOptions)
-
-    return this.declare(declareOptions, (err, res) => {
-      if (err) {
-        cb(err)
-        return
-      }
-
-      if (res?.consumerCount != null) {
-        cb(null, res.consumerCount)
-      } else {
-        cb(new Error('consumerCount not returned'))
-      }
-    })
+    const { consumerCount } = await this.declare(declareOptions)
+    return consumerCount
   }
 
-  delete(args: QueueDeleteCb): Queue
-  delete(args: Partial<QueueDeleteOptions>, cb?: QueueDeleteCb): Queue
-  delete(args: Partial<QueueDeleteOptions> | QueueDeleteCb = {}, cb?: QueueDeleteCb): Queue {
-    if (typeof args === 'function') {
-      cb = args
-      args = {}
-    }
-
+  async delete(args: Partial<QueueDeleteOptions> = {}): Promise<QueueDeleteResponse> {
     const queueDeleteArgs = applyDefaults(args, defaults.queueDelete, { queue: this.queueOptions.queue })
-    this.taskPush(methods.queueDelete, queueDeleteArgs, methods.queueDeleteOk, cb)
-
-    return this
+    return this.channel.taskPushAsync(methods.queueDelete, queueDeleteArgs, methods.queueDeleteOk)
   }
 }

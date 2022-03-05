@@ -7,15 +7,18 @@ uuid = require('uuid').v4
 AMQP = require('../src/amqp').Connection
 
 describe 'Rabbit Plugin', () ->
-  it 'tests we can connect with a master node for a non-existent queue', (done) ->
+  it 'tests we can connect with a master node for a non-existent queue', () ->
     this.timeout(5000)
     amqp = null
     queue = uuid()
 
+    amqp = new AMQP {host:['rabbitmq'], rabbitMasterNode:{queue}}
+    await amqp.connect()
+
     async.series [
       (next)->
 
-        amqp = new AMQP  {host:['rabbitmq'], rabbitMasterNode:{queue}}, (e, r)->
+        , (e, r)->
           should.not.exist e
           next()
 

@@ -4,14 +4,13 @@ import { Connection } from '../connection'
 
 const debug = _debug('amqp:plugins:rabbit')
 
-export const masterNode = (
+export const masterNode = async (
   connection: Connection, 
   queue: string, 
-  callback: (err?: Error | null, success?: boolean) => void
-) => {
+): Promise<boolean> => {
   // only atempt if we have hosts
   if (connection.preparedHosts == null) {
-    return callback()
+    return false
   }
 
   // TODO let the api host and port be specifically configured
@@ -30,65 +29,67 @@ export const masterNode = (
     agent: false,
   }
 
-  const req = http.request(requestOptions, (res) => {
-    if (res.statusCode === 404) {
-      callback(null, true) // if our queue doesn't exist then master node doesn't matter
-      return
-    }
-
-    res.setEncoding('utf8')
-    let body = ''
-
-    res.on('data', (chunk) => {
-      body += chunk
-    })
-
-    res.on('end', () => {
-      let response: any
-      try {
-        response = JSON.parse(body)
-      } catch (e) {
-        response = {}
-      }
-
-      if (!response.node) {
-        debug(1, () => ['No .node in the api response,', response])
-        // if we have no node information we doesn't really know what to do here
-        callback(new Error('No response node'))
+  return new Promise<boolean>((resolve, reject) => {
+    const req = http.request(requestOptions, (res) => {
+      if (res.statusCode === 404) {
+        resolve(true) // if our queue doesn't exist then master node doesn't matter
         return
       }
 
-      let masternode = response.node.toLowerCase()
-      if (masternode.indexOf('@') !== -1) {
-        [, masternode] = masternode.split('@')
-      }
+      res.setEncoding('utf8')
+      let body = ''
 
-      if (connection.connectionOptions.host === masternode) {
-        callback(null, true)
-        return
-      }
+      res.on('data', (chunk) => {
+        body += chunk
+      })
 
-      // connection.connectionOptions.hosts.hosts is set as toLowerCase in Connection
-      for (const [i, host] of connection.preparedHosts.entries()) {
-        if (host.host === masternode || (host.host.indexOf('.') !== -1 && host.host.split('.')[0] === masternode)) {
-          connection.hosti = i
-          connection.updateConnectionOptionsHostInformation()
-          callback(null, true)
+      res.on('end', () => {
+        let response: any
+        try {
+          response = JSON.parse(body)
+        } catch (e) {
+          response = {}
+        }
+
+        if (!response.node) {
+          debug(1, () => ['No .node in the api response,', response])
+          // if we have no node information we doesn't really know what to do here
+          reject(new Error('No response node'))
           return
         }
-      }
 
-      debug(1, () => `
+        let masternode = response.node.toLowerCase()
+        if (masternode.indexOf('@') !== -1) {
+          [, masternode] = masternode.split('@')
+        }
+
+        if (connection.connectionOptions.host === masternode) {
+          resolve(true)
+          return
+        }
+
+        // connection.connectionOptions.hosts.hosts is set as toLowerCase in Connection
+        for (const [i, host] of connection.preparedHosts.entries()) {
+          if (host.host === masternode || (host.host.indexOf('.') !== -1 && host.host.split('.')[0] === masternode)) {
+            connection.hosti = i
+            connection.updateConnectionOptionsHostInformation()
+            resolve(true)
+            return
+          }
+        }
+
+        debug(1, () => `
         we can not connection to the master node, its not in our valid hosts.
         Master : ${masternode} Hosts : ${JSON.stringify(connection.preparedHosts)}
       `)
-      callback(new Error("master node isn't in our hosts"))
+        reject(new Error("master node isn't in our hosts"))
+      })
     })
-  })
 
-  req.on('error', (e) => {
-    return callback(e)
-  })
+    req.on('error', (e) => {
+      return reject(e)
+    })
 
-  return req.end()
+    return req.end()
+  })
 }
