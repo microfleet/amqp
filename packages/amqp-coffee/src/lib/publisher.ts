@@ -131,15 +131,15 @@ export class Publisher extends Channel {
 
   async _wait(eventName: string) {
     if (this[kEvents].has(eventName)) {
-      await this[kEvents].get(eventName)
-    } else {
-      const ev$ = once(this, eventName)
-      this[kEvents].set(eventName, ev$)
-      try {
-        await ev$
-      } finally {
-        this[kEvents].delete(eventName)
-      }
+      return this[kEvents].get(eventName)
+    }
+    
+    const ev$ = once(this, eventName)
+    this[kEvents].set(eventName, ev$)
+    try {
+      await ev$
+    } finally {
+      this[kEvents].delete(eventName)
     }
   }
 
@@ -188,7 +188,7 @@ export class Publisher extends Channel {
     options.routingKey = routingKey
 
     // increment this as the final step before publishing, to make sure we're in sync with the server
-    let thisSequenceNumber = null
+    let thisSequenceNumber: number | null = null
     if (this.confirm) {
       thisSequenceNumber = this.seq++
 
@@ -252,7 +252,7 @@ export class Publisher extends Channel {
       if (this.seqCallbacks.has(seq)) {
         this.seqCallbacks.get(seq)(err)
       } else {
-        debug(3, () => "got a seq for #{seq} but that callback either doesn't exist or was already called or was returned")
+        debug(3, () => `got a seq for ${seq} but that callback either doesn't exist or was already called or was returned`)
       }
 
       this.seqCallbacks.delete(seq)

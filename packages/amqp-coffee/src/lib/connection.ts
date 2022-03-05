@@ -361,7 +361,7 @@ export class Connection extends EventEmitter {
     }
   }
 
-  _connectionClosedEvent(had_error?: Error) {
+  _connectionClosedEvent(had_error?: boolean) {
     debug(1, () => ['received connection closed event', had_error])
 
     // go through all of our channels and close them
@@ -550,14 +550,14 @@ export class Connection extends EventEmitter {
       return
     }
 
-    debug(3, () => `send ${channel} < ${method.name}`)
-
     const methodBuffer = this.serializer.encode(channel, {
       type: FrameType.METHOD,
       name: method.name,
       method,
       args,
     })
+
+    debug(3, () => ['send into', channel, '<', method.name, 'args', args])
 
     this.connection.write(methodBuffer)
     this._resetSendHeartbeatTimer()
