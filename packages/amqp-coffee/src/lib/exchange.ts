@@ -2,29 +2,28 @@
 import { methods } from '@microfleet/amqp-codec'
 import { strict as assert } from 'assert'
 import applyDefaults = require('lodash/defaults')
-import type { AMQPResponse, Channel, InferOptions } from './channel'
+import type { Channel, InferOptions } from './channel'
 import * as defaults from './defaults'
 
 export type ExchangeDeclareOptions = InferOptions<typeof methods.exchangeDeclare>
-export type ExchangeDeclareCb = AMQPResponse<typeof methods.exchangeDeclareOk>
+export type ExchangeDeclareResponse = InferOptions<typeof methods.exchangeDeclareOk>
 
 export type ExchangeDeleteOptions = InferOptions<typeof methods.exchangeDelete>
-export type ExchangeDeleteCb = AMQPResponse<typeof methods.exchangeDeleteOk>
+export type ExchangeDeleteResponse = InferOptions<typeof methods.exchangeDeleteOk>
 
 export type ExchangeBindOptions = InferOptions<typeof methods.exchangeBind>
-export type ExchangeBindCb = AMQPResponse<typeof methods.exchangeBindOk>
+export type ExchangeBindResponse = InferOptions<typeof methods.exchangeBindOk>
 
 export type ExchangeUnbindOptions = InferOptions<typeof methods.exchangeUnbind>
-export type ExchangeUnbindCb = AMQPResponse<typeof methods.exchangeUnbindOk>
+export type ExchangeUnbindResponse = InferOptions<typeof methods.exchangeUnbindOk>
 
 export class Exchange {
-  private readonly exchangeOptions: ExchangeDeclareOptions
-  private taskPush: Channel['taskPush']
+  public readonly exchangeOptions: ExchangeDeclareOptions
+  public channel: Channel
 
   constructor(
     channel: Channel, 
-    args: Partial<ExchangeDeclareOptions> & { name?: string }, 
-    cb?: (err: Error | null, res?: Exchange) => void
+    args: Partial<ExchangeDeclareOptions> & { name?: string }
   ) {
     let { exchange } = args
     if (exchange == null && args.name != null) {
@@ -35,36 +34,16 @@ export class Exchange {
     assert(exchange, 'args.exchange is requried')
 
     this.exchangeOptions = applyDefaults({ exchange }, args, defaults.exchange)
-    this.taskPush = channel.taskPush
-
-    cb?.(null, this)
+    this.channel = channel
   }
 
-  declare(args?: ExchangeDeclareCb): Exchange
-  declare(args: Partial<ExchangeDeclareOptions>, cb?: ExchangeDeclareCb): Exchange
-  declare(args?: Partial<ExchangeDeclareOptions> | ExchangeDeclareCb, cb?: ExchangeDeclareCb): Exchange {
-    let declareOptions: ExchangeDeclareOptions
-    if (args == null && cb == null) {
-      declareOptions = this.exchangeOptions
-    } else if (typeof args === 'function') {
-      cb = args
-      args = {}
-      declareOptions = this.exchangeOptions
-    } else {
-      declareOptions = applyDefaults(args, this.exchangeOptions)
-    }
-
-    this.taskPush(methods.exchangeDeclare, declareOptions, methods.exchangeDeclareOk, cb)
-    return this
+  public async declare(args: Partial<ExchangeDeclareOptions> = {}): Promise<ExchangeDeclareResponse> {
+    const declareOptions = applyDefaults(args, this.exchangeOptions)
+    return this.channel
+      .taskPushAsync(methods.exchangeDeclare, declareOptions, methods.exchangeDeclareOk)
   }
 
-  delete(args: ExchangeDeleteCb): Exchange
-  delete(args: Partial<ExchangeDeleteOptions> | ExchangeDeleteCb, cb?: ExchangeDeleteCb): Exchange {
-    if (typeof args === 'function') {
-      cb = args
-      args = {}
-    }
-
+  public async delete(args: Partial<ExchangeDeleteOptions> = {}): Promise<ExchangeDeleteResponse> {
     const exchangeDeleteOptions = applyDefaults(
       {},
       args,
@@ -72,20 +51,14 @@ export class Exchange {
       { exchange: this.exchangeOptions.exchange }
     )
 
-    this.taskPush(methods.exchangeDelete, exchangeDeleteOptions, methods.exchangeDeleteOk, cb)
-
-    return this
+    return this.channel
+      .taskPushAsync(methods.exchangeDelete, exchangeDeleteOptions, methods.exchangeDeleteOk)
   }
 
-  bind(destExchange: string, routingKey: string, sourceExchange?: ExchangeBindCb): Exchange
-  bind(destExchange: string, routingKey: string, sourceExchange?: string | ExchangeBindCb, cb?: ExchangeBindCb): Exchange {
+  public async bind(destExchange: string, routingKey: string, sourceExchange?: string): Promise<ExchangeBindResponse> {
     const sourceExchangeName = typeof sourceExchange === 'string'
       ? sourceExchange
       : this.exchangeOptions.exchange
-
-    if (typeof sourceExchange === 'function') {
-      cb = sourceExchange
-    }
 
     const exchangeBindOptions: ExchangeBindOptions = {
       destination: destExchange,
@@ -95,19 +68,14 @@ export class Exchange {
       noWait: false
     }
 
-    this.taskPush(methods.exchangeBind, exchangeBindOptions, methods.exchangeBindOk, cb)
-    return this
+    return this.channel
+      .taskPushAsync(methods.exchangeBind, exchangeBindOptions, methods.exchangeBindOk)
   }
 
-  unbind(destExchange: string, routingKey: string, sourceExchange?: ExchangeUnbindCb): Exchange
-  unbind(destExchange: string, routingKey: string, sourceExchange?: string | ExchangeUnbindCb, cb?: ExchangeUnbindCb): Exchange {
-    let sourceExchangeName: string
-    if (typeof sourceExchange === 'string') {
-      sourceExchangeName = sourceExchange
-    } else {
-      cb = sourceExchange
-      sourceExchangeName = this.exchangeOptions.exchange
-    }
+  public async unbind(destExchange: string, routingKey: string, sourceExchange?: string): Promise<ExchangeUnbindResponse> {
+    const sourceExchangeName = typeof sourceExchange === 'string'
+      ? sourceExchange
+      : this.exchangeOptions.exchange
 
     const exchangeUnbindOptions: ExchangeUnbindOptions = {
       destination: destExchange,
@@ -117,7 +85,6 @@ export class Exchange {
       noWait: false,
     }
 
-    this.taskPush(methods.exchangeUnbind, exchangeUnbindOptions, methods.exchangeUnbindOk, cb)
-    return this
+    return this.channel.taskPushAsync(methods.exchangeUnbind, exchangeUnbindOptions, methods.exchangeUnbindOk)
   }
 }

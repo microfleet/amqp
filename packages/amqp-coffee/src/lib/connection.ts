@@ -271,28 +271,9 @@ export class Connection extends EventEmitter {
     return new Queue(tempChannel, args)
   }
 
-  public exchange(args: ExchangeDeclareOptions): Exchange
-  public exchange(args: ExchangeDeclareOptions, cb: (err: Error | null, exchange?: Exchange) => void): TemporaryChannel
-  public exchange(args: ExchangeDeclareOptions, cb?: (err: Error | null, exchange?: Exchange) => void): Exchange | TemporaryChannel {
-    if (!cb) {
-      return new Exchange(this.channelManager.temporaryChannel(), args)
-    }
-
-    return this.channelManager.temporaryChannel((err, channel) => {
-      if (err) {
-        return cb(err)
-      }
-
-      if (!channel) {
-        return cb(new Error('couldnt acquire temp channel'))        
-      }
-
-      try {
-        new Exchange(channel, args, cb)
-      } catch (e: any) {
-        return cb(e)
-      }
-    })
+  public async exchange(args: Partial<ExchangeDeclareOptions> & { name?: string }): Promise<Exchange> {
+    const tempChannel = await this.channelManager.temporaryChannelAsync()
+    return new Exchange(tempChannel, args)
   }
 
   public async consume(queueName: string, options: ConsumeHandlerOpts, messageHandler: MessageHandler): Promise<Consumer> {
