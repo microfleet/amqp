@@ -35,7 +35,7 @@ export const connection: Omit<ConnectionOptions, 'hosti' | 'hosts'> = {
 
   temporaryChannelTimeout: 2000, // in ms
   temporaryChannelTimeoutCheck: 1000, // in ms
-  lazyConnect: false,
+  lazyConnect: true,
 
   clientProperties: {
     version: clientVersion,

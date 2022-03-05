@@ -64,7 +64,18 @@ export class Consumer extends Channel {
     this._consumerStateOpenPreflight = this._consumerStateOpenPreflight.bind(this)
   }
 
-  consume(queueName: string, { cb, messageHandler, options = {} }: ConsumeHandler): Consumer {
+  public async consumeAsync(queueName: string, opts: ConsumeHandler): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const cb: ConsumeHandler['cb'] = (err) => {
+        if (err) return reject(err)
+        resolve()
+      }
+
+      this.consume(queueName, { ...opts, cb })
+    })
+  }
+
+  public consume(queueName: string, { cb, messageHandler, options = {} }: ConsumeHandler): Consumer {
     
     this.consumerTag = options.consumerTag || `${os.hostname()}-${process.pid}-${Date.now()}`
 

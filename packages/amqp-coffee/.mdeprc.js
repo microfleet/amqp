@@ -21,7 +21,7 @@ module.exports = {
       environment: {
         AMQP_TEST: '1',
         AMQP: '1',
-        DEBUG: 'amqp:*',
+        DEBUG: 'amqp:*,proxy',
         SWC_NODE_PROJECT: './tsconfig.test.json'
       }
     }

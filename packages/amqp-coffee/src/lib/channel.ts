@@ -141,9 +141,8 @@ export abstract class Channel extends EventEmitter {
     }
   }
 
-  crash(cb?: (err?: Error) => void) {
+  async crash(): Promise<void> {
     if (process.env.AMQP_TEST == null) {
-      cb?.()
       return
     }
 
@@ -151,7 +150,7 @@ export abstract class Channel extends EventEmitter {
     // this is really only for testing
     debug('Trying to crash channel')
     this.connection._sendMethod(this.channel, methods.queuePurge, { queue: 'idontexist' })
-    if (cb) this.waitForMethod(methods.channelClose, cb)
+    await this.waitForMethodAsync(methods.channelClose)
   }
 
   close(auto?: boolean | (() => void)) {
@@ -174,6 +173,15 @@ export abstract class Channel extends EventEmitter {
         methodId: 0,
       })
     }
+  }
+
+  async waitForMethodAsync(method: MethodsTableMethod): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.waitForMethod(method, (err) => {
+        if (err) return reject(err)
+        resolve()
+      })
+    })
   }
 
   waitForMethod(method: MethodsTableMethod, cb?: (err?: Error) => void) {
@@ -218,6 +226,23 @@ export abstract class Channel extends EventEmitter {
   >(method: T, args: InferOptions<T>, okMethod?: U, cb?: AMQPResponse<U>) {
     this.queue.push({ type: TaskType.method, method, args, okMethod, cb })
   }
+
+  async taskPushAsync<
+    T extends Methods,
+    U extends MethodsOk,
+  >(method: T, args: InferOptions<T>, okMethod?: U): Promise<InferOptions<U>> {
+    return new Promise((resolve, reject) => {
+      this.taskPush(method, args, okMethod, (err, res) => {
+        if (err) {
+          return reject(err)
+        }
+
+        // because its only undeifned when err is defined
+        resolve(res!)
+      })
+    })
+  }
+
 
   taskPushPreflight<
     T extends Methods,

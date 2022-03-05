@@ -1,186 +1,93 @@
-should  = require('should')
-async    = require('async')
-_        = require('underscore')
-Proxy    = require('./proxy')
+should = require('should')
+assert = require('assert')
+Proxy  = require('./proxy')
+{ setTimeout } = require('timers/promises')
 
 describe 'Connection', () ->
   AMQP = require('../src/amqp').Connection
   amqp = null
   proxy = null
 
-  afterEach (done) ->
-    amqp?.close()
+  afterEach () ->
+    await amqp?.close()
     proxy?.close()
-    done()
 
-  it 'tests it can connect to rabbitmq', (done) ->
-    amqp = new AMQP {host:'rabbitmq'}, (e, r)->
-      should.not.exist e
-      done()
+  it 'tests it can connect to rabbitmq', () ->
+    amqp = new AMQP {host:'rabbitmq'}
+    await amqp.connect()
 
-  it 'tests it can connect to nested hosts array', (done) ->
-    amqp = new AMQP {host:[['rabbitmq']]}, (e, r)->
-      should.not.exist e
-      done()
+  it 'tests it can connect to nested hosts array', () ->
+    amqp = new AMQP {host:[['rabbitmq']]}
+    await amqp.connect()
 
-  it 'we fail connecting to an invalid host', (done) ->
-    amqp = new AMQP {reconnect:false, host:'iamnotthequeueyourlookingfor'}, (e, r)->
-      should.exist e
-      amqp.close()
-      done()
-
-  it 'we fail connecting to an invalid no callback', (done) ->
+  it 'we fail connecting to an invalid host', () ->
     amqp = new AMQP {reconnect:false, host:'iamnotthequeueyourlookingfor'}
+    await assert.rejects(amqp.connect())
+
+  it 'we fail connecting to an invalid no callback', () ->
+    amqp = new AMQP {reconnect:false, host:'iamnotthequeueyourlookingfor', lazyConnect: false}
     amqp.on 'error', ()->
       done()
 
-  it 'we can reconnect if the connection fails 532', (done)->
+  it 'we can reconnect if the connection fails 532', ()->
     proxy = new Proxy.route(7001, 5672, "rabbitmq")
     amqp = null
 
-    async.series [
-      (next)->
-        amqp = new AMQP {host:'localhost', port: 7001}, (e, r)->
-          should.not.exist e
-          next()
+    amqp = new AMQP {host:'localhost', port: 7001}
+    await amqp.connect()
 
-      (next)->
-        proxy.interrupt()
-        next()
+    proxy.interrupt()
+    await amqp.queue {queue:"test"}
 
-      (next)->
-        console.log 'asking to create q'
-        amqp.queue {queue:"test"}, (e, q)->
-          should.not.exist e
-          should.exist q
-          next()
-
-    ], done
-
-
-  it 'we disconnect', (done)->
+  it 'we disconnect', ()->
     # proxy = new proxy.route(9001, 5672, "localhost")
     amqp = null
 
-    async.series [
-      (next)->
-        amqp = new AMQP {host:'rabbitmq'}, (e, r)->
-          should.not.exist e
-          next()
-
-      (next)->
-        amqp.close()
-        next()
-
-      (next)->
-        setTimeout next, 100
-
-      (next)->
-        amqp.state.should.eql 'destroyed'
-        next()
-
-    ], done
+    amqp = new AMQP {host:'rabbitmq'}
+    await amqp.connect()
+    await amqp.close()
+    amqp.state.should.eql 'destroyed'
 
 
-  it 'we can connect to an array of hosts', (done)->
+  it 'we can connect to an array of hosts', ()->
     # proxy = new proxy.route(9001, 5672, "localhost")
-    amqp = null
+    amqp = new AMQP {host:['rabbitmq','127.0.0.1']}
+    await amqp.connect()
+    await amqp.close()
 
-    async.series [
-      (next)->
-        amqp = new AMQP {host:['rabbitmq','127.0.0.1']}, (e, r)->
-          should.not.exist e
-          next()
-
-      (next)->
-        amqp.close()
-        next()
-
-    ], done
-
-
-
-  it 'we emit only one close event', (done)->
+  it 'we emit only one close event', ()->
     proxy = new Proxy.route(9010, 5672, "rabbitmq")
     amqp  = null
     closes = 0
 
-    async.series [
-      (next)->
-        amqp = new AMQP {host:['rabbitmq','127.0.0.1'], port: 9010}, (e, r)->
-          should.not.exist e
-          next()
+    amqp = new AMQP {host:['rabbitmq','127.0.0.1'], port: 9010}
+    await amqp.connect()
 
-      (next)->
-        amqp.on 'close', ()->
-          closes++
-          amqp.close()
+    await new Promise (resolve) ->
+      amqp.on 'close', () ->
+        closes++
+        amqp.close()
 
-          _.delay ()->
-            closes.should.eql 1
-            amqp.close()
-            done()
-          , 300
+        await setTimeout(300)
+        closes.should.eql 1
+        resolve()
 
+      proxy.close()
 
-        proxy.close()
-        next()
-
-    ], (e,r)->
-      should.not.exist e
-
-
-  it 'we can reconnect to an array of hosts if the connection fails', (done)->
+  it 'we can reconnect to an array of hosts if the connection fails', ()->
     this.timeout(5000)
     proxy = new Proxy.route(9009, 5672, "rabbitmq")
-    amqp  = null
+    amqp = new AMQP {host:['localhost','127.0.0.1'], port: 9009}
 
-    async.series [
-      (next)->
-        amqp = new AMQP {host:['localhost','127.0.0.1'], port: 9009}, (e, r)->
-          should.not.exist e
-          next()
+    await amqp.connect()
+    proxy.interrupt()
 
-      (next)->
-        proxy.interrupt()
-        next()
+    await amqp.queue {queue:"test"}
 
-      (next)->
-        amqp.queue {queue:"test"}, (e, q)->
-          should.not.exist e
-          should.exist q
-          next()
+  it 'we can connect to an array of hosts randomly', ()->
+    amqp = new AMQP {hostRandom: true, host:['rabbitmq','rabbitmq']}
+    await amqp.connect()
 
-      (next)->
-        amqp.close()
-        proxy.close()
-        next()
-
-    ], done
-
-
-  it 'we can connect to an array of hosts randomly', (done)->
-
-    amqp = null
-
-    async.series [
-      (next)->
-        amqp = new AMQP {hostRandom: true, host:['rabbitmq','rabbitmq']}, (e, r)->
-          should.not.exist e
-          next()
-
-    ], done
-
-
-  it 'we can timeout connecting to a host', (done)->
-    amqp = null
-
-    async.series [
-      (next)->
-        amqp = new AMQP {reconnect:false, connectTimeout: 100, host:'test.com'}, (e, r)->
-          should.exist e
-          next()
-
-    ], done
-
-
+  it 'we can timeout connecting to a host', ()->
+    amqp = new AMQP {reconnect:false, connectTimeout: 100, host:'test.com'}
+    await assert.rejects amqp.connect()
