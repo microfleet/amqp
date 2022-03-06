@@ -1,6 +1,5 @@
 // Consumer
 import os = require('os')
-import async = require('async')
 import defaults = require('./defaults')
 import { defaults as applyDefaults } from 'lodash'
 import { methods, MaxEmptyFrameSize, ContentHeader, MethodFrame } from '@microfleet/amqp-codec'
@@ -8,11 +7,15 @@ import { methods, MaxEmptyFrameSize, ContentHeader, MethodFrame } from '@microfl
 import { Connection, ConnectionState } from './connection'
 import { MessageFactory, Message } from './message'
 import { debug as _debug } from './config'
-import { Channel, InferOptions, AMQPResponse, TaskType } from './channel'
+import { Channel, InferOptions, ChannelState } from './channel'
 import { ServerCancelError } from './errors/server-cancel-error'
 import { strict as assert } from 'assert'
 
 const debug = _debug('amqp:Consumer')
+
+export type BasicCancelResponse = InferOptions<typeof methods.basicCancelOk>
+export type BasicQosResponse = InferOptions<typeof methods.basicQosOk>
+export type BasicConsumeResponse = InferOptions<typeof methods.basicConsumeOk>
 
 export const enum CONSUMER_STATES  {
   CONSUMER_STATE_OPEN = 'open',
@@ -48,7 +51,7 @@ export type ConsumeHandler = {
 export class Consumer extends Channel {
   public consumerState = CONSUMER_STATES.CONSUMER_STATE_CLOSED
 
-  private outstandingDeliveryTags = new Map()
+  private outstandingDeliveryTags = new Set<number>()
   private messageHandler!: MessageHandler
   private incomingMessage!: MessageFactory
   private consumerTag = ''
@@ -64,23 +67,15 @@ export class Consumer extends Channel {
     this._consumerStateOpenPreflight = this._consumerStateOpenPreflight.bind(this)
   }
 
-  public async consumeAsync(queueName: string, opts: ConsumeHandler): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const cb: ConsumeHandler['cb'] = (err) => {
-        if (err) return reject(err)
-        resolve()
-      }
-
-      this.consume(queueName, { ...opts, cb })
-    })
+  public async ready(): Promise<void> {
+    if (this.state !== ChannelState.open) {
+      await this.waitForMethodAsync(methods.channelOpenOk)
+    }
   }
 
-  public consume(queueName: string, { cb, messageHandler, options = {} }: ConsumeHandler): Consumer {
-    
+  public async consume(queueName: string, messageHandler: MessageHandler, options: ConsumeHandlerOpts = {}): Promise<BasicConsumeResponse> {
     this.consumerTag = options.consumerTag || `${os.hostname()}-${process.pid}-${Date.now()}`
-
     debug(2, () => `Consuming to ${queueName} on channel ${this.channel} ${this.consumerTag}`)
-
     this.consumerState = CONSUMER_STATES.CONSUMER_STATE_OPENING
 
     let qosOptions: QosOptions | null = null
@@ -90,7 +85,9 @@ export class Consumer extends Channel {
 
       const providedOptions = { 
         prefetchCount: options.prefetchCount, 
-        global: options.global || defaults.basicQos.global
+        global: options.global != null
+          ? options.global
+          : defaults.basicQos.global
       }
 
       qosOptions = applyDefaults(providedOptions, defaults.basicQos)
@@ -117,74 +114,63 @@ export class Consumer extends Channel {
     this.consumeOptions = consumeOptions
     this.qosOptions = qosOptions
 
-    this._consume(cb)
-    
-    return this
+    return this._consume()
   }
 
-  close(cb?: () => void) {
-    this.cancel(() => {
-      this.consumerState = CONSUMER_STATES.CONSUMER_STATE_USER_CLOSED
-      super.close()
-      cb?.()
-    })
+  async close(): Promise<void> {
+    await this.cancel()
+    this.consumerState = CONSUMER_STATES.CONSUMER_STATE_USER_CLOSED
+    super.close()
   }
 
-  cancel(cb?: AMQPResponse<typeof methods.basicCancelOk>) {
-    if (!CONSUMER_STATES_CLOSED.includes(this.consumerState)) {
-      debug(1, 'scheduling cancel')
-      this.taskPushPreflight(
-        methods.basicCancel, 
-        {
-          consumerTag: this.consumerTag, 
-          noWait:false
-        }, 
-        methods.basicCancelOk, 
-        this._consumerStateOpenPreflight, 
-        cb
-      )
-    } else {
-      debug(1, 'cancel noop')
-      cb?.()
-    }
-  }
+  async cancel(): Promise<BasicCancelResponse> {
+    debug(1, () => [this.channel, 'scheduling cancel', this.consumerState])
 
-  pause(cb?: AMQPResponse<typeof methods.basicCancelOk>) {
-    if (!CONSUMER_STATES_CLOSED.includes(this.consumerState)) {
-      this.cancel((err, res) => {
-        // should pause be a different state?
-        this.consumerState = CONSUMER_STATES.CONSUMER_STATE_USER_CLOSED
-        cb?.(err, res)
-      })
-    } else {
-      cb?.()
-    }
-  }
-
-  resume(cb?: () => void) {
     if (CONSUMER_STATES_CLOSED.includes(this.consumerState)) {
-      this._consume(cb)
-    } else {
-      cb?.()
+      return { consumerTag: this.consumerTag }
     }
+
+    return this.taskPushAsync(
+      methods.basicCancel, 
+      { consumerTag: this.consumerTag, noWait: false }, 
+      methods.basicCancelOk, 
+      this._consumerStateOpenPreflight, 
+    )
   }
 
-  flow(active: true, cb?: () => void): void
-  flow(active: false, cb?: AMQPResponse<typeof methods.basicCancelOk>): void
-  flow(active: boolean, cb?: (() => void) | AMQPResponse<typeof methods.basicCancelOk>): void {
-    if (active) {
-      this.resume(cb)
-    } else {
-      this.pause(cb)
+  async pause(): Promise<BasicCancelResponse> {
+    if (CONSUMER_STATES_CLOSED.includes(this.consumerState)) {
+      return { consumerTag: this.consumerTag }
     }
+    
+    const res = await this.cancel()
+
+    // should pause be a different state?
+    this.consumerState = CONSUMER_STATES.CONSUMER_STATE_USER_CLOSED
+
+    return res
   }
 
-  setQos(prefetchCount: number | AMQPResponse<typeof methods.basicQosOk>, cb?: AMQPResponse<typeof methods.basicQosOk>) {
+  async resume(): Promise<BasicConsumeResponse> {
+    if (!CONSUMER_STATES_CLOSED.includes(this.consumerState)) {
+      return { consumerTag: this.consumerTag }
+    }
+
+    return this._consume()
+  }
+
+  async flow(active: boolean): Promise<BasicConsumeResponse | BasicCancelResponse> {
+    return active
+      ? this.resume()
+      : this.pause()
+  }
+
+  async setQos(prefetchCount?: number): Promise<BasicQosResponse> {
     let qosOptions: QosOptions
-    assert(this.qosOptions, 'qos options not defined')
-    if (typeof prefetchCount == 'function') {
-      cb = prefetchCount
-      qosOptions = this.qosOptions
+    assert(this.qosOptions, '`this.qosOptions` options not defined')
+
+    if (typeof prefetchCount !== 'number') {
+      qosOptions = { ...this.qosOptions }
     } else {
       // if our prefetch count has changed and we're rabbit version > 3.3.*
       // Rabbitmq 3.3.0 changes the behavior of qos.  we default to gloabl true in this case.
@@ -200,32 +186,30 @@ export class Consumer extends Channel {
       qosOptions = applyDefaults({ prefetchCount, global }, this.qosOptions)
     }
 
-    this.taskPush(methods.basicQos, qosOptions, methods.basicQosOk, cb)
+    debug(1, ['defaults', this.qosOptions, 'setQos', qosOptions])
+    return this.taskPushAsync(methods.basicQos, qosOptions, methods.basicQosOk)
   }
 
   // Private
-
-  private _consume(cb?: (err?: Error | null) => void) {
+  private async _consume(): Promise<BasicConsumeResponse> {
     debug(1, () => [this.channel, "_consume called"])
     const{ consumeOptions } = this
     assert(consumeOptions)
     
-    async.series([
-      (next) => this.qos ? this.setQos(next) : next(),
-      (next) => {
-        this.taskQueuePushRaw({ 
-          type: TaskType.method, 
-          method: methods.basicConsume, 
-          args: consumeOptions, 
-          okMethod: methods.basicConsumeOk, 
-          preflight: this._basicConsumePreflight
-        }, next)
-      },
-      (next) => {
-        this.consumerState = CONSUMER_STATES.CONSUMER_STATE_OPEN
-        next()
-      }
-    ], cb)
+    if (this.qos) {
+      await this.setQos()
+    }
+
+    const res = await this.taskPushAsync(
+      methods.basicConsume, 
+      consumeOptions, 
+      methods.basicConsumeOk, 
+      this._basicConsumePreflight
+    )
+      
+    this.consumerState = CONSUMER_STATES.CONSUMER_STATE_OPEN
+
+    return res
   }
 
   _basicConsumePreflight(): boolean {
@@ -252,7 +236,7 @@ export class Consumer extends Channel {
       this.emit('error', reason)
     }
 
-    this.outstandingDeliveryTags = new Map()
+    this.outstandingDeliveryTags = new Set()
     if (this.connection.state === ConnectionState.open 
         && this.consumerState === CONSUMER_STATES.CONSUMER_STATE_OPEN) {
       debug(1, () => [this.channel, "consumerState < Channel Closed"])
@@ -271,13 +255,13 @@ export class Consumer extends Channel {
     }
 
     const { outstandingDeliveryTags } = this
-    for (const key of outstandingDeliveryTags.keys()) {
+    for (const key of outstandingDeliveryTags.values()) {
       if (key <= deliveryTag) {
         outstandingDeliveryTags.delete(key)
       }
     }
 
-    if (this.state === 'open') {
+    if (this.state === ChannelState.open) {
       const basicAckOptions = { deliveryTag, multiple: true }
       this.connection._sendMethod(this.channel, methods.basicAck, basicAckOptions)
     }
@@ -302,7 +286,7 @@ export class Consumer extends Channel {
 
     this.clearTag(deliveryTag)
 
-    return this.state === 'open'
+    return this.state === ChannelState.open
   }
 
   ack(deliveryTag: number) {
@@ -374,7 +358,10 @@ export class Consumer extends Channel {
 
     if (incomingMessage.ready()) {
       const message = incomingMessage.create(this)
-      this.outstandingDeliveryTags.set(message.deliveryTag, true)
+      const { deliveryTag } = message
+      if (deliveryTag !== undefined) {
+        this.outstandingDeliveryTags.add(deliveryTag)
+      }
       this.messageHandler(message)
     }
   }

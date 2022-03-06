@@ -230,9 +230,9 @@ export abstract class Channel extends EventEmitter {
   async taskPushAsync<
     T extends Methods,
     U extends MethodsOk,
-  >(method: T, args: InferOptions<T>, okMethod?: U): Promise<InferOptions<U>> {
+    >(method: T, args: InferOptions<T>, okMethod?: U, preflight?: preflightReq): Promise<InferOptions<U>> {
     return new Promise((resolve, reject) => {
-      this.taskPush(method, args, okMethod, (err, res) => {
+      this.taskPushPreflight(method, args, okMethod, preflight, (err, res) => {
         if (err) {
           return reject(err)
         }
@@ -247,7 +247,7 @@ export abstract class Channel extends EventEmitter {
   taskPushPreflight<
     T extends Methods,
     U extends MethodsOk,
-  >(method: T, args: InferOptions<T>, okMethod: U, preflight: preflightReq, cb?: AMQPResponse<U>) {
+  >(method: T, args: InferOptions<T>, okMethod?: U, preflight?: preflightReq, cb?: AMQPResponse<U>) {
     this.queue.push({ type: TaskType.method, method, args, okMethod, preflight, cb })
   }
 

@@ -26,7 +26,6 @@ import { debug as _debug } from './config'
 import * as rabbitmAdminPlugin from './plugins/rabbit'
 import { Consumer, ConsumeHandlerOpts, MessageHandler } from './consumer'
 import { PublishOptions } from './publisher'
-import { TemporaryChannel } from './temporary-channel'
 import { ConnectionTimeoutError, ServerVersionError, ServerClosedError } from './errors'
 import { Channel, InferOptions, Methods } from './channel'
 import { once } from 'events'
@@ -41,9 +40,9 @@ export interface ClientProperties {
   capabilities?: {
     consumer_cancel_notify: boolean
   },
-  version: string,
-  platform: string,
-  product: string,
+  version?: string,
+  platform?: string,
+  product?: string,
 }
 
 export interface ConnectionOptions {
@@ -276,9 +275,15 @@ export class Connection extends EventEmitter {
     return new Exchange(tempChannel, args)
   }
 
-  public async consume(queueName: string, options: ConsumeHandlerOpts, messageHandler: MessageHandler): Promise<Consumer> {
+  public async consumer(): Promise<Consumer> {
     const consumerChannel = this.channelManager.consumerChannel()
-    await consumerChannel.consumeAsync(queueName, { options, messageHandler })
+    await consumerChannel.ready()
+    return consumerChannel
+  }
+
+  public async consume(queueName: string, options: ConsumeHandlerOpts, messageHandler: MessageHandler): Promise<Consumer> {
+    const consumerChannel = await this.consumer()
+    await consumerChannel.consume(queueName, messageHandler, options)
     return consumerChannel
   }
 
