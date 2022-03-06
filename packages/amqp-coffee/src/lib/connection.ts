@@ -282,7 +282,7 @@ export class Connection extends EventEmitter {
   }
 
   public async consume(queueName: string, options: ConsumeHandlerOpts, messageHandler: MessageHandler): Promise<Consumer> {
-    const consumerChannel = await this.consumer()
+    const consumerChannel = this.channelManager.consumerChannel()
     await consumerChannel.consume(queueName, messageHandler, options)
     return consumerChannel
   }

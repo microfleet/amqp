@@ -65,6 +65,7 @@ export class Consumer extends Channel {
 
     this._basicConsumePreflight = this._basicConsumePreflight.bind(this)
     this._consumerStateOpenPreflight = this._consumerStateOpenPreflight.bind(this)
+    this._onConsumeError = this._onConsumeError.bind(this)
   }
 
   public async ready(): Promise<void> {
@@ -220,10 +221,15 @@ export class Consumer extends Channel {
     return this.consumerState === CONSUMER_STATES.CONSUMER_STATE_OPEN
   }
 
+  _onConsumeError(err: Error) {
+    debug(1, () => [this.channel, 'onConsumeError', err])
+    this.emit('warning', err)
+  }
+
   _channelOpen() {
     debug(1, () => [this.channel, 'consumer channel opened'])
     if (this.consumeOptions != null && this.consumerState === CONSUMER_STATES.CONSUMER_STATE_CONNECTION_CLOSED) {
-      this._consume()
+      this._consume().catch(this._onConsumeError)
     }
   }
 
@@ -241,7 +247,7 @@ export class Consumer extends Channel {
         && this.consumerState === CONSUMER_STATES.CONSUMER_STATE_OPEN) {
       debug(1, () => [this.channel, "consumerState < Channel Closed"])
       this.consumerState = CONSUMER_STATES.CONSUMER_STATE_CHANNEL_CLOSED
-      this._consume()
+      this._consume().catch(this._onConsumeError)
     } else {
       debug(1, () => [this.channel, "consumerState < CONSUMER_STATE_CONNECTION_CLOSED"])
       this.consumerState = CONSUMER_STATES.CONSUMER_STATE_CONNECTION_CLOSED
