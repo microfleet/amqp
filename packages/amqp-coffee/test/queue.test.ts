@@ -1,4 +1,4 @@
-import should  = require('should')
+import 'should'
 import Proxy = require('./proxy')
 import { v4 as uuid } from 'uuid'
 import { setTimeout } from 'timers/promises'
@@ -27,8 +27,8 @@ describe('Queue', () => {
 
     it('test it can get a queues consumer count with connection trouble 503', async () => {
       const queueName = uuid()
-      const queue = await amqp.queue({ queue: queueName })
 
+      const queue = await amqp.queue({ queue: queueName, autoDelete: false })
       await queue.declare({ passive: false })
       await queue.bind("amq.direct", queueName)
 
@@ -41,9 +41,12 @@ describe('Queue', () => {
         // i do nothing :)
       }
 
-      await amqp.consume(queueName, {}, processor);
+      await amqp.consume(queueName, {}, processor)
 
-      (await queue.consumerCount()).should.eql(1)
+      await setTimeout(250)
+
+      const count = await queue.consumerCount()
+      assert.equal(count, 1)
 
       await queue.delete()
     })
@@ -90,7 +93,7 @@ describe('Queue', () => {
       const queue = await amqp.queue({ queue: '' })
 
       const r = await queue.declare({ passive: false })
-      should.exist(r.queue)
+      assert(r.queue)
 
       await queue.bind("amq.direct", uuid())
       queue.queueOptions.queue.should.not.eql('')
@@ -301,7 +304,7 @@ describe('Queue', () => {
       let eventFired = 0
 
       amqp.on('error', (e) => {
-        should.not.exist(e)
+        assert.ifError(e)
         eventFired += 1
       })
 
@@ -315,7 +318,7 @@ describe('Queue', () => {
       await amqp2.connect()
 
       amqp2.on('error', (e) => {
-        should.not.exist(e)
+        assert.ifError(e)
         eventFired += 1
       })
 
