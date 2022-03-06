@@ -16,6 +16,9 @@ module.exports = {
   post_exec: 'pnpm exec -- c8 report -r text -r lcov',
   root,
   extras: {
+    rabbitmq: {
+      ports: ['15672']
+    },
     tester: {
       working_dir: `/src/packages/${dir}`,
       environment: {

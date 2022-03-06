@@ -1,7 +1,7 @@
 import 'should'
 import { v4 as uuid } from 'uuid'
 import { strict as assert } from 'assert'
-import { Connection as AMQP, Message, MessageHandler } from '../src/amqp'
+import { Connection as AMQP, Message } from '../src/amqp'
 import { MaxFrameSize } from '@microfleet/amqp-codec'
 import { times, timesSeries, until } from 'async'
 import { setTimeout } from 'timers/promises'
