@@ -16,7 +16,6 @@
     "gen-protocol": "pnpm exec -- ts-node ./bin/serialize.ts",
     "lint": "eslint './src/**/*.ts'",
     "test": "pnpm run lint",
-    "prepublishOnly": "pnpm run compile",
     "clean": "rimraf ./lib *.tsbuildinfo",
     "compile": "pnpm run clean; tsc -b ./tsconfig.build.json"
   },

@@ -25,7 +25,6 @@
   "scripts": {
     "lint": "eslint ./src/**/*.ts ./test/*.ts",
     "test": "./scripts/test.sh",
-    "prepublishOnly": "pnpm run compile",
     "compile": "pnpm run clean; tsc -b tsconfig.build.json",
     "prepare": "mdep install",
     "clean": "rimraf ./bin *.tsbuildinfo",

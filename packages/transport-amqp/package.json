@@ -10,7 +10,6 @@
     "lint": "eslint ./src",
     "test": "pnpm run lint && pnpm run test:e2e",
     "test:e2e": "mdep test run",
-    "prepublishOnly": "pnpm run compile",
     "bench": "pnpm run compile && node ./bench/roundtrip.js"
   },
   "engines": {
