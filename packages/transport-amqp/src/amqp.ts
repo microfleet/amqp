@@ -59,7 +59,7 @@ const pkg = readPkg.sync()
 const kBoundRoutes = Symbol.for('@microfleet/transport-amqp::queue-routes')
 
 export interface ReplyOptions {
-  simpleResponse: boolean
+  simpleResponse?: boolean
 }
 
 export interface ConsumedQueueOptions extends Omit<Partial<QueueOptions>, 'queue'> {
@@ -115,7 +115,8 @@ export class AMQPTransport extends EventEmitter {
   
   // publish options
   private readonly _extraQueueOptions: Partial<QueueOptions>
-  private readonly _defaultOpts: Record<string, any>
+  private readonly _defaultOpts: Partial<PublishOptions>
+  private readonly _defaultOptsKeys: (keyof PublishOptions)[]
   private readonly _amqp: AMQP
 
   // utilities
@@ -171,8 +172,9 @@ export class AMQPTransport extends EventEmitter {
 
     // Cached serialized value
     this._appIDString = flatstr(stringify(this._appID))
-    this._defaultOpts = { ...config.defaultOpts, appId: this._appIDString }
-    this._extraQueueOptions = {}
+    this._defaultOpts = Object.setPrototypeOf({ ...config.defaultOpts, appId: this._appIDString }, null)
+    this._defaultOptsKeys = Object.keys(this._defaultOpts) as (keyof PublishOptions)[]
+    this._extraQueueOptions = Object.create(null)
 
     // DLX config
     if (config.dlx.enabled === true) {
@@ -730,7 +732,8 @@ export class AMQPTransport extends EventEmitter {
    * @param  options
    */
   async sendToServer(exchange: string, queueOrRoute: string, _message: any, options: PublishOptions): Promise<void> {
-    const publishOptions = this._publishOptions(options)
+    const publishOptions = this.publishOptions(options)
+
     const message = options.skipSerialize === true
       ? _message
       : await serialize(_message, publishOptions)
@@ -802,9 +805,9 @@ export class AMQPTransport extends EventEmitter {
   /**
    * Send message to specified queue directly and wait for answer
    *
-   * @param {string} queue - Destination queue
-   * @param {any} message - Message to send
-   * @param {PublishOptions} [options={}] - Additional options
+   * @param queue - Destination queue
+   * @param message - Message to send
+   * @param [options={}] - Additional options
    */
   async sendAndWait<T = any>(queue: string, message: any, options: PublishOptions = {}): Promise<T> {
     return this.createMessageHandler(
@@ -817,27 +820,34 @@ export class AMQPTransport extends EventEmitter {
 
   /**
    * Specifies default publishing options
-   * @param {PublishOptions} options
-   * @return {Object}
+   * @param options
    */
-  _publishOptions(options: PublishOptions = {}): Omit<PublishOptions, 'skipSerialize'> {
+  private publishOptions(options: PublishOptions = {}): Omit<PublishOptions, 'skipSerialize'> {
     // remove unused opts
-    const { skipSerialize, headers = {}, gzip: needsGzip, ...opts } = options
+    const opts = options.reuse ? options : { ...options }
+    const { _defaultOpts } = this
 
     // force contentEncoding
-    if (needsGzip === true) {
+    if (options.gzip === true) {
       opts.contentEncoding = 'gzip'
     }
 
-    // set default opts
-    return {
-      ...this._defaultOpts,
-      ...opts,
-      headers: {
-        timeout: opts.timeout || this.config.timeout,
-        ...headers
+    for (const key of this._defaultOptsKeys) {
+      if (opts[key] === undefined) {
+        // @ts-expect-error these are keys of the prop
+        opts[key] = _defaultOpts[key]
+      } else if (key === 'headers') {
+        opts[key] = { ..._defaultOpts[key], ...opts.headers }
       }
     }
+
+    if (opts.headers === undefined) {
+      opts.headers = { timeout: opts.timeout || this.config.timeout }
+    } else if (opts.headers.timeout === undefined) {
+      opts.headers.timeout = opts.timeout || this.config.timeout
+    }
+
+    return opts
   }
 
   _replyOptions(options: PublishOptions = {}): ReplyOptions {
@@ -865,11 +875,8 @@ export class AMQPTransport extends EventEmitter {
 
     const options: PublishOptions = {
       correlationId,
-    }
-
-    const replyHeaders = raw.readExtendedAttributes(kReplyHeaders)
-    if (replyHeaders) {
-      options.headers = replyHeaders
+      reuse: true,
+      headers: raw.readExtendedAttributes(kReplyHeaders) || Object.create(null)
     }
 
     try {

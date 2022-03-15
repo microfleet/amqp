@@ -17,11 +17,11 @@ services:
       "-h",
       "amqp://guest:guest@rabbitmq:5672/%2f",
       "-z",
-      "40",
+      "15",
       "-ct",
       "1",
       "--rate",
-      "70000",
+      "40000",
       "--json-body",
       "--size",
       "256",
@@ -36,7 +36,9 @@ services:
       "--predeclared",
       "--routing-key",
       "testing",
-      "--use-millis"
+      "--use-millis",
+      "--message-properties",
+      "replyTo=fake-consumer,expiration=5000,correlationId=xxx,appId={\"crap\":true}"
     ]
 
   perf_producer:

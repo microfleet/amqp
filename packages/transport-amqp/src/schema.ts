@@ -53,6 +53,7 @@ export interface Publish extends Partial<PublishOptions> {
   gzip?: boolean // whether to encode using gzip
   skipSerialize?: boolean // whether it was already serialized earlier
   simpleResponse?: boolean
+  reuse?: boolean
   cache?: number // set to a value larger than 0 to cache the response
 }
 

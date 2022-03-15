@@ -11,9 +11,6 @@ import { noop } from 'lodash'
 
 const debug = _debug('amqp:Channel')
 
-// we track this to avoid node's max stack size with a saturated async queue
-// let OVERFLOW_PROTECTION = 0
-
 export const enum TaskType {
   method = 'method',
   publish = 'publish'
@@ -286,17 +283,6 @@ export abstract class Channel extends EventEmitter {
     }
 
     const { type, method, okMethod, cb, data, preflight } = task
-
-    // const doneFn = (err?: Error | null, res?: any) => {
-    //   cb?.(err, res)
-    //   if (OVERFLOW_PROTECTION > 100) {
-    //     OVERFLOW_PROTECTION = 0
-    //     process.nextTick(done)
-    //   } else {
-    //     OVERFLOW_PROTECTION += 1
-    //     setImmediate(done)
-    //   }
-    // }
 
     // if preflight is false do not proceed
     if (preflight != null && !preflight()) {
