@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "semantic-release": "multi-semantic-release",
+    "semantic-release": "multi-semantic-release --ignore-private-packages",
     "prepare": "mdep install",
     "compile": "pnpm -r clean; tsc -b tsconfig.build.json"
   },
