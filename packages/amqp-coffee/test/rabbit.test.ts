@@ -1,7 +1,7 @@
 import 'should'
 import { v4 as uuid } from 'uuid'
 import { strict as assert } from 'assert'
-import { Connection as AMQP } from '../src/amqp'
+import { Connection as AMQP } from '../src'
 
 describe('Rabbit Plugin', () => {
   it('tests we can connect with a master node for a non-existent queue', async () => {

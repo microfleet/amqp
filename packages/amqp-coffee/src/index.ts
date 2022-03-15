@@ -1,0 +1,7 @@
+export * from './lib/connection'
+export { Message, MessageProperties } from './lib/message'
+export { Consumer, MessageHandler, ConsumeHandlerOpts, ConsumeOptions, QosOptions } from './lib/consumer'
+export { Queue, QueueOptions, QueueBindOptions } from './lib/queue'
+export { Exchange, ExchangeOptions, ExchangeBindOptions } from './lib/exchange'
+export { Publisher, PublishOptions } from './lib/publisher'
+export * from './lib/errors'

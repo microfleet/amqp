@@ -1,5 +1,5 @@
 import 'should'
-import { Connection as AMQP } from '../src/amqp'
+import { Connection as AMQP } from '../src'
 import { strict as assert } from 'assert'
 import { setTimeout } from 'timers/promises'
 

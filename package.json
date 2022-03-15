@@ -10,8 +10,8 @@
     "@makeomatic/deploy": "^12.6.3",
     "@node-rs/xxhash-linux-x64-musl": "^1.2.0",
     "@swc-node/register": "^1.4.2",
-    "@swc/core-linux-x64-musl": "^1.2.145",
+    "@swc/core-linux-x64-musl": "^1.2.155",
     "multi-semantic-release": "^2.11.1",
-    "tsconfig-paths": "^3.12.0"
+    "tsconfig-paths": "^3.14.0"
   }
 }

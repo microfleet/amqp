@@ -1,15 +1,11 @@
 {
-  "include": [
-    "src/**/*.js"
-  ],
-  "exclude": [
-    "src/**/*.spec.js"
-  ],
   "cache": true,
   "clean": false,
+  "extension": [
+    "js",
+    "ts"
+  ],
   "reporter": [
-    "lcov",
-    "json",
     "text-summary"
   ]
 }

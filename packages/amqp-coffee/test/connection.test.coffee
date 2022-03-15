@@ -4,7 +4,7 @@ Proxy  = require('./proxy')
 { setTimeout } = require('timers/promises')
 
 describe 'Connection', () ->
-  AMQP = require('../src/amqp').Connection
+  AMQP = require('../src').Connection
   amqp = null
   proxy = null
 

@@ -1,5 +1,12 @@
 {
+  "require": [
+    "@swc-node/register",
+    "tsconfig-paths/register",
+    "source-map-support/register"
+  ],
+  "extensions": ["ts"],
   "bail": true,
+  "exit": true,
   "timeout": 60000,
   "report": "spec"
 }

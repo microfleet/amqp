@@ -1,7 +1,9 @@
-const baseJoi = require('joi');
-const recoverySchema = require('./utils/recovery').schema;
+import baseJoi from 'joi'
+import { Logger } from 'pino'
+import { ConnectionOptions, ExchangeOptions, PublishOptions, QueueOptions } from '@microfleet/amqp-coffee'
+import { Backoff, Settings as BackoffSettings } from './utils/recovery'
 
-const Joi = baseJoi.extend((joi) => ({
+export const Joi = baseJoi.extend((joi) => ({
   type: 'coercedArray',
   base: joi.alternatives().try(
     joi.array().items(joi.string()).unique(),
@@ -9,19 +11,84 @@ const Joi = baseJoi.extend((joi) => ({
   ),
   validate(value) {
     if (typeof value === 'string') {
-      return { value: [value] };
+      return { value: [value] }
     }
 
-    return { value };
+    return { value }
   },
-}));
+}))
+
+declare module '@microfleet/amqp-coffee' {
+  interface QueueBindOptions {
+    arguments: {
+      'x-match'?: string
+      'routing-key'?: string
+    }
+  }
+}
 
 const exchangeTypes = Joi.string()
-  .valid('direct', 'topic', 'headers', 'fanout');
+  .valid('direct', 'topic', 'headers', 'fanout')
 
-exports.Joi = Joi;
+export interface Exchange extends ExchangeOptions {
+  type: 'topic' | 'direct' | 'fanout' | 'headers'
+}
 
-exports.schema = Joi
+export interface QueueArguments {
+  'x-expires'?: number // 'delete queue after it\'s been unused for X seconds'
+  'x-max-priority'?: number  // 'setup priority queues where messages will be delivery based on priority level'
+  'x-message-ttl'?: number // time after which message expires frfom queue
+  'x-max-length-bytes'?: number // 
+  'x-overflow'?: 'reject-publish' | 'reject-publish-dlx' | 'drop-head' 
+  'x-max-length'?: number // maximum number of message to hold
+  'x-dead-letter-exchange'?: string // dlx
+}
+
+export interface Queue extends QueueOptions {
+  arguments: QueueArguments,
+}
+
+export interface Publish extends Partial<PublishOptions> {
+  // extended options
+  gzip?: boolean // whether to encode using gzip
+  skipSerialize?: boolean // whether it was already serialized earlier
+  simpleResponse?: boolean
+  cache?: number // set to a value larger than 0 to cache the response
+}
+
+export interface Configuration {
+  name: string
+  log?: Logger
+  private: boolean
+  cache: number
+  timeout: number
+  debug: boolean
+  listen: string[]
+  version: string
+  neck: number
+  noAck: boolean
+  connection: ConnectionOptions
+  recovery: BackoffSettings
+  exchange: string
+  exchangeArgs: Exchange
+  bindPersistantQueueToHeadersExchange: boolean
+  headersExchange: Exchange & { exchange: string }
+  queue: string
+  defaultQueueOpts: Exclude<QueueOptions, 'queue'>
+  privateQueueOpts: Exclude<QueueOptions, 'queue'>
+  dlx: {
+    enabled: boolean
+    params: Exchange & { exchange: string }
+  }
+  defaultOpts: Pick<
+    Publish, 
+    'deliveryMode' | 'confirm' | 'mandatory' | 
+    'immediate' | 'contentType' | 'contentEncoding' | 
+    'headers' | 'simpleResponse'
+  >
+}
+
+export const schema = Joi
   .object({
     name: Joi.string()
       .description('name of the service when advertising to AMQP')
@@ -55,8 +122,6 @@ exports.schema = Joi
 
     noAck: Joi.boolean()
       .description('allow setting auto-ack when neck is defined'),
-
-    tracer: Joi.object(),
 
     connection: Joi
       .object({
@@ -133,7 +198,7 @@ exports.schema = Joi
       .description('options for setting up connection to RabbitMQ')
       .default(),
 
-    recovery: recoverySchema
+    recovery: Backoff.schema
       .description('recovery settings')
       .default(),
 
@@ -323,4 +388,4 @@ exports.schema = Joi
     '.dlx.params.exchange',
     Joi.any().invalid(Joi.ref('headersExchange.exchange')),
     'must use different headers exchanges'
-  );
+  )

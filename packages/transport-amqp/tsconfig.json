@@ -2,5 +2,7 @@
   "extends": "../../tsconfig.json",
   "references": [{
     "path": "../amqp-codec/tsconfig.json"
+  }, {
+    "path": "../amqp-coffee/tsconfig.json"
   }]
 }

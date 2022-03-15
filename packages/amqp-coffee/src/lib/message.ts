@@ -7,13 +7,19 @@ import { assert } from 'console'
 
 export type IncomingMessage = MethodFrameBasicDeliver['args']
 
-export interface MessageProperties extends IncomingMessage {
+export interface MessageProperties {
   headers?: Record<string, any> // amqp headers
   appId?: string // sender diagnostics data
   replyTo?: string // amqp reply-to field
   correlationId?: string // amqp correlation-id
   contentType?: string // amqp message content-type
   contentEncoding?: string // amqp message content-encoding
+  userId?: string
+  type?: string
+  messageId?: string
+  timestamp?: Date
+  priority?: number
+  expiration?: string
 }
 
 export type parseFunction<T, R> = {
@@ -53,7 +59,7 @@ const emptyBuffer = Buffer.alloc(0)
 export const kSub = Symbol.for('@microfleet/amqp-coffee:subscription')
 export const kData = Symbol.for('@microfleet/amqp-coffee:data')
 export const kUsed = Symbol.for('@microfleet/amqp-coffee:used')
-
+export const kArbitrary = Symbol('@microfleet/amqp-coffee:arbitrary')
 export class Message {
   public properties: MessageProperties
   public readonly raw: Buffer
@@ -63,7 +69,10 @@ export class Message {
   public readonly exchange: string
   public readonly redelivered: boolean
   public readonly consumerTag: string
-  public [kSub]: Consumer
+  public readonly [kSub]: Consumer
+  
+  // for extending messages if we need it
+  private [kArbitrary]: Map<any, any> | null = null
 
   constructor(factory: MessageFactory, subscription: Consumer) {
     const { properties, args, size } = factory
@@ -117,6 +126,24 @@ export class Message {
     if (this.deliveryTag !== undefined) {
       this[kSub].retry(this.deliveryTag)
     }
+  }
+
+  extendMessage(key: any, value: any): void {
+    if (this[kArbitrary] === null) {
+      this[kArbitrary] = new Map([[key, value]])
+    } else {
+      this[kArbitrary]?.set(key, value)
+    }
+  }
+
+  readExtendedAttributes(): IterableIterator<[any, any]> | undefined
+  readExtendedAttributes(key: any): undefined | any
+  readExtendedAttributes(key?: any): IterableIterator<[any, any]> | undefined | any {
+    if (!key) {
+      return this[kArbitrary]?.entries()
+    }
+
+    return this[kArbitrary]?.get(key)
   }
 }
 
