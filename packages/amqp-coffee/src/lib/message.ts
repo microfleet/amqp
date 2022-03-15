@@ -110,6 +110,12 @@ export class Message {
     return raw
   }
 
+  multiAck() {
+    if (this.deliveryTag !== undefined) {
+      this[kSub].multiAck(this.deliveryTag)
+    }
+  }
+
   ack() {
     if (this.deliveryTag !== undefined) {
       this[kSub].ack(this.deliveryTag)

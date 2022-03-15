@@ -1,16 +1,18 @@
 // Channel
 
 import async = require('async')
-import { EventEmitter } from 'events'
+import { EventEmitter, once } from 'events'
 import { debug as _debug } from './config'
 import { methods, classMethodsTable, MethodsTableMethod, MethodFrame, MethodFrameOk, FieldsToRecord, ContentHeader, isClassMethodId } from '@microfleet/amqp-codec'
 import { Connection, ConnectionState } from './connection'
 import { ServerClosedError, ConnectionResetError } from './errors'
+import { promisify } from 'util'
+import { noop } from 'lodash'
 
 const debug = _debug('amqp:Channel')
 
 // we track this to avoid node's max stack size with a saturated async queue
-let OVERFLOW_PROTECTION = 0
+// let OVERFLOW_PROTECTION = 0
 
 export const enum TaskType {
   method = 'method',
@@ -71,10 +73,12 @@ export abstract class Channel extends EventEmitter {
   private queue = async.queue<Task>(this._taskWorker.bind(this), 1)
   private lastChannelAccess = 0
   private channelTracker: NodeJS.Timeout | null = null
+  private openAsync: () => Promise<void>
 
   constructor(public connection: Connection, public channel: number) {
     super({ captureRejections: true })
     this.taskPush = this.taskPush.bind(this)
+    this.openAsync = promisify(this.open)
     this.open()
   }
 
@@ -178,16 +182,16 @@ export abstract class Channel extends EventEmitter {
     }
   }
 
-  async waitForMethodAsync(method: MethodsTableMethod): Promise<void> {
+  async waitForMethodAsync(method: MethodsTableMethod): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.waitForMethod(method, (err) => {
+      this.waitForMethod(method, (err, res) => {
         if (err) return reject(err)
-        resolve()
+        resolve(res)
       })
     })
   }
 
-  waitForMethod(method: MethodsTableMethod, cb?: (err?: Error) => void) {
+  waitForMethod(method: MethodsTableMethod, cb?: (err?: Error, res?: any) => void) {
     const { waitingCallbacks } = this
 
     if (!waitingCallbacks.has(method.name)) {
@@ -276,64 +280,75 @@ export abstract class Channel extends EventEmitter {
     this.queue.push({ type: TaskType.publish, method, data, options })
   }
 
-  _taskWorker(task: Task, done: (err?: Error | null) => void) {
+  async _taskWorker(task: Task): Promise<void> {
     if (this.transactional) {
       this.lastChannelAccess = Date.now()
     }
 
     const { type, method, okMethod, cb, data, preflight } = task
 
-    const doneFn = (err?: Error | null, res?: any) => {
-      cb?.(err, res)
-      if (OVERFLOW_PROTECTION > 100) {
-        OVERFLOW_PROTECTION = 0
-        process.nextTick(done)
-      } else {
-        OVERFLOW_PROTECTION += 1
-        done()
-      }
-    }
+    // const doneFn = (err?: Error | null, res?: any) => {
+    //   cb?.(err, res)
+    //   if (OVERFLOW_PROTECTION > 100) {
+    //     OVERFLOW_PROTECTION = 0
+    //     process.nextTick(done)
+    //   } else {
+    //     OVERFLOW_PROTECTION += 1
+    //     setImmediate(done)
+    //   }
+    // }
 
     // if preflight is false do not proceed
     if (preflight != null && !preflight()) {
-      doneFn(new Error('preflight check failed'))
+      cb?.(new Error('preflight check failed'))
       return
     }
 
     if (this.state === ChannelState.closed && this.connection.state === 'open') {
       debug(1, () => 'Channel reassign')
       this.connection.channelManager.channelReassign(this)
-      this.open(() => {
-        this._taskWorker(task, done)
-      })
-    } else if (this.state !== ChannelState.open) {
+      await this.openAsync().catch(noop)
+      return this._taskWorker(task)
+    }
+    
+    if (this.state !== ChannelState.open) {
       // if our connection is closed that ok, but if its destroyed it will not reopen
       if (this.connection.state === ConnectionState.destroyed) {
-        doneFn(new Error('Connection is destroyed'))
-      } else {
-        if (this.connection.channelManager.isChannelClosed(this.channel)) {
-          this.connection.channelManager.channelReassign(this)
-        }
-
-        this.once('open', () => {
-          this._taskWorker(task, done)
-        })
+        cb?.(new Error('Connection is destroyed'))
+        return
       }
+
+      if (this.connection.channelManager.isChannelClosed(this.channel)) {
+        this.connection.channelManager.channelReassign(this)
+      }
+
+      await once(this, 'open')
+      return this._taskWorker(task)
+    }
+
+    const p$ = okMethod != null 
+      ? this.waitForMethodAsync(okMethod)
+      : null
+
+    if (type === 'method') {
+      this.connection._sendMethod(this.channel, method, task.args)
+    } else if (type === 'publish') {
+      this.connection._sendMethod(this.channel, method, task.options)
+      this.connection._sendBody(this.channel, data, task.options, () => { /* ignore err */ })
     } else {
-      if (okMethod != null) {
-        this.waitForMethod(okMethod, doneFn)
-      }
+      throw new Error(`a task was queue with an unknown type of ${type}`)
+    }
 
-      if (type === 'method') {
-        this.connection._sendMethod(this.channel, method, task.args)
-        if (okMethod == null) doneFn()
-      } else if (type === 'publish') {
-        this.connection._sendMethod(this.channel, method, task.options)
-        this.connection._sendBody(this.channel, data, task.options, () => { /* ignore err */ })
-        if (okMethod == null) doneFn()
-      } else {
-        throw new Error(`a task was queue with an unknown type of ${type}`)
-      }
+    if (p$ === null) {
+      cb?.(null)
+      return
+    }
+
+    try {
+      const res = await p$
+      cb?.(null, res)
+    } catch (err: any) {
+      cb?.(err)
     }
   }
 
