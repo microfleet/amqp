@@ -137,10 +137,7 @@ export class Connection extends EventEmitter {
     this.channelManager = new ChannelManager(this)
 
     if (!this.connectionOptions.lazyConnect) {
-      // initiate auto-connection and emit error on failure
-      this.connect().catch((err: Error) => {
-        this.emit('error', err)
-      })
+      this.connect()
     }
 
     this.on('close', this._closed)
