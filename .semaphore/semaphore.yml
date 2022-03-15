@@ -7,11 +7,11 @@ agent:
 
 fail_fast:
   stop:
-    when: "branch != 'master'"
+    when: "branch != 'main'"
 
 auto_cancel:
   running:
-    when: "branch != 'master'"
+    when: "branch != 'main'"
 
 global_job_config:
   prologue:
@@ -36,7 +36,7 @@ blocks:
   - name: release
     dependencies: ["tests"]
     skip:
-      when: "branch != 'master'"
+      when: "branch != 'main'"
     task:
       secrets:
         - name: semantic-release
