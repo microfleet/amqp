@@ -8,5 +8,7 @@
   ],
   "references": [{
     "path": "../amqp-codec/tsconfig.build.json"
+  }, {
+    "path": "../amqp-coffee/tsconfig.build.json"
   }]
 }

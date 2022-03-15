@@ -2,7 +2,7 @@ import 'should'
 import Proxy   from './proxy'
 import sinon   from 'sinon'
 
-import { Connection as AMQP } from '../src/amqp'
+import { Connection as AMQP } from '../src'
 import { setTimeout } from 'timers/promises'
 import { once } from 'events'
 import { assert } from 'console'

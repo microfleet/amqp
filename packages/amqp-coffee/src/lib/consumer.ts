@@ -1,15 +1,16 @@
 // Consumer
 import os = require('os')
-import defaults = require('./defaults')
 import { defaults as applyDefaults } from 'lodash'
+import { strict as assert } from 'assert'
 import { methods, MaxEmptyFrameSize, ContentHeader, MethodFrame } from '@microfleet/amqp-codec'
 
+import defaults = require('./defaults')
 import { Connection, ConnectionState } from './connection'
 import { MessageFactory, Message } from './message'
 import { debug as _debug } from './config'
 import { Channel, InferOptions, ChannelState } from './channel'
-import { ServerCancelError } from './errors/server-cancel-error'
-import { strict as assert } from 'assert'
+import { ServerCancelError, ServerClosedError, ConnectionResetError, ServerClosedArgs } from './errors'
+import { Queue } from './queue'
 
 const debug = _debug('amqp:Consumer')
 
@@ -48,15 +49,22 @@ export type ConsumeHandler = {
   cb?: (err?: Error | null) => void
 }
 
+export interface Consumer {
+  on(event: 'cancel', listener: (err: ServerCancelError) => void): this;
+  on(event: 'error', listener: (err: Error | ServerCancelError | ServerClosedError) => void): this;
+  on(event: 'consuming', listener: () => void): this;
+  on(event: 'warning', listener: (err: Error) => void): this;
+}
+
 export class Consumer extends Channel {
   public consumerState = CONSUMER_STATES.CONSUMER_STATE_CLOSED
+  public consumeOptions: ConsumeOptions | null = null
+  public consumerTag = ''
 
   private outstandingDeliveryTags = new Set<number>()
   private messageHandler!: MessageHandler
   private incomingMessage!: MessageFactory
-  private consumerTag = ''
   private qos = false
-  private consumeOptions: ConsumeOptions | null = null
   private qosOptions: QosOptions | null = null
 
   constructor(connection: Connection, channel: number) {
@@ -74,9 +82,13 @@ export class Consumer extends Channel {
     }
   }
 
+  public generateConsumerTag(options: ConsumeHandlerOpts = {}): string {
+    return options.consumerTag || `${os.hostname()}-${process.pid}-${Date.now()}`
+  }
+
   public async consume(queueName: string, messageHandler: MessageHandler, options: ConsumeHandlerOpts = {}): Promise<BasicConsumeResponse> {
-    this.consumerTag = options.consumerTag || `${os.hostname()}-${process.pid}-${Date.now()}`
-    debug(2, () => `Consuming to ${queueName} on channel ${this.channel} ${this.consumerTag}`)
+    this.consumerTag = this.generateConsumerTag()
+    debug(2, () => `Consuming ${queueName} on channel ${this.channel}`)
     this.consumerState = CONSUMER_STATES.CONSUMER_STATE_OPENING
 
     let qosOptions: QosOptions | null = null
@@ -110,12 +122,24 @@ export class Consumer extends Channel {
       defaults.basicConsume
     )
 
-
     this.messageHandler = messageHandler
     this.consumeOptions = consumeOptions
     this.qosOptions = qosOptions
 
     return this._consume()
+  }
+
+  updateQueue(name: string | Queue): void {
+    if (!CONSUMER_STATES_CLOSED.includes(this.consumerState)) {
+      throw new Error('cant update queue unless consumer is closed')
+    }
+
+    if (!this.consumeOptions) {
+      throw new Error('ensure .consume() was previously called')
+    }
+
+    // can't reuse consumer tags
+    this.consumeOptions.queue = typeof name === 'string' ? name : name.queueOptions.queue
   }
 
   async close(): Promise<void> {
@@ -196,7 +220,7 @@ export class Consumer extends Channel {
     debug(1, () => [this.channel, "_consume called"])
     const{ consumeOptions } = this
     assert(consumeOptions)
-    
+
     if (this.qos) {
       await this.setQos()
     }
@@ -209,6 +233,7 @@ export class Consumer extends Channel {
     )
       
     this.consumerState = CONSUMER_STATES.CONSUMER_STATE_OPEN
+    this.emit('consuming')
 
     return res
   }
@@ -221,9 +246,13 @@ export class Consumer extends Channel {
     return this.consumerState === CONSUMER_STATES.CONSUMER_STATE_OPEN
   }
 
-  _onConsumeError(err: Error) {
+  _onConsumeError(err: ConnectionResetError | ServerClosedArgs) {
     debug(1, () => [this.channel, 'onConsumeError', err])
-    this.emit('warning', err)
+    if (err instanceof ConnectionResetError) {
+      this.emit('warning', err)
+    } else {
+      this.emit('error', new ServerClosedError(err))
+    }
   }
 
   _channelOpen() {
@@ -236,11 +265,11 @@ export class Consumer extends Channel {
   _channelClosed(reason = new Error('unknown channel close reason')) {
     debug(1, () => [this.channel, "_channelClosed", reason.message])
 
-    // if we're reconnecting it is approiate to emit the error on reconnect, this is specifically useful
+    // if we're reconnecting it is appropriate to emit the error on reconnect, this is specifically useful
     // for auto delete queues
-    if (this.consumerState === CONSUMER_STATES.CONSUMER_STATE_CHANNEL_CLOSED) {
-      this.emit('error', reason)
-    }
+    // if (this.consumerState === CONSUMER_STATES.CONSUMER_STATE_CHANNEL_CLOSED) {
+      // this.emit('error', reason)
+    // }
 
     this.outstandingDeliveryTags = new Set()
     if (this.connection.state === ConnectionState.open 
@@ -335,7 +364,7 @@ export class Consumer extends Channel {
         this.consumerState = CONSUMER_STATES.CONSUMER_STATE_CLOSED
         const cancelError = new ServerCancelError(frame.args)
 
-        if (this.listeners('cancel').length > 0) {
+        if (this.listenerCount('cancel') > 0) {
           this.emit('cancel', cancelError)
         } else {
           this.emit('error', cancelError)

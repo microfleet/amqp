@@ -1,5 +1,5 @@
 {
-  "extends": "makeomatic",
+  "extends": "makeomatic/typescript",
   "rules": {
     "default-param-last": 0
   }

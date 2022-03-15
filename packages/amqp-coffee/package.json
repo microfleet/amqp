@@ -21,7 +21,7 @@
       "url": "https://raw.github.com/dropbox/amqp-coffee/master/LICENSE.txt"
     }
   ],
-  "main": "./bin/src/amqp.js",
+  "main": "./bin/src/index.js",
   "scripts": {
     "lint": "eslint ./src/**/*.ts ./test/*.ts",
     "test": "./scripts/test.sh",
@@ -45,7 +45,7 @@
     "@makeomatic/deploy": "^12.6.3",
     "@node-rs/xxhash-linux-x64-musl": "^1.2.0",
     "@swc-node/register": "^1.4.2",
-    "@swc/core-linux-x64-musl": "^1.2.147",
+    "@swc/core-linux-x64-musl": "^1.2.155",
     "@types/async": "^3.2.12",
     "@types/bytes": "^3.1.1",
     "@types/debug": "^4.1.7",
@@ -61,15 +61,15 @@
     "codecov": "^3.8.3",
     "coffeescript": "^2.4.1",
     "cross-env": "^7.0.3",
-    "eslint": "^8",
+    "eslint": "^8.11.0",
     "eslint-config-makeomatic": "^5.1.0",
-    "mocha": "^9.2.1",
+    "mocha": "^9.2.2",
     "rimraf": "^3.0.2",
     "semantic-release": "^19.0.2",
     "should": "13.2.3",
     "sinon": "^13.0.1",
     "source-map-support": "^0.5.21",
-    "tsconfig-paths": "^3.12.0",
+    "tsconfig-paths": "^3.14.0",
     "typescript": "^4.6.2",
     "underscore": "^1.9.1",
     "uuid": "^8.3.2"

@@ -8,27 +8,27 @@ import * as defaults from './defaults'
 import { BasicReturnError } from './errors/basic-return-error'
 import { debug as _debug } from './config' 
 import type { Connection } from './connection'
+import { InferOptions } from './channel'
+import { MessageProperties} from './message'
 
 const debug = _debug('amqp:Publisher')
 const kEvents = Symbol('amqp:kEvents')
 const { hasOwnProperty } = Object.prototype
 
-export interface PublishOptions {
-  contentType?: string // message content-type
-  contentEncoding?: string // message encoding, defaults to `plain`
+export type BasicPublishOptions = InferOptions<typeof methods.basicPublish>
+
+export interface PublishOptions extends MessageProperties {
   exchange: string // exchange to publish to
-  correlationId?: string // used to match messages when getting a reply
-  headers?: Record<string, string | number | boolean> // 
+  routingKey: string
 
   // sets `expiration` property on the message
   timeout?: number // optional ttl value for message in the publish/send 
-  routingKey: string
 
   // delivery modes
   confirm: boolean // require ack from server on publish
   mandatory: boolean // require queue to exist on publish
   immediate: boolean // require message to be immediately routedd
-  deliveryMode: 1 | 2     // transient or persistant, default to 1
+  deliveryMode: 1 | 2  // transient or persistant, default to 1
 }
 
 const transformData = (data: string | Record<string, any> | Buffer | undefined, options: PublishOptions): Buffer => {

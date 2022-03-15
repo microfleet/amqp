@@ -5,6 +5,7 @@ import async = require('async')
 
 import bytes = require('bytes')
 import applyDefaults = require('lodash/defaults')
+import { strict as assert } from 'assert'
 
 import {
   HandshakeFrame,
@@ -19,14 +20,14 @@ import {
 } from '@microfleet/amqp-codec'
 import { setSocketReadBuffer, setSocketWriteBuffer } from './utils/set-sock-opts'
 import { ChannelManager } from './channel-manager'
-import { Exchange, ExchangeDeclareOptions } from './exchange'
+import { Exchange, ExchangeOptions } from './exchange'
 import { Queue, QueueOptions } from './queue'
 import * as defaults from './defaults'
 import { debug as _debug } from './config'
 import * as rabbitmAdminPlugin from './plugins/rabbit'
 import { Consumer, ConsumeHandlerOpts, MessageHandler } from './consumer'
 import { PublishOptions } from './publisher'
-import { ConnectionTimeoutError, ServerVersionError, ServerClosedError } from './errors'
+import { ConnectionTimeoutError, ServerVersionError, ServerClosedError, ServerClosedArgs } from './errors'
 import { Channel, InferOptions, Methods } from './channel'
 import { once } from 'events'
 
@@ -79,6 +80,8 @@ export const enum ConnectionState {
   reconnecting = "reconnecting",
   destroyed = "destroyed",
 }
+
+const OpeningStates = [ConnectionState.opening, ConnectionState.reconnecting]
 
 export class Connection extends EventEmitter {
   public readonly id = Math.round(Math.random() * 1000)
@@ -179,8 +182,19 @@ export class Connection extends EventEmitter {
 
   public async connect(): Promise<void> {
     // noop in case we are already opening the connection
-    if (this.state === ConnectionState.opening) {
-      return this.opening$P
+    switch (this.state) {
+      case ConnectionState.opening: 
+        return this.opening$P
+
+      case ConnectionState.open: 
+        return
+
+      case ConnectionState.destroyed: 
+        throw new Error('connection has been previously closed')
+
+      case ConnectionState.reconnecting:
+        await once(this, 'ready')
+        return
     }
 
     this.state = ConnectionState.opening
@@ -266,22 +280,30 @@ export class Connection extends EventEmitter {
 
   // User called functions
   public async queue(args: Partial<QueueOptions>): Promise<Queue> {
+    assert(this.connection, 'must call .connect() first')
+
     const tempChannel = await this.channelManager.temporaryChannelAsync()
     return new Queue(tempChannel, args)
   }
 
-  public async exchange(args: Partial<ExchangeDeclareOptions> & { name?: string }): Promise<Exchange> {
+  public async exchange(args: Partial<ExchangeOptions>): Promise<Exchange> {
+    assert(this.connection, 'must call .connect() first')
+
     const tempChannel = await this.channelManager.temporaryChannelAsync()
     return new Exchange(tempChannel, args)
   }
 
   public async consumer(): Promise<Consumer> {
+    assert(this.connection, 'must call .connect() first')
+
     const consumerChannel = this.channelManager.consumerChannel()
     await consumerChannel.ready()
     return consumerChannel
   }
 
   public async consume(queueName: string, options: ConsumeHandlerOpts, messageHandler: MessageHandler): Promise<Consumer> {
+    assert(this.connection, 'must call .connect() first')
+
     const consumerChannel = this.channelManager.consumerChannel()
     await consumerChannel.consume(queueName, messageHandler, options)
     return consumerChannel
@@ -355,14 +377,14 @@ export class Connection extends EventEmitter {
     this._setupParser(this._reestablishChannels)
   }
 
-  _connectionErrorEvent(e: Error) {
+  _connectionErrorEvent(e: ServerClosedArgs) {
     if (this.state !== ConnectionState.destroyed) {
       debug(1, () => ['Connection Error', e, this.connectionOptions.host])
     }
 
     // if we are to keep trying we wont callback until we're successful, or we've hit a timeout.
     if (!this.connectionOptions.reconnect) {
-      this.emit('error', e)
+      this.emit('error', new ServerClosedError(e))
     }
   }
 
@@ -548,7 +570,8 @@ export class Connection extends EventEmitter {
   }
 
   _sendMethod<T extends Methods>(channel: number, method: T, args: Partial<InferOptions<T>>) {
-    if (channel !== 0 && [ConnectionState.opening, ConnectionState.reconnecting].includes(this.state)) {
+    if (channel !== 0 && OpeningStates.includes(this.state)) {
+      // TODO: introduce queue instead of spawning promises
       this.once('ready', () => {
         this._sendMethod(channel, method, args)
       })

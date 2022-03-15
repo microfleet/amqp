@@ -4,7 +4,7 @@ SslProxy = require('./sslproxy')
 Proxy    = require('./proxy')
 { setTimeout } = require('timers/promises')
 
-AMQP = require('../src/amqp').Connection
+AMQP = require('../src').Connection
 
 describe 'SSL Connection', () ->
   sslProxyConnection = null

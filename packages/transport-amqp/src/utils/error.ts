@@ -1,21 +1,28 @@
-const Errors = require('common-errors');
-
 // error generator
-module.exports = function generateErrorMessage(routing, timeout) {
-  return `job timed out on routing ${routing} after ${timeout} ms`;
-};
+export function generateErrorMessage(routing: string, timeout: number) {
+  return `job timed out on routing ${routing} after ${timeout} ms`
+}
 
-/**
- * @typedef AmqpDLXError
- * @property {{ reason: string, queue: string, count: number }[]} xDeath
- * @property {string} originalMessage
- */
+export interface RejectionEntry {
+  reason: string
+  queue: string
+  count: number
+  "routing-keys"?: string[]
+  "original-expiration"?: number
+}
 
 /**
  * @class AmqpDLXError
  */
-module.exports.AmqpDLXError = Errors.helpers.generateClass('AmqpDLXError', {
-  args: ['xDeath', 'originalMessage'],
+export class AmqpDLXError extends Error {
+  public readonly name = 'AmqpDLXError'
+  constructor(public xDeath: RejectionEntry[], public originalMessage: string) {
+    super()
+  }
+
+  get message() {
+    return this.generateMessage()
+  }
 
   // https://www.rabbitmq.com/dlx.html
   /**
@@ -43,32 +50,31 @@ module.exports.AmqpDLXError = Errors.helpers.generateClass('AmqpDLXError', {
    *
    *    Note that the array is sorted most-recent-first, so the most recent dead-lettering will be recorded in the first entry.
    *
-   * @this {AmqpDLXError}
    */
-  generateMessage() {
-    const message = [];
+  generateMessage(this: InstanceType<typeof AmqpDLXError>) {
+    const message: string[] = []
 
     this.xDeath.forEach((rejectionEntry) => {
       switch (rejectionEntry.reason) {
         case 'rejected':
-          message.push(`Rejected from ${rejectionEntry.queue} ${rejectionEntry.count} time(s)`);
-          break;
+          message.push(`Rejected from ${rejectionEntry.queue} ${rejectionEntry.count} time(s)`)
+          break
 
         case 'expired':
           message.push(`Expired from queue "${rejectionEntry.queue}" with routing keys `
             + `${JSON.stringify(rejectionEntry['routing-keys'])} `
-            + `after ${rejectionEntry['original-expiration']}ms ${rejectionEntry.count} time(s)`);
-          break;
+            + `after ${rejectionEntry['original-expiration']}ms ${rejectionEntry.count} time(s)`)
+          break
 
         case 'maxlen':
-          message.push(`Overflown ${rejectionEntry.queue} ${rejectionEntry.count} time(s)`);
-          break;
+          message.push(`Overflown ${rejectionEntry.queue} ${rejectionEntry.count} time(s)`)
+          break
 
         default:
-          message.push(`Unexpected DLX reason: ${rejectionEntry.reason}`);
+          message.push(`Unexpected DLX reason: ${rejectionEntry.reason}`)
       }
-    });
+    })
 
-    return message.join('. ');
-  },
-});
+    return message.join('. ')
+  }
+}

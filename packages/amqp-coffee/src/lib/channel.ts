@@ -5,7 +5,7 @@ import { EventEmitter } from 'events'
 import { debug as _debug } from './config'
 import { methods, classMethodsTable, MethodsTableMethod, MethodFrame, MethodFrameOk, FieldsToRecord, ContentHeader, isClassMethodId } from '@microfleet/amqp-codec'
 import { Connection, ConnectionState } from './connection'
-import { ServerClosedError } from './errors'
+import { ServerClosedError, ConnectionResetError } from './errors'
 
 const debug = _debug('amqp:Channel')
 
@@ -60,6 +60,9 @@ export type Task<
   options: InferOptions<T>
 }, T, U, Data>
 
+export interface Channel {
+  on(event: 'error', listener: (err: Error | ServerClosedError) => void): this;
+}
 export abstract class Channel extends EventEmitter {
   public state = ChannelState.closed
 
@@ -70,7 +73,7 @@ export abstract class Channel extends EventEmitter {
   private channelTracker: NodeJS.Timeout | null = null
 
   constructor(public connection: Connection, public channel: number) {
-    super()
+    super({ captureRejections: true })
     this.taskPush = this.taskPush.bind(this)
     this.open()
   }
@@ -116,7 +119,7 @@ export abstract class Channel extends EventEmitter {
     debug(1, () => [this.channel, 'channel reset called'])
 
     if (this.state !== ChannelState.open) {
-      this._callOutstandingCallbacks(new Error('Channel Opening or Reseting'))
+      this._callOutstandingCallbacks(new ConnectionResetError())
     }
 
     // if our state is closed and either we arn't a transactional channel (queue, exchange declare etc..)

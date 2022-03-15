@@ -4,7 +4,7 @@ import { v4 as uuid } from 'uuid'
 import { setTimeout } from 'timers/promises'
 import { strict as assert } from 'assert'
 
-import { Connection as AMQP } from '../src/amqp'
+import { Connection as AMQP } from '../src'
 import { once } from 'events'
 
 describe('Queue', () => {  

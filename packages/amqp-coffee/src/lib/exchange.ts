@@ -16,14 +16,16 @@ export type ExchangeBindResponse = InferOptions<typeof methods.exchangeBindOk>
 
 export type ExchangeUnbindOptions = InferOptions<typeof methods.exchangeUnbind>
 export type ExchangeUnbindResponse = InferOptions<typeof methods.exchangeUnbindOk>
-
+export interface ExchangeOptions extends ExchangeDeclareOptions { 
+  name?: string 
+}
 export class Exchange {
   public readonly exchangeOptions: ExchangeDeclareOptions
   public channel: Channel
 
   constructor(
     channel: Channel, 
-    args: Partial<ExchangeDeclareOptions> & { name?: string }
+    args: Partial<ExchangeOptions>
   ) {
     let { exchange } = args
     if (exchange == null && args.name != null) {

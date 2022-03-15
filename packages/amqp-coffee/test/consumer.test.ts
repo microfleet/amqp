@@ -3,7 +3,7 @@
 import 'should'
 import { v4 as uuid } from 'uuid'
 import { strict as assert } from 'assert'
-import { Connection as AMQP, Consumer, Message } from '../src/amqp'
+import { Connection as AMQP, Consumer, Message, ServerClosedError } from '../src'
 import { MaxFrameSize } from '@microfleet/amqp-codec'
 import { times, timesSeries, until } from 'async'
 import { setTimeout } from 'timers/promises'
@@ -590,6 +590,7 @@ describe('Consumer', () => {
     let done = false
     consumer.on('error', (err) => {
       assert(err)
+      // @ts-expect-error ServerCancelError
       err.code.should.eql("basicCancel")
       done = true
     })
@@ -662,8 +663,8 @@ describe('Consumer', () => {
     const consumer = await amqp.consume(queue, {prefetchCount: 1}, messageProcessor)
           
     consumer.on('error', async (error) => {
-      assert(error)
-      error.error.replyCode.should.eql(404)
+      assert(error instanceof ServerClosedError)
+      error.reason.replyCode.should.eql(404)
       await amqp.close()
       thisproxy.close()
       done = true
@@ -687,7 +688,6 @@ describe('Consumer', () => {
       messagesRecieved += 1
       thisproxy.interrupt()
       await setTimeout(25)
-      consumer.resume()
     }
 
     amqp = new AMQP({ host: 'localhost', port: 7007 })
@@ -698,21 +698,22 @@ describe('Consumer', () => {
 
     consumer = await amqp.consume(queue, { prefetchCount: 1 }, messageProcessor)
     consumer.on('error', async (error) => {
-      assert(error)
-      error.error.replyCode.should.eql(404)
+      assert(error instanceof ServerClosedError)
+      error.reason.replyCode.should.eql(404)
       errorCount += 1
       if (errorCount === 1) {
         messagesRecieved.should.eql(1)
         await setTimeout(300)
         errorCount.should.eql(1)
-        await amqp.close()
-        thisproxy.close()
         done = true
       }
     })
 
     await amqp.publish("", queue, testData, {confirm: true})
     await verify(() => done)
+
+    await amqp.close()
+    thisproxy.close()
   })
 
   it('test we can consume and interrupt a nameless queue with resume 807', async () => {
@@ -729,7 +730,7 @@ describe('Consumer', () => {
       messagesRecieved += 1
       thisproxy.interrupt()
       await setTimeout(25)
-      consumer.resume()
+      await consumer.resume() // must call .close() on error
     }
 
     let queue = ''
@@ -741,21 +742,23 @@ describe('Consumer', () => {
 
     consumer = await amqp.consume(queue, {prefetchCount: 1}, messageProcessor)
     consumer.on('error', async (error) => {
-      assert(error)
-      error.error.replyCode.should.eql(404)
+      assert(error instanceof ServerClosedError)
+      error.reason.replyCode.should.eql(404)
       errorCount += 1
+      await consumer.close()
       if (errorCount === 1) {
         await setTimeout(300)
         errorCount.should.eql(1)
         messagesRecieved.should.eql(1)
-        await amqp.close
-        thisproxy.close()
         done = true
       }
     })
 
     await amqp.publish("", queue, testData, {confirm: true})
     await verify(() => done)
+
+    await amqp.close()
+    thisproxy.close()
   })
 
   it('test we can consume and interrupt a nameless queue with close 807.5', async () => {
@@ -786,21 +789,22 @@ describe('Consumer', () => {
 
     let done = false
     consumer.on('error', async (error) => {
-      assert(error)
-      error.error.replyCode.should.eql(404)
+      assert(error instanceof ServerClosedError)
+      error.reason.replyCode.should.eql(404)
       errorCount += 1
       if (errorCount === 1) {
         await setTimeout(300)
         errorCount.should.eql(1)
         messagesRecieved.should.eql(1)
-        await amqp.close()
-        thisproxy.close()
         done = true
       }
     })
 
     await amqp.publish("", queue, testData, {confirm: true})
     await verify(() => done)
+
+    await amqp.close()
+    thisproxy.close()
   })
 
   it('test we can close a consumer channel 854.5', async () => {
