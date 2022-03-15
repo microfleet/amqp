@@ -26,12 +26,13 @@
     "lint": "eslint ./src/**/*.ts ./test/*.ts",
     "test": "./scripts/test.sh",
     "prepublishOnly": "pnpm run compile",
-    "compile": "./scripts/compile.sh",
+    "compile": "pnpm run clean; tsc -b tsconfig.build.json",
     "prepare": "mdep install",
+    "clean": "rimraf ./bin *.tsbuildinfo",
     "semantic-release": "semantic-release"
   },
   "dependencies": {
-    "@microfleet/amqp-codec": "workspace:^1.0.0",
+    "@microfleet/amqp-codec": "workspace:^",
     "async": "^3.2.3",
     "bson": "^4.6.1",
     "bytes": "^3.1.2",

@@ -3,5 +3,9 @@
   "files": [],
   "references": [{
     "path": "./packages/amqp-codec/tsconfig.build.json"
+  }, {
+    "path": "./packages/amqp-coffee/tsconfig.build.json"
+  }, {
+    "path": "./packages/transport-amqp/tsconfig.build.json"
   }]
 }
