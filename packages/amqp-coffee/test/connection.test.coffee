@@ -24,9 +24,10 @@ describe 'Connection', () ->
     amqp = new AMQP {reconnect:false, host:'iamnotthequeueyourlookingfor'}
     await assert.rejects(amqp.connect())
 
-  it 'we fail connecting to an invalid no callback', () ->
+  it.only 'we fail connecting to an invalid no callback', (done) ->
     amqp = new AMQP {reconnect:false, host:'iamnotthequeueyourlookingfor', lazyConnect: false}
-    amqp.on 'error', ()->
+    amqp.on 'error', (err)->
+      console.error err
       done()
 
   it 'we can reconnect if the connection fails 532', ()->
