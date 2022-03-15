@@ -30,7 +30,7 @@
     "@types/bluebird": "^3.5.36",
     "@types/is": "^0.0.21",
     "@types/json-stringify-safe": "^5.0.0",
-    "@types/lodash": "^4.14.179",
+    "@types/lodash": "^4.14.180",
     "@types/microtime": "^2.1.0",
     "@types/mocha": "^9.1.0",
     "@types/object-hash": "^2.2.1",
@@ -62,7 +62,7 @@
     "common-errors": "~1.x.x"
   },
   "dependencies": {
-    "@microfleet/amqp-coffee": "workspace:^",
+    "@microfleet/amqp-coffee": "workspace:^1.3.1",
     "@types/common-errors": "^1.0.2",
     "bluebird": "^3.7.2",
     "debug": "^4.3.3",
