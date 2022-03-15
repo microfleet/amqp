@@ -2,9 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": "src",
+    "outDir": "lib"
   },
   "include": [
-    "src/**.js"
+    "src/**/*.ts"
   ],
   "references": [{
     "path": "../amqp-codec/tsconfig.build.json"

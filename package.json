@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "semantic-release": "multi-semantic-release",
-    "prepare": "mdep install"
+    "prepare": "mdep install",
+    "compile": "pnpm -r clean; tsc -b tsconfig.build.json"
   },
   "devDependencies": {
     "@makeomatic/deploy": "^12.6.3",
@@ -12,6 +13,7 @@
     "@swc-node/register": "^1.4.2",
     "@swc/core-linux-x64-musl": "^1.2.155",
     "multi-semantic-release": "^2.11.1",
-    "tsconfig-paths": "^3.14.0"
+    "tsconfig-paths": "^3.14.0",
+    "typescript": "^4.6.2"
   }
 }
