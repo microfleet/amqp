@@ -7,6 +7,11 @@
   "publishConfig": {
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microfleet/amqp-coffee.git",
+    "directory": "packages/amqp-codec"
+  },
   "scripts": {
     "gen-protocol": "pnpm exec -- ts-node ./bin/serialize.ts",
     "lint": "eslint './src/**/*.ts'",

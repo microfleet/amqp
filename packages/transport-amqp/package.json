@@ -18,7 +18,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/microfleet/transport-amqp.git"
+    "url": "https://github.com/microfleet/amqp-coffee.git",
+    "directory": "packages/transport-amqp"
   },
   "author": "Vitaly Aminev <v@makeomatic.ca>",
   "license": "MIT",
