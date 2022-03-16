@@ -186,9 +186,6 @@ export class Connection extends EventEmitter {
       case ConnectionState.open: 
         return
 
-      case ConnectionState.destroyed: 
-        throw new Error('connection has been previously closed')
-
       case ConnectionState.reconnecting:
         await once(this, 'ready')
         return
