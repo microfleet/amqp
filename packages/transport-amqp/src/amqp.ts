@@ -41,7 +41,8 @@ import {
   ExchangeBindOptions,
   MessageHandler,
   ServerClosedError,
-  ConnectionState
+  ConnectionState,
+  QueueBindResponse
 } from '@microfleet/amqp-coffee'
 import { ReplyStorage } from './utils/reply-storage'
 import { Backoff } from './utils/recovery'
@@ -68,7 +69,7 @@ export interface ConsumedQueueOptions extends Omit<Partial<QueueOptions>, 'queue
 }
 
 declare module '@microfleet/amqp-coffee' {
-  export interface Queue {
+  interface Queue {
     [kBoundRoutes]?: string[]
   }
 }
@@ -603,7 +604,7 @@ export class AMQPTransport extends EventEmitter {
    * @param  route - Routing key.
    * @param  [headerName=false] - if exchange has `headers` type.
    */
-  async bindRoute(exchange: string, queue: Queue, route: string, headerName: string | boolean = false) {
+  async bindRoute(exchange: string, queue: Queue, route: string, headerName: string | boolean = false): Promise<QueueBindResponse> {
     const queueName = queue.queueOptions.queue
     const options: Partial<QueueBindOptions> = {}
     let routingKey

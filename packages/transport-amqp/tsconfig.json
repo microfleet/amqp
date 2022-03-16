@@ -3,6 +3,10 @@
   "compilerOptions": {
     "typeRoots": ["node_modules/@types", "./types"]
   },
+  "exclude": [
+    "lib",
+    "node_modules"
+  ],
   "references": [{
     "path": "../amqp-codec/tsconfig.json"
   }, {

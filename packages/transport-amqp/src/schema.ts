@@ -18,15 +18,6 @@ export const Joi = baseJoi.extend((joi) => ({
   },
 }))
 
-declare module '@microfleet/amqp-coffee' {
-  interface QueueBindOptions {
-    arguments: {
-      'x-match'?: string
-      'routing-key'?: string
-    }
-  }
-}
-
 const exchangeTypes = Joi.string()
   .valid('direct', 'topic', 'headers', 'fanout')
 

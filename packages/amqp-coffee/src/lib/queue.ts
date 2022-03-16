@@ -17,9 +17,16 @@ export type QueueUnbindOptions = InferOptions<typeof methods.queueUnbind>
 export type QueueUnbindArgs = QueueUnbindOptions['arguments']
 export type QueueUnbindResponse = InferOptions<typeof methods.queueUnbindOk>
 
-export type QueueBindOptions = InferOptions<typeof methods.queueBind>
+export interface QueueBindArgs {
+  'x-match'?: string
+  'routing-key'?: string
+}
+
+export type QueueBindOptions = InferOptions<typeof methods.queueBind> & {
+  arguments: QueueBindArgs
+}
+
 export type QueueBindResponse = InferOptions<typeof methods.queueBindOk>
-export type QueueBindArgs = QueueBindOptions['arguments']
 
 export type QueueDeclareOptions = InferOptions<typeof methods.queueDeclare>
 export type QueueDeclareResponse = InferOptions<typeof methods.queueDeclareOk>
