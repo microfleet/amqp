@@ -1010,7 +1010,7 @@ export class AMQPTransport extends EventEmitter {
   /**
    * Distributes messages from a private queue
    * @param messageBody
-   * @param message
+   * @param raw
    */
   private async _privateMessageRouter(messageBody: any, raw: Message): Promise<void> {
     const { correlationId, replyTo, headers = {} } = raw.properties

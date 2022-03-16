@@ -63,15 +63,18 @@ export const initRoutingFn = (messageHandler: MessageConsumer): WrappedRouter =>
     }
   }
 
+  const cantReply = (properties: MessageProperties): boolean => {
+    return (!properties.replyTo || !properties.correlationId)
+  }
+
   return async function modernRouter(this: AMQPTransport, messageBody: any, message: Message): Promise<void> {
     const { properties } = message
-    const noReply = !properties.replyTo || !properties.correlationId
 
     try {
       const response = await messageHandler(messageBody, message)
-      return noReply ? this.noop(null, response, message) : this.reply({ data: response }, message)
+      return cantReply(properties) ? this.noop(null, response, message) : this.reply({ data: response }, message)
     } catch (error: any) {
-      return noReply ? this.noop(error, null, message) : this.reply({ error }, message)
+      return cantReply(properties) ? this.noop(error, null, message) : this.reply({ error }, message)
     }
   }
 }
