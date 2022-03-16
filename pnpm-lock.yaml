@@ -7,7 +7,7 @@ importers:
       '@makeomatic/deploy': ^12.6.3
       '@node-rs/xxhash-linux-x64-musl': ^1.2.0
       '@swc-node/register': ^1.4.2
-      '@swc/core-linux-x64-musl': ^1.2.155
+      '@swc/core-linux-x64-musl': ^1.2.156
       multi-semantic-release: ^2.11.1
       tsconfig-paths: ^3.14.0
       typescript: ^4.6.2
@@ -15,7 +15,7 @@ importers:
       '@makeomatic/deploy': 12.6.3
       '@node-rs/xxhash-linux-x64-musl': 1.2.0
       '@swc-node/register': 1.4.2
-      '@swc/core-linux-x64-musl': 1.2.155
+      '@swc/core-linux-x64-musl': 1.2.156
       multi-semantic-release: 2.11.1
       tsconfig-paths: 3.14.0
       typescript: 4.6.2
@@ -1768,6 +1768,14 @@ packages:
 
   /@swc/core-linux-x64-musl/1.2.155:
     resolution: {integrity: sha512-HI2117+Y9vXwPIJOCWhAQHulyD1o+xNfiwjJeF42ukxKsBLoDm1STwNKbx8PUgWTAVwade9UG2YCskVX89OOGA==}
+    engines: {node: '>=10'}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+
+  /@swc/core-linux-x64-musl/1.2.156:
+    resolution: {integrity: sha512-l6xzgNuKB6QQYxWNMDTNVAnle/mNk35AgD83otiKoL23o8m0gxExm8OQbd0HEi/Wf6BrPl3rlxsGpYWvOJHztQ==}
     engines: {node: '>=10'}
     cpu: [x64]
     os: [linux]
