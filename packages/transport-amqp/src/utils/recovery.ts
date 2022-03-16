@@ -10,15 +10,11 @@ export interface Preset {
 export interface Settings {
   "private": Preset
   "consumed": Preset
+  [custom: string]: Preset
 }
 
 /**
  * Settings confirm to [policy: string] : settings schema
- * @constructor
- * @param  {Object} settings - Container for policies.
- * @param  {number} settings.min - Min delay for attempt.
- * @param  {number} settings.max - Max delay for attempt.
- * @param  {number} settings.factor - Exponential factor.
  */
 export class Backoff {
   static schema = Joi.object({
@@ -55,7 +51,7 @@ export class Backoff {
 
   }
 
-  get(policy: 'private' | 'consumed', attempt = 0) {
+  get(policy: keyof Settings, attempt = 0) {
     const { min, factor, max } = this.settings[policy]
 
     if (attempt === 0) return 0
@@ -64,7 +60,7 @@ export class Backoff {
     return Math.min(Math.round((Math.random() + 1) * min * (factor ** (attempt - 1))), max)
   }
 
-  async wait(policy: 'private' | 'consumed', attempt = 0) {
+  async wait(policy: keyof Settings, attempt = 0) {
     await setTimeout(this.get(policy, attempt))
   }
 }
