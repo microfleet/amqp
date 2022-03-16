@@ -1,3 +1,4 @@
+export * from './schema'
 export * from './amqp'
 export * from './utils/error'
 export * from './router'
