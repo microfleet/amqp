@@ -210,15 +210,13 @@ export class AMQPTransport extends EventEmitter {
    * @param messageBody
    * @param [raw]
    */
-  noop(error: Error | null, messageBody: any, raw?: Message) {
+  noop(error: Error | null, messageBody: any, raw: Message) {
     if (this.log.isLevelEnabled('debug')) {
       const msg = stringify({ error, messageBody }, jsonSerializer)
       this.log.debug('when replying to message with %s response could not be delivered', msg)
     }
 
-    if (raw !== undefined) {
-      this.emit('after', raw)
-    }
+    this.emit('after', raw)
   }
 
   async close() {
@@ -272,7 +270,7 @@ export class AMQPTransport extends EventEmitter {
     log.info({ queue: queueName }, 'consumer is being created')
 
     // setup consumer
-    const messageHandler = this.prepareConsumer(params.router)
+    const messageHandler = this.prepareConsumer(params.router, true)
 
     ctx.consumer = await amqp.consume(queueName, setQoS(params), messageHandler)
 
@@ -482,7 +480,7 @@ export class AMQPTransport extends EventEmitter {
     // step 2 - create consumer
     const createConsumer = async (attempt = 0): Promise<Consumer> => {
       try {
-        return await this.consume(queueName, queueOptions, this.prepareConsumer(router))
+        return await this.consume(queueName, queueOptions, this.prepareConsumer(router, true))
       } catch (err) {
         this.log.warn({ err, attempt }, 'failed to consume')
         await this.recovery.wait('consumed', attempt + 1)
@@ -977,14 +975,14 @@ export class AMQPTransport extends EventEmitter {
   /**
    *
    */
-  private prepareConsumer(this: AMQPTransport, _router: WrappedRouter) {
+  private prepareConsumer(this: AMQPTransport, _router: WrappedRouter, emit = false) {
     // use bind as it is now fast
     const router = _router.bind(this)
     const log = this.log.child({ loc: 'prepareConsumer' })
 
     const preParseMessage = async (incoming: Message) => {
       // emit pre processing hook
-      this.emit('pre', incoming)
+      if (emit) this.emit('pre', incoming)
 
       // extract message data
       const { properties } = incoming

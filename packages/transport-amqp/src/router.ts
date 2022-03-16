@@ -37,7 +37,6 @@ export const isLegacyMessageConsumer = (messageHandler: MessageConsumer): messag
 /**
  * Routing function HOC with reply RPC enhancer
  * @param  messageHandler
- * @param  transport
  */
 export const initRoutingFn = (messageHandler: MessageConsumer): WrappedRouter => {
 
