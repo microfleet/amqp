@@ -11,6 +11,8 @@ export const NoopLogger = (levels: Level[]): Logger => {
 
   // return itself
   logger.child = () => logger
+  logger.isLevelEnabled = () => false
+
   levels.reduce(assignLevels, logger)
 
   return logger
