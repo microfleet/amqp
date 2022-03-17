@@ -19,10 +19,10 @@ export const Joi = baseJoi.extend((joi) => ({
 }))
 
 const exchangeTypes = Joi.string()
-  .valid('direct', 'topic', 'headers', 'fanout')
+  .valid('direct', 'topic', 'headers', 'fanout', 'x-random', 'x-modulus-hash', 'x-consistent-hash')
 
 export interface Exchange extends ExchangeOptions {
-  type: 'topic' | 'direct' | 'fanout' | 'headers'
+  type: 'topic' | 'direct' | 'fanout' | 'headers' | 'x-random' | 'x-modulus-hash' | 'x-consistent-hash'
 }
 
 export interface QueueArguments {

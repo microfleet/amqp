@@ -687,7 +687,7 @@ export class AMQPTransport extends EventEmitter {
     assert.equal(params.type, 'headers')
     assert.ok(exchange, 'exchange must be set')
 
-    this.log.debug('bind routes->exchange/headers', routes, exchange)
+    this.log.debug({ routes, exchange }, 'bind routes->exchange/headers')
 
     await this.declareExchange(params)
     await Promise.all(routes.map(async (route) => {
