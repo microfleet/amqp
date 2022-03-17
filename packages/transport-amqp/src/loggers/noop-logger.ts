@@ -9,6 +9,9 @@ export const NoopLogger = (levels: Level[]): Logger => {
     return prev
   }
 
+  // return itself
+  logger.child = () => logger
   levels.reduce(assignLevels, logger)
+
   return logger
 }
