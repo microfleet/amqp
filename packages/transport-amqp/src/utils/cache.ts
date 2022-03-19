@@ -1,6 +1,6 @@
 import HLRU from 'hashlru'
-import hash from 'object-hash'
 import { latency } from './latency'
+import stringify from 'safe-stable-stringify'
 
 export class Cache {
   public readonly enabled: boolean
@@ -34,7 +34,7 @@ export class Cache {
       return null
     }
 
-    const hashKey = hash(message)
+    const hashKey = typeof message === 'string' ? message : stringify(message)
     const response = this.cache.get(hashKey)
 
     if (response !== undefined) {

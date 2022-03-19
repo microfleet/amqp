@@ -171,7 +171,6 @@ importers:
       '@types/lodash': ^4.14.180
       '@types/microtime': ^2.1.0
       '@types/mocha': ^9.1.0
-      '@types/object-hash': ^2.2.1
       '@types/sinon': ^10.0.11
       '@types/uuid': ^8.3.4
       async-cache-dedupe: ^1.2.2
@@ -201,10 +200,10 @@ importers:
       lodash: ^4.17.21
       microtime: ^3.0.0
       mocha: ^9.2.2
-      object-hash: ^3.0.0
       pino: ^7.9.1
       read-pkg: ^5.2.0
       rimraf: ^3.0.2
+      safe-stable-stringify: ^2.3.1
       sinon: ^13.0.1
       source-map-support: ^0.5.21
       tsconfig-paths: ^3.14.0
@@ -225,9 +224,9 @@ importers:
       joi: 17.6.0
       json-stringify-safe: 5.0.1
       lodash: 4.17.21
-      object-hash: 3.0.0
       pino: 7.9.1
       read-pkg: 5.2.0
+      safe-stable-stringify: 2.3.1
       type-fest: 2.12.0
       uuid: 8.3.2
     devDependencies:
@@ -238,7 +237,6 @@ importers:
       '@types/lodash': 4.14.180
       '@types/microtime': 2.1.0
       '@types/mocha': 9.1.0
-      '@types/object-hash': 2.2.1
       '@types/sinon': 10.0.11
       '@types/uuid': 8.3.4
       benchmark: 2.1.4
@@ -2070,10 +2068,6 @@ packages:
 
   /@types/normalize-package-data/2.4.1:
     resolution: {integrity: sha512-Gj7cI7z+98M282Tqmp2K5EIsoouUEzbBJhQQzDE3jSIRk6r9gsz0oUokqIUR4u1R3dMHo0pDHM7sNOHyhulypw==}
-
-  /@types/object-hash/2.2.1:
-    resolution: {integrity: sha512-i/rtaJFCsPljrZvP/akBqEwUP2y5cZLOmvO+JaYnz01aPknrQ+hB5MRcO7iqCUsFaYfTG8kGfKUyboA07xeDHQ==}
-    dev: true
 
   /@types/offscreencanvas/2019.3.0:
     resolution: {integrity: sha512-esIJx9bQg+QYF0ra8GnvfianIY8qWB0GBx54PK5Eps6m+xTj86KLavHv6qDhzKcu5UUOgNfJ2pWaIIV7TRUd9Q==}
@@ -7806,11 +7800,6 @@ packages:
   /object-assign/4.1.1:
     resolution: {integrity: sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM=}
     engines: {node: '>=0.10.0'}
-
-  /object-hash/3.0.0:
-    resolution: {integrity: sha512-RSn9F68PjH9HqtltsSnqYC1XXoWe9Bju5+213R98cNGttag9q9yAOTzdbsqvIa7aNm5WffBZFpWYr2aWrklWAw==}
-    engines: {node: '>= 6'}
-    dev: false
 
   /object-inspect/1.12.0:
     resolution: {integrity: sha512-Ho2z80bVIvJloH+YzRmpZVQe87+qASmBUKZDWgx9cu+KDrX2ZDH/3tMy+gXbZETVGs2M8YdxObOh7XAtim9Y0g==}
