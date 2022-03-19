@@ -1,8 +1,10 @@
-import Errors = require('common-errors');
+import Errors = require('common-errors')
+import { Cache } from './cache'
 import { generateErrorMessage } from './error'
 
 export interface Future<T = any> {
   promise: Promise<T>
+  deduped: false
   resolve(result?: T | PromiseLike<T>): void // promise resolve action.
   reject(err?: Error | null): void // promise reject action.
 }
@@ -15,7 +17,7 @@ export interface PushOptions {
   replyOptions: Record<string, any>
   timer: NodeJS.Timer | null
   future: Future | null
-  cache?: any
+  cache?: string | null
 }
 
 const getFuture = <T = any>(): Future<T> => {
@@ -25,6 +27,7 @@ const getFuture = <T = any>(): Future<T> => {
     future.reject = reject
   })
   future.promise = promise
+  future.deduped = false
   return future
 }
 
@@ -32,10 +35,12 @@ const getFuture = <T = any>(): Future<T> => {
  * In-memory reply storage
  */
 export class ReplyStorage {
-  private storage: Map<string, { [K in keyof PushOptions]: NonNullable<PushOptions[K]> }>
+  private readonly storage: Map<string, { [K in keyof PushOptions]: NonNullable<PushOptions[K]> }>
+  private readonly cache: Cache
 
-  constructor(Type = Map) {
-    this.storage = new Type()
+  constructor(cache: Cache) {
+    this.storage = new Map()
+    this.cache = cache
     this.onTimeout = this.onTimeout.bind(this)
   }
 
@@ -51,10 +56,11 @@ export class ReplyStorage {
       return
     }
 
-    const { routing, timeout, future } = rpcCall
+    const { routing, timeout, future, cache } = rpcCall
 
     // clean-up
     storage.delete(correlationId)
+    this.cache.cleanDedupe(cache)
 
     // reject with a timeout error
     future.reject(new Errors.TimeoutError(generateErrorMessage(routing, timeout)))
@@ -62,21 +68,35 @@ export class ReplyStorage {
 
   /**
    * Stores correlation ID in the memory storage
-   * @param  {string} correlationId
-   * @param  {Object} opts
+   * @param correlationId
+   * @param opts
    */
-  push<T = any>(correlationId: string, opts: Omit<PushOptions, 'timer' | 'future'>): Future<T> {
-    const future = getFuture<T>()
-    const timer = setTimeout(this.onTimeout, opts.timeout, correlationId)
-    this.storage.set(correlationId, { ...opts, timer, future })
-    return future
+  push<T = any>(correlationId: string, opts: PushOptions): Future<T> | { deduped: true, promise: Promise<any> } {
+    if (typeof opts.cache === 'string') {
+      const pendingFuture = this.cache.dedupe(opts.cache)
+      if (pendingFuture) {
+        return { promise: pendingFuture, deduped: true }
+      }
+
+      opts.future = getFuture<T>()
+      this.cache.storeDedupe(opts.cache, opts.future.promise)
+    } else {
+      opts.future = getFuture<T>()
+    }
+    
+    opts.timer = setTimeout(this.onTimeout, opts.timeout, correlationId)
+
+    // @ts-expect-error ^ we know timer is defined
+    this.storage.set(correlationId, opts)
+
+    return opts.future
   }
 
   /**
    * Rejects stored promise with an error & cleans up
    * Timeout error
-   * @param  {string} correlationId
-   * @param  {Error} error
+   * @param correlationId
+   * @param error
    */
   reject(correlationId: string, error: Error): void {
     const { storage } = this
@@ -85,13 +105,14 @@ export class ReplyStorage {
       return
     }
 
-    const { timer, future } = rpcCall
+    const { timer, future, cache } = rpcCall
 
     // remove timer
     clearTimeout(timer)
 
     // remove reference
     storage.delete(correlationId)
+    this.cache.cleanDedupe(cache)
 
     // now resolve promise and return an error
     future.reject(error)
@@ -114,6 +135,7 @@ export class ReplyStorage {
 
     // remove reference to it
     this.storage.delete(correlationId)
+    this.cache.cleanDedupe(future.cache)
 
     // return data
     return future

@@ -4,7 +4,9 @@ import { latency } from './latency'
 
 export class Cache {
   public readonly enabled: boolean
+  
   private readonly cache!: ReturnType<typeof HLRU>
+  private readonly dedupes = new Map<string, Promise<any>>()
 
   /**
    * @param size
@@ -20,11 +22,10 @@ export class Cache {
 
   /**
    *
-   * @param {any} message
+   * @param message
    * @param maxAge
-   * @returns
    */
-  get(message: any, maxAge: number | undefined) {
+  get(message: any, maxAge: number | undefined): null | string | { maxAge: number, value: any } {
     if (this.enabled === false) {
       return null
     }
@@ -49,11 +50,10 @@ export class Cache {
 
   /**
    *
-   * @param {string} key
-   * @param {any} data
-   * @returns
+   * @param key
+   * @param data
    */
-  set(key: string, data: any) {
+  set(key: string | undefined | null, data: any): null | void {
     if (this.enabled === false) {
       process.emitWarning('tried to use disabled cache', {
         code: 'MF_AMQP_CACHE_0001',
@@ -68,5 +68,17 @@ export class Cache {
     }
 
     return this.cache.set(key, { maxAge: process.hrtime(), value: data })
+  }
+
+  dedupe(key: string): void | Promise<any> {
+    return this.dedupes.get(key)
+  }
+
+  storeDedupe(key: string, future: Promise<any>): void {
+    this.dedupes.set(key, future)
+  }
+
+  cleanDedupe(key?: string): void {
+    if (key) this.dedupes.delete(key)
   }
 }

@@ -9,6 +9,7 @@ import { once } from 'events'
 import os = require('os')
 import is = require('is')
 import assert = require('assert')
+import hyperid = require('hyperid')
 import {
   NotPermittedError,
   ArgumentError,
@@ -127,6 +128,7 @@ export class AMQPTransport extends EventEmitter {
   private _replyTo: false | string | null = null
   private _consumers = new Set<Consumer>()
   private _boundEmit = this.emit.bind(this)
+  private getCorrelationId: hyperid.Instance
 
   constructor(opts: PartialDeep<Configuration> = { version: 'n/a' }) {
     super()
@@ -137,6 +139,7 @@ export class AMQPTransport extends EventEmitter {
     })
 
     this.config = config
+    this.getCorrelationId = hyperid({ urlSafe: true })
 
     // prepares logger
     this.log = loggerUtils.prepareLogger(config)
@@ -150,7 +153,7 @@ export class AMQPTransport extends EventEmitter {
      * reply storage, where we'd save correlation ids
      * and callbacks to be called once we are done
      */
-    this.replyStorage = new ReplyStorage()
+    this.replyStorage = new ReplyStorage(this.cache)
 
     /**
      * delay settings for reconnect
@@ -923,7 +926,14 @@ export class AMQPTransport extends EventEmitter {
 
     // work with cache if options.cache is set and is number
     // otherwise cachedResponse is always null
-    const cachedResponse = this.cache.get(message, options.cache)
+    const cachedResponse = this.cache.get({
+      route,
+      message,
+      headers: options.headers,
+      exchange: options.exchange,
+      routingKey: options.routingKey,
+    }, options.cache)
+
     if (cachedResponse !== null && typeof cachedResponse === 'object') {
       return adaptResponse(cachedResponse.value, replyOptions)
     }
@@ -931,19 +941,25 @@ export class AMQPTransport extends EventEmitter {
     const { replyStorage } = this
 
     // generate response id
-    const correlationId = options.correlationId || uuid.v4()
+    const correlationId = options.correlationId || this.getCorrelationId()
 
     // timeout before RPC times out
     const timeout = options.timeout || this.config.timeout
 
     // slightly longer timeout, if message was not consumed in time, it will return with expiration
     const future = replyStorage.push(correlationId, {
+      timer: null,
+      future: null,
       timeout,
       time,
       routing: route,
       replyOptions,
       cache: cachedResponse,
     })
+
+    if (future.deduped) {
+      return future.promise
+    }
 
     // debugging
     if (this.log.isLevelEnabled('trace')) {

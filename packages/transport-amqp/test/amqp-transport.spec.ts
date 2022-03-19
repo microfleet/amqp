@@ -294,13 +294,32 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
     it('publishes batches of messages, they must return cached values and then new ones', async () => {
       const publish = () => cached.publishAndWait('test.default', 1, { cache: 2000 })
+      const spy = sinon.spy(cached, 'publish')
       const promises = [
+        publish(),
+        publish(),
+        publish(),
+        publish(),
         publish(),
         setTimeout(300).then(publish),
         setTimeout(5000).then(publish),
       ]
 
-      const [initial, cachedP, nonCached] = await Promise.all(promises)
+      const [
+        initial,
+        one, two, three, four,
+        cachedP, 
+        nonCached
+      ] = await Promise.all(promises)
+
+      // only called twice - once after expiration and everything else is deduped or read from cache
+      assert.equal(spy.callCount, 2)
+
+      // all identical
+      assert.equal(toMiliseconds(initial.time), toMiliseconds(one.time))
+      assert.equal(toMiliseconds(initial.time), toMiliseconds(two.time))
+      assert.equal(toMiliseconds(initial.time), toMiliseconds(three.time))
+      assert.equal(toMiliseconds(initial.time), toMiliseconds(four.time))
 
       assert.equal(toMiliseconds(initial.time), toMiliseconds(cachedP.time))
       assert(toMiliseconds(initial.time) < toMiliseconds(nonCached.time))
