@@ -8,6 +8,7 @@ import microtime from 'microtime'
 import { promisify } from 'util'
 import { gzip as _gzip } from 'zlib'
 import { setTimeout } from 'timers/promises'
+import { timesLimit } from 'async'
 
 // require module
 import { 
@@ -18,10 +19,11 @@ import {
   multiConnect,
   ExtendedMessageProperties,
   ResponseHandler,
-  kReplyHeaders
+  kReplyHeaders,
 } from '../src'
 import { toMiliseconds } from '../src/utils/latency'
 import { ConnectionState, Message } from '@microfleet/amqp-coffee'
+import { v4 } from 'uuid'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const debug = require('debug')('amqp')
@@ -931,6 +933,70 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
           assert.deepStrictEqual(msg, sample)
         }
       }
+    })
+  })
+
+  describe('high-load scenario', () => {
+    let transport: AMQPTransport
+    let publisher: AMQPTransport
+
+    const queue = v4()
+
+    before('init transport', async () => {
+      const max = 150
+      const router = async (body: any, m: Message): Promise<any> => {
+        await setTimeout(Math.floor(Math.random() * (max + 1))) // up to 1 second
+        return { body, tag: m.deliveryTag }
+      }
+
+      transport = await connect({
+        connection: {
+          host: RABBITMQ_HOST,
+          port: RABBITMQ_PORT,
+        },
+        neck: 300,
+        debug: false,
+        exchange: 'test-direct',
+        listen: ['bulk-messages'],
+        queue,
+        exchangeArgs: {
+          autoDelete: false,
+          type: 'direct',
+        },
+        defaultQueueOpts: {
+          autoDelete: true,
+          exclusive: true,
+        },
+      }, router)
+
+      const ackEvery = Math.round(transport.config.neck / 2)
+      let latestAck = 0
+      transport.on('after', (m: Message) => {
+        if (m.deliveryTag && m.deliveryTag % ackEvery === 0 && latestAck < m.deliveryTag) {
+          latestAck = m.deliveryTag
+          m.multiAck()
+        }
+      })
+
+      publisher = await connect({
+        connection: {
+          host: RABBITMQ_HOST,
+          port: RABBITMQ_PORT,
+        },
+        privateQueueNeck: 150,
+        exchange: 'test-direct',
+      })
+    })
+
+    after('cleanup', async () => {
+      await transport.close()
+      await publisher.close()
+    })
+
+    it('test we can publish and retrieve tons of messages', async () => {
+      await timesLimit(50000, 1000, async (i: number) => {
+        return publisher.publishAndWait('bulk-messages', { test: "message", n: i }, { timeout: 3000 })
+      })
     })
   })
 })

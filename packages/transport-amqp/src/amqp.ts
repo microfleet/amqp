@@ -105,6 +105,19 @@ const ignoreErr406 = (log: Logger, ...args: any[]) => (err: Error) => {
   throw err
 }
 
+const noop = () => { /* do nothing */ }
+const getEmitFn = (ctx: EventEmitter, event: string | boolean | symbol, base: string) => {
+  if (!event) {
+    return noop
+  }
+
+  if (typeof event === 'string' || typeof event === 'symbol') {
+    return (message: Message) => ctx.emit(event, message)
+  }
+
+  return (message: Message) => ctx.emit(base, message)
+}
+
 /**
  * @class AMQPTransport
  */
@@ -288,12 +301,12 @@ export class AMQPTransport extends EventEmitter {
 
   /**
    * Create unnamed private queue (used for reply events)
-   * @param [attempt]
    */
-  async createPrivateQueue(attempt = 0, queue?: Queue, consumer?: Consumer): Promise<{ queue: Queue, consumer: Consumer }> {
+  private async createPrivateQueue(attempt = 0, queue?: Queue, consumer?: Consumer): Promise<{ queue: Queue, consumer: Consumer }> {
     const replyTo = this._replyTo
     const queueOpts = {
       ...this.config.privateQueueOpts,
+      neck: this.config.privateQueueNeck, // mirror this
       queue: replyTo || `microfleet.${uuid.v4()}`, // reuse same private queue name if it was specified before
     }
 
@@ -333,12 +346,47 @@ export class AMQPTransport extends EventEmitter {
         return { queue, consumer }
       }
 
-      const router = this.prepareConsumer(this._privateMessageRouter)
+      const hasNeck = typeof queueOpts.neck === 'number' && queueOpts.neck > 0
+      let messagePreEvent: boolean | symbol = false
+      let messagePostEvent: boolean | symbol = false
+
+      if (hasNeck) {
+        const ackEvery = Math.round(queueOpts.neck / 2)
+        messagePreEvent = Symbol('consume:event:pre')
+        messagePostEvent = Symbol('consume:event:post')
+
+        let incomingMessages = 0
+        let latestProcessedTag = 0
+        let lastCommit = Date.now()
+
+        // count incoming messages
+        this.on(messagePreEvent, () => {
+          incomingMessages += 1
+        })
+
+        this.on(messagePostEvent, (message: Message) => {
+          const { deliveryTag } = message
+          if (deliveryTag && deliveryTag > latestProcessedTag) {
+            latestProcessedTag = deliveryTag
+
+            // commit at least once a second or every half.ack
+            // at that point we should have not more than amount of messages we get in
+            // a second or every ack, whichever is smaller
+            if (incomingMessages % ackEvery === 0 || Date.now() - lastCommit > 1000) {
+              lastCommit = Date.now()
+              incomingMessages = 0
+              createdConsumer.multiAck(latestProcessedTag)
+            }
+          }
+        })
+      }
+
+      const router = this.prepareConsumer(this._privateMessageRouter, messagePreEvent, messagePostEvent)
       const createdConsumer = await this.consume(queue.queueOptions.queue, queueOpts, router)
 
       createdConsumer.on('cancel', async (err) => {
         this.log.warn({ err }, 'consumer queue cancelled')
-        await createdConsumer.pause()
+        await createdConsumer.close()
         await this.createPrivateQueue(0, undefined, createdConsumer)
       })
 
@@ -992,15 +1040,20 @@ export class AMQPTransport extends EventEmitter {
   /**
    *
    */
-  private prepareConsumer(this: AMQPTransport, _router: WrappedRouter, emit = false) {
+  private prepareConsumer(
+    this: AMQPTransport, 
+    _router: WrappedRouter, 
+    emitPre: boolean | string | symbol = false,
+    emitPost: boolean | string | symbol = false,
+  ) {
     // use bind as it is now fast
     const router = _router.bind(this)
     const log = this.log.child({ loc: 'prepareConsumer' })
 
-    const preParseMessage = async (incoming: Message) => {
-      // emit pre processing hook
-      if (emit) this.emit('pre', incoming)
+    const emitPreFn = getEmitFn(this, emitPre, 'pre')
+    const emitPostFn = getEmitFn(this, emitPost, 'post')
 
+    const preParseMessage = async (incoming: Message) => {
       // extract message data
       const { properties } = incoming
       const { contentType, contentEncoding } = properties
@@ -1012,6 +1065,8 @@ export class AMQPTransport extends EventEmitter {
     }
 
     return async function consumeMessage(incoming: Message): Promise<void> {
+      emitPreFn(incoming)
+
       try {
         const messageBody = await preParseMessage(incoming)
         await router(messageBody, incoming)
@@ -1019,6 +1074,8 @@ export class AMQPTransport extends EventEmitter {
         log.error({ err }, 'failed to process consumed message')
         incoming.reject()
       }
+
+      emitPostFn(incoming)
     }
   }
 

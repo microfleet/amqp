@@ -387,17 +387,21 @@ export class Consumer extends Channel {
     const { incomingMessage } = this
 
     if (chunk !== null) {
-      debug('handling chunk')
+      debug(4, () => 'handling chunk')
       incomingMessage.handleChunk(chunk)
     }
 
     if (incomingMessage.ready()) {
       const message = incomingMessage.create(this)
+      debug(4, () => ['message ready', message.deliveryTag, message.properties])
+
       const { deliveryTag } = message
       if (deliveryTag !== undefined) {
         this.outstandingDeliveryTags.add(deliveryTag)
+        debug(4, () => ['outstanding tags', this.outstandingDeliveryTags.size])
       }
-      this.messageHandler(message)
+
+      queueMicrotask(() => this.messageHandler(message))
     }
   }
 

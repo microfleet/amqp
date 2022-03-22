@@ -58,6 +58,7 @@ export interface Configuration {
   listen: string[]
   version: string
   neck: number
+  privateQueueNeck: number
   noAck: boolean
   connection: ConnectionOptions
   recovery: BackoffSettings
@@ -110,6 +111,10 @@ export const schema = Joi
       .default('n/a'),
 
     neck: Joi.number().min(0)
+      .description('if defined - queues will enter QoS mode with required ack & prefetch size of neck'),
+
+    privateQueueNeck: Joi.number().min(0)
+      .default(0)
       .description('if defined - queues will enter QoS mode with required ack & prefetch size of neck'),
 
     noAck: Joi.boolean()
