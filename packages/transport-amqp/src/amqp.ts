@@ -253,9 +253,9 @@ export class AMQPTransport extends EventEmitter {
    * Create queue with specified settings in current connection
    * also emit new event on message in queue
    */
-  async createQueue(opts: string | Omit<ConsumeOpts, 'router' | 'queue'> & { queue: string }): Promise<{ queue: Queue }>
-  async createQueue(opts: Omit<ConsumeOpts, 'router' | 'queue'> & { router: WrappedRouter, queue: string }): Promise<{ queue: Queue, consumer: Consumer }>
-  async createQueue(opts: string | Omit<ConsumeOpts, 'queue'> & { queue: string }): Promise<{ queue: Queue, consumer?: Consumer }> {
+  async createQueue(opts: string | Omit<ConsumedQueueOptions, 'router'>): Promise<{ queue: Queue }>
+  async createQueue(opts: Omit<ConsumedQueueOptions, 'router'> & { router: WrappedRouter, queue: string }): Promise<{ queue: Queue, consumer: Consumer }>
+  async createQueue(opts: string | ConsumedQueueOptions): Promise<{ queue: Queue, consumer?: Consumer }> {
     const { _amqp: amqp, log } = this
 
     // prepare params
