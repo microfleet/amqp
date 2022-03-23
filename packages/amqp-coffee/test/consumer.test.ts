@@ -5,7 +5,7 @@ import { v4 as uuid } from 'uuid'
 import { strict as assert } from 'assert'
 import { Connection as AMQP, Consumer, Message, ServerClosedError } from '../src'
 import { MaxFrameSize } from '@microfleet/amqp-codec'
-import { times, timesSeries, until } from 'async'
+import { times, timesLimit, timesSeries, until } from 'async'
 import { setTimeout } from 'timers/promises'
 import bson = require('bson')
 import Proxy = require('./proxy')
@@ -361,6 +361,7 @@ describe('Consumer', () => {
 
   it('test we can consume a bunch of messages 215', async () => {
 
+    const prefetchCount = 1000
     const testData = {test:"message"}
     const queue = uuid()
     let messagesRecieved = 0
@@ -370,9 +371,9 @@ describe('Consumer', () => {
       m.data.should.eql(testData)
       messagesRecieved += 1
 
-      if (messagesRecieved === 500) {
+      if (messagesRecieved === prefetchCount) {
         await setTimeout(50)
-        messagesRecieved.should.eql(500)
+        messagesRecieved.should.eql(prefetchCount)
         done = true
       }
     }
@@ -381,11 +382,11 @@ describe('Consumer', () => {
     await q.declare()
     await q.bind("amq.direct", queue)
 
-    await times(500, async () => {
-      amqp.publish("amq.direct", queue, testData, { confirm: true })
+    await timesLimit(prefetchCount, 500, async () => {
+      await amqp.publish("amq.direct", queue, testData, { confirm: true })
     })
-    
-    await amqp.consume(queue, {prefetchCount: 500}, messageProcessor)
+
+    await amqp.consume(queue, {prefetchCount}, messageProcessor)
 
     await verify(() => done)
   })

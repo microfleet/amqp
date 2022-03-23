@@ -60,6 +60,7 @@ export type Task<
 }, T, U, Data>
 
 export interface Channel {
+  on(event: 'open', listener: () => void): this;
   on(event: 'error', listener: (err: Error | ServerClosedError) => void): this;
 }
 export abstract class Channel extends EventEmitter {

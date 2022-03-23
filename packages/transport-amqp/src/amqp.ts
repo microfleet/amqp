@@ -17,7 +17,7 @@ import {
 } from 'common-errors'
 import { setTimeout } from 'timers/promises'
 import { PartialDeep } from 'type-fest'
-
+import sorted = require('sorted-array-functions')
 
 // lodash fp
 import merge = require('lodash/merge')
@@ -230,7 +230,7 @@ export class AMQPTransport extends EventEmitter {
   noop(error: Error | null, messageBody: any, raw: Message) {
     if (this.log.isLevelEnabled('debug')) {
       const msg = stringify({ error, messageBody }, jsonSerializer)
-      this.log.debug('when replying to message with %s response could not be delivered', msg)
+      this.log.debug({ msg }, 'when replying to message response could not be delivered')
     }
 
     this.emit('after', raw)
@@ -253,9 +253,9 @@ export class AMQPTransport extends EventEmitter {
    * Create queue with specified settings in current connection
    * also emit new event on message in queue
    */
-  async createQueue(opts: string | Omit<ConsumedQueueOptions, 'router'>): Promise<{ queue: Queue }>
-  async createQueue(opts: Omit<ConsumedQueueOptions, 'router'> & { router: WrappedRouter }): Promise<{ queue: Queue, consumer: Consumer }>
-  async createQueue(opts: string | ConsumedQueueOptions): Promise<{ queue: Queue, consumer?: Consumer }> {
+  async createQueue(opts: string | Omit<ConsumeOpts, 'router' | 'queue'> & { queue: string }): Promise<{ queue: Queue }>
+  async createQueue(opts: Omit<ConsumeOpts, 'router' | 'queue'> & { router: WrappedRouter, queue: string }): Promise<{ queue: Queue, consumer: Consumer }>
+  async createQueue(opts: string | Omit<ConsumeOpts, 'queue'> & { queue: string }): Promise<{ queue: Queue, consumer?: Consumer }> {
     const { _amqp: amqp, log } = this
 
     // prepare params
@@ -294,8 +294,116 @@ export class AMQPTransport extends EventEmitter {
     return ctx
   }
 
+  setupMultiAck(consumer: Consumer, { neck, multiAckAfter, multiAckEvery, preEvent = 'pre', postEvent }: ConsumeOpts): void {
+    assert(neck, 'neck not truthy')
+    assert(multiAckAfter || multiAckEvery, 'both multiAckAfter & multiAckEvery undefined')
+    assert(postEvent, 'post event not provided')
+    if (multiAckEvery && multiAckEvery > 0) {
+      assert(multiAckEvery <= neck, 'multiAckEvery must be less than prefetchCount/neck')
+    }
+
+    let consumerTag = consumer.consumerTag
+    let interval: NodeJS.Timer | null = null
+    let sortedList: number[] = []
+    let latestConfirm = 0
+    
+    const comparator = (val: number, idx: number, it: number[]) => {
+      const next = it[idx + 1]
+      if (next === undefined) return true
+      if (next === val + 1) return false
+      return true
+    }
+
+    const confirmAfter = () => {
+      if (!multiAckAfter || 
+          latestConfirm >= Date.now() - multiAckAfter || 
+          sortedList.length === 0) {
+        return
+      }
+
+      const largestUninterruptedTagIndex = sortedList.findIndex(comparator)
+      const tag = sortedList[largestUninterruptedTagIndex]
+      const before = sortedList.length
+      sortedList = sortedList.slice(largestUninterruptedTagIndex)
+      const after = sortedList.length
+      this.log.warn({ remove: before - after, tag }, 'confirmed elements after')
+      latestConfirm = Date.now()
+      consumer.multiAck(tag)
+    }
+
+    const confirm = () => {
+      if (!multiAckEvery) return
+      if (interval) interval.refresh()
+
+      latestConfirm = Date.now()
+      const idx = multiAckEvery
+      const tag = sortedList[idx]
+
+      const before = sortedList.length
+      sortedList = sortedList.slice(idx)
+      const after = sortedList.length
+      this.log.warn({ remove: before - after, tag }, 'confirmed elements')
+
+      consumer.multiAck(tag)
+    }
+
+    consumer.on('consuming', () => {
+      consumerTag = consumer.consumerTag
+      latestConfirm = 0
+      sortedList = []
+
+      if (multiAckAfter) {
+        interval = setInterval(confirmAfter, multiAckAfter).unref()
+      }
+    })
+
+    consumer.on('close', () => {
+      if (interval) {
+        clearInterval(interval)
+        interval = null
+      }
+    })
+
+    this.on(preEvent, (m: Message) => {
+      this.log.trace({ consumerTag, deliveryTag: m.deliveryTag, same: m.consumerTag === consumerTag }, 'pre-message')
+
+      const { deliveryTag } = m
+      if (!deliveryTag || m.consumerTag !== consumerTag) {
+        return
+      }
+
+      sorted.add(sortedList, deliveryTag)
+    })
+
+    this.on(postEvent, (m: Message) => {
+      this.log.trace({ consumerTag, deliveryTag: m.deliveryTag, same: m.consumerTag === consumerTag }, 'post-message')
+
+      const { deliveryTag } = m
+      if (!deliveryTag || m.consumerTag !== consumerTag) {
+        return
+      }
+
+      if (multiAckEvery && sortedList.length > multiAckEvery) {
+        const firstTag = sortedList[0]
+        const lastNeededTag = sortedList[multiAckEvery]
+        this.log.trace({ firstTag, lastNeededTag, multiAckEvery, diff: lastNeededTag - firstTag }, 'evaluating confirm')
+        if (lastNeededTag - firstTag === multiAckEvery) {
+          confirm()
+        }
+      }
+    })
+  }
+
   async consume(queueName: string, params: ConsumeOpts, router: MessageHandler): Promise<Consumer> {
-    const consumer = await this._amqp.consume(queueName, setQoS(params), router)
+    const consumer = await this._amqp.consumer()
+    
+    // setup multiAck handler if they are defined
+    // we need to do it either every X seconds or every Y messages
+    if (params.neck && (params.multiAckEvery || params.multiAckAfter)) {
+      this.setupMultiAck(consumer, params)
+    }
+
+    await consumer.consume(queueName, router, setQoS(params))
     return consumer
   }
 
@@ -304,7 +412,7 @@ export class AMQPTransport extends EventEmitter {
    */
   private async createPrivateQueue(attempt = 0, queue?: Queue, consumer?: Consumer): Promise<{ queue: Queue, consumer: Consumer }> {
     const replyTo = this._replyTo
-    const queueOpts = {
+    const queueOpts: Omit<ConsumeOpts, 'queue'> & { queue: string } = {
       ...this.config.privateQueueOpts,
       neck: this.config.privateQueueNeck, // mirror this
       queue: replyTo || `microfleet.${uuid.v4()}`, // reuse same private queue name if it was specified before
@@ -346,39 +454,16 @@ export class AMQPTransport extends EventEmitter {
         return { queue, consumer }
       }
 
-      const hasNeck = typeof queueOpts.neck === 'number' && queueOpts.neck > 0
       let messagePreEvent: boolean | symbol = false
       let messagePostEvent: boolean | symbol = false
-
-      if (hasNeck) {
-        const ackEvery = Math.round(queueOpts.neck / 2)
+      if (typeof queueOpts.neck === 'number' && queueOpts.neck > 0) {
+        const ackEvery = Math.ceil(queueOpts.neck / 2)
         messagePreEvent = Symbol('consume:event:pre')
         messagePostEvent = Symbol('consume:event:post')
-
-        let incomingMessages = 0
-        let latestProcessedTag = 0
-        let lastCommit = Date.now()
-
-        // count incoming messages
-        this.on(messagePreEvent, () => {
-          incomingMessages += 1
-        })
-
-        this.on(messagePostEvent, (message: Message) => {
-          const { deliveryTag } = message
-          if (deliveryTag && deliveryTag > latestProcessedTag) {
-            latestProcessedTag = deliveryTag
-
-            // commit at least once a second or every half.ack
-            // at that point we should have not more than amount of messages we get in
-            // a second or every ack, whichever is smaller
-            if (incomingMessages % ackEvery === 0 || Date.now() - lastCommit > 1000) {
-              lastCommit = Date.now()
-              incomingMessages = 0
-              createdConsumer.multiAck(latestProcessedTag)
-            }
-          }
-        })
+        queueOpts.multiAckEvery = ackEvery
+        queueOpts.multiAckAfter = 1e3
+        queueOpts.preEvent = messagePreEvent
+        queueOpts.postEvent = messagePostEvent
       }
 
       const router = this.prepareConsumer(this._privateMessageRouter, messagePreEvent, messagePostEvent)
@@ -419,6 +504,7 @@ export class AMQPTransport extends EventEmitter {
 
       consumer = createdConsumer
     } catch (err) {
+      this.log.warn({ err }, 'create consumer error')
       await this.recovery.wait('private', attempt)
       return this.createPrivateQueue(attempt + 1, queue, consumer)
     }
@@ -463,9 +549,9 @@ export class AMQPTransport extends EventEmitter {
   }
 
   /**
-   * @param {Function} messageHandler
-   * @param {Array} listen
-   * @param {Object} options
+   * @param messageHandler
+   * @param listen
+   * @param options
    */
   async createConsumedQueue(messageHandler: MessageConsumer, listen: string[] = [], options: ConsumeOpts = {}) {
     if (is.fn(messageHandler) === false || Array.isArray(listen) === false) {
@@ -481,6 +567,8 @@ export class AMQPTransport extends EventEmitter {
     const baseOpts = {
       neck: config.neck,
       noAck: config.noAck,
+      multiAckAfter: config.multiAckAfter,
+      multiAckEvery: config.multiAckEvery,
       queue: config.queue || '',
     }
 
@@ -529,10 +617,19 @@ export class AMQPTransport extends EventEmitter {
     queue = await createQueue()
     this.log.info({ queueName }, 'queue declared')
 
+    
+    // define auto-ack schema
+    const postEvent = Symbol('consumed:post')
+    const preparedConsumerHandled = this.prepareConsumer(router, true, postEvent)
+
+    // unique event for this consumer
+    queueOptions.postEvent = postEvent
+    queueOptions.preEvent = 'pre'
+
     // step 2 - create consumer
     const createConsumer = async (attempt = 0): Promise<Consumer> => {
       try {
-        return await this.consume(queueName, queueOptions, this.prepareConsumer(router, true))
+        return await this.consume(queueName, queueOptions, preparedConsumerHandled)
       } catch (err) {
         this.log.warn({ err, attempt }, 'failed to consume')
         await this.recovery.wait('consumed', attempt + 1)
@@ -1072,7 +1169,6 @@ export class AMQPTransport extends EventEmitter {
         await router(messageBody, incoming)
       } catch (err) {
         log.error({ err }, 'failed to process consumed message')
-        incoming.reject()
       }
 
       emitPostFn(incoming)

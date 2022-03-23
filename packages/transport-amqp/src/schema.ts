@@ -57,8 +57,10 @@ export interface Configuration {
   debug: boolean
   listen: string[]
   version: string
-  neck: number
-  privateQueueNeck: number
+  neck?: number
+  multiAckEvery?: number
+  multiAckAfter?: number
+  privateQueueNeck?: number
   noAck: boolean
   connection: ConnectionOptions
   recovery: BackoffSettings
@@ -112,6 +114,12 @@ export const schema = Joi
 
     neck: Joi.number().min(0)
       .description('if defined - queues will enter QoS mode with required ack & prefetch size of neck'),
+
+    multiAckEvery: Joi.number().min(1)
+      .description('ack messages that often, only used with neck > 0'),
+    
+    multiAckAfter: Joi.number().min(100)
+      .description('ack messages at least that often in milliseconds'),
 
     privateQueueNeck: Joi.number().min(0)
       .default(0)

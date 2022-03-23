@@ -83,7 +83,7 @@ export class Publisher extends Channel {
 
   confirmMode(cb?: () => void): void {
     this.confirmState = ConfirmState.opening
-    debug(1, () => 'confirm mode waiting')
+    debug(1, () => [this.channel, 'confirm mode waiting'])
     this.taskPush(methods.confirmSelect, { noWait: false }, methods.confirmSelectOk, () => {
       this.confirmState = ConfirmState.open
       this.confirm = true

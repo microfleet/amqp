@@ -8,6 +8,10 @@ import { AMQPTransport } from './'
 export type ConsumeOpts = ConsumeHandlerOpts & { 
   neck?: number, 
   noAck?: boolean
+  multiAckEvery?: number
+  multiAckAfter?: number
+  preEvent?: string | symbol
+  postEvent?: string | symbol
 }
 
 /**
@@ -27,7 +31,16 @@ export function wrapError(originalError: Error | SerializedError): InstanceType<
  * Set queue opts
  * @param opts
  */
-export const setQoS = function setQoS({ neck, ...opts }: ConsumeOpts): ConsumeHandlerOpts {
+export const setQoS = function setQoS({ 
+  neck, 
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  multiAckAfter,
+  multiAckEvery, 
+  preEvent, 
+  postEvent, 
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+  ...opts
+}: ConsumeOpts): ConsumeHandlerOpts {
   let prefetchCount: number
   let noAck: boolean
 

@@ -941,6 +941,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     let publisher: AMQPTransport
 
     const queue = v4()
+    const listen = v4()
 
     before('init transport', async () => {
       const max = 150
@@ -955,9 +956,11 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
           port: RABBITMQ_PORT,
         },
         neck: 300,
-        debug: false,
+        multiAckAfter: 3000,
+        multiAckEvery: 150,
+        debug: true,
         exchange: 'test-direct',
-        listen: ['bulk-messages'],
+        listen: [listen],
         queue,
         exchangeArgs: {
           autoDelete: false,
@@ -967,23 +970,16 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
           autoDelete: true,
           exclusive: true,
         },
+        name: 'consumer'
       }, router)
 
-      const ackEvery = Math.round(transport.config.neck / 2)
-      let latestAck = 0
-      transport.on('after', (m: Message) => {
-        if (m.deliveryTag && m.deliveryTag % ackEvery === 0 && latestAck < m.deliveryTag) {
-          latestAck = m.deliveryTag
-          m.multiAck()
-        }
-      })
-
       publisher = await connect({
+        name: 'publisher',
         connection: {
           host: RABBITMQ_HOST,
           port: RABBITMQ_PORT,
         },
-        privateQueueNeck: 150,
+        privateQueueNeck: 250,
         exchange: 'test-direct',
       })
     })
@@ -994,8 +990,8 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     })
 
     it('test we can publish and retrieve tons of messages', async () => {
-      await timesLimit(50000, 1000, async (i: number) => {
-        return publisher.publishAndWait('bulk-messages', { test: "message", n: i }, { timeout: 3000 })
+      await timesLimit(50000, 500, async (i: number) => {
+        return publisher.publishAndWait(listen, { test: "message", n: i }, { timeout: 3000 })
       })
     })
   })

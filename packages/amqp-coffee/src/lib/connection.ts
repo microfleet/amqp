@@ -321,22 +321,23 @@ export class Connection extends EventEmitter {
       return
     }
 
-    process.nextTick(() => {
+    debug(3, 'calling close')
+    // process.nextTick(() => {
       // only atempt to cleanly close the connection if our current connection is writable
-      if (this.connection.writable) {
-        this._sendMethod(0, methods.connectionClose, {
-          classId: 0, methodId: 0, replyCode: 200, replyText: 'closed',
-        })
-      }
-
-      const forceConnectionClose = setTimeout(() => {
-        this.connection.destroy(err)
-      }, 1000)
-
-      this.connection.once('close', () => {
-        clearTimeout(forceConnectionClose)
+    if (this.connection.writable) {
+      this._sendMethod(0, methods.connectionClose, {
+        classId: 0, methodId: 0, replyCode: 200, replyText: 'closed',
       })
+    }
+
+    const forceConnectionClose = setTimeout(() => {
+      this.connection.destroy(err)
+    }, 1000)
+
+    this.connection.once('close', () => {
+      clearTimeout(forceConnectionClose)
     })
+    // })
 
     await once(this.connection, 'close')
   }
@@ -513,13 +514,14 @@ export class Connection extends EventEmitter {
     this._clearHeartbeatTimer()
   }
 
-  _onParserResponse(channel: number, datum: ParsedResponse) {
+  private _onParserResponse(channel: number, datum: ParsedResponse) {
     if (datum instanceof Error) {
+      debug(4, () => [channel, 'parser error', datum])
       this.emit('error', datum)
       return
     }
 
-    debug(4, () => [channel, datum])
+    debug(4, () => [channel, datum.type])
 
     switch (datum.type) {
       case FrameType.METHOD:

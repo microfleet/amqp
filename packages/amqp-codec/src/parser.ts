@@ -19,6 +19,7 @@ import {
   Heartbeat,
   Field,
 } from './protocol'
+import { debug as _debug } from 'debug'
 
 export interface Configuration {
   handleResponse: HandleResponse;
@@ -27,6 +28,7 @@ export interface Configuration {
 export type ParsedResponse = Protocol | Error;
 export type HandleResponse = (channel: number, datum: ParsedResponse) => void;
 
+const debug = _debug('amqp:codec:Parser')
 const HEADER_SIZE = 7
 const FIELD_TYPE_SELECTOR = {
   bit(parser: Parser, buffer: Buffer, nextField?: Field): boolean {
@@ -267,14 +269,17 @@ export class Parser {
     this.offset = 0
     this.bitIndex = 0
     this.buffer = null
+
+    debug('reset called')
   }
 
   /**
    * Handling data chunks
    * @param buffer
-   * @returns 
    */
   public processChunk(buffer: Buffer): number | undefined {
+    debug('process chunk called')
+
     if (this.buffer === null) {
       this.buffer = buffer
       this.offset = 0
@@ -296,38 +301,49 @@ export class Parser {
       return undefined
     }
 
+    debug('starting to parse buffer', this.offset, this.buffer.length)
     while (this.offset < this.buffer.length) {
-      const offset = this.offset
+      const { buffer, offset } = this
+      debug('iterating', offset, buffer.length)
+
+      // we must have at least 8 bytes to be able to parse anything
+      if (offset + HEADER_SIZE >= buffer.length) {
+        return undefined
+      }
 
       // Header
-      const frameType = parseInt1(this, this.buffer)
-      const frameChannel = parseInt2(this, this.buffer)
-      const frameSize = parseInt4(this, this.buffer)
+      const frameType = parseInt1(this, buffer)
+      const frameChannel = parseInt2(this, buffer)
+      const frameSize = parseInt4(this, buffer)
 
       // verify that we had collected enough data to parse the whole frame
       // we need to have FRAME_SIZE (dynamic) + FRAME_END (1 byte)
       // that is why its > and not just >=
-      if (this.offset + frameSize > this.buffer.length) {
+      if (this.offset + frameSize > buffer.length) {
         this.offset = offset
-        return frameSize - (this.buffer.length - 7 - this.offset)
+        return frameSize - (buffer.length - 7 - this.offset)
       }
 
+      debug('fetching type: %d, channel: %d, size: %d', frameType, frameChannel, frameSize)
+
       // Frame
-      const response = parseType(this, this.buffer, frameType, frameSize)
+      const response = parseType(this, buffer, frameType, frameSize)
 
       // NOTE: probably not a good idea to crash the process, rather do an error emit
       // Verify that we've correctly parsed everything
-      if (this.buffer[this.offset++] !== INDICATOR_FRAME_END) {
-        this.offset = 0 // reset offset
-        process.nextTick(this.handleResponse, frameChannel, kMissingFrame)
+      if (buffer[this.offset++] !== INDICATOR_FRAME_END) {
+        debug('invalid response', response)
+        this.reset()
+        queueMicrotask(() => this.handleResponse(frameChannel, response instanceof Error ? response : kMissingFrame))
       } else {
         // pass the response on to the client library
-        process.nextTick(this.handleResponse, frameChannel, response)
+        queueMicrotask(() => this.handleResponse(frameChannel, response))
       }
     }
 
     // once we've parsed the buffer completely -> remove ref to it
-    this.buffer = null
+    this.reset()
+
     return undefined
   }
 

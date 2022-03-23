@@ -50,6 +50,8 @@ export type ConsumeHandler = {
 }
 
 export interface Consumer {
+  on(event: 'open', listener: () => void): this;
+  on(event: 'close', listener: () => void): this;
   on(event: 'cancel', listener: (err: ServerCancelError) => void): this;
   on(event: 'error', listener: (err: Error | ServerCancelError | ServerClosedError) => void): this;
   on(event: 'consuming', listener: () => void): this;
@@ -61,7 +63,7 @@ export class Consumer extends Channel {
   public consumeOptions: ConsumeOptions | null = null
   public consumerTag = ''
 
-  private outstandingDeliveryTags = new Set<number>()
+  public outstandingDeliveryTags = new Set<number>()
   private messageHandler!: MessageHandler
   private incomingMessage!: MessageFactory
   private qos = false
@@ -265,12 +267,6 @@ export class Consumer extends Channel {
   _channelClosed(reason = new Error('unknown channel close reason')) {
     debug(1, () => [this.channel, "_channelClosed", reason.message])
 
-    // if we're reconnecting it is appropriate to emit the error on reconnect, this is specifically useful
-    // for auto delete queues
-    // if (this.consumerState === CONSUMER_STATES.CONSUMER_STATE_CHANNEL_CLOSED) {
-      // this.emit('error', reason)
-    // }
-
     this.outstandingDeliveryTags = new Set()
     if (this.connection.state === ConnectionState.open 
         && this.consumerState === CONSUMER_STATES.CONSUMER_STATE_OPEN) {
@@ -281,6 +277,8 @@ export class Consumer extends Channel {
       debug(1, () => [this.channel, "consumerState < CONSUMER_STATE_CONNECTION_CLOSED"])
       this.consumerState = CONSUMER_STATES.CONSUMER_STATE_CONNECTION_CLOSED
     }
+
+    this.emit('close')
   }
 
   // QOS RELATED Callbacks
