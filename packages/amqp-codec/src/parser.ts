@@ -304,24 +304,25 @@ export class Parser {
     debug('starting to parse buffer', this.offset, this.buffer.length)
     while (this.offset < this.buffer.length) {
       const { buffer, offset } = this
-      debug('iterating', offset, buffer.length)
+      debug('iterating', offset, buffer.length) // 65360 , 65536 [176 total]
 
       // we must have at least 8 bytes to be able to parse anything
       if (offset + HEADER_SIZE >= buffer.length) {
         return undefined
       }
 
-      // Header
-      const frameType = parseInt1(this, buffer)
-      const frameChannel = parseInt2(this, buffer)
-      const frameSize = parseInt4(this, buffer)
+      // Header --- 65360
+      const frameType = parseInt1(this, buffer) // -- 65361 [1]
+      const frameChannel = parseInt2(this, buffer) // 65363 [12]
+      const frameSize = parseInt4(this, buffer) // 65367 [169]
 
       // verify that we had collected enough data to parse the whole frame
       // we need to have FRAME_SIZE (dynamic) + FRAME_END (1 byte)
-      // that is why its > and not just >=
-      if (this.offset + frameSize > buffer.length) {
+      // that is why if buffer.length isnt strictly larger
+      // we have to ask for another chunk of data
+      if (this.offset + frameSize >= buffer.length) { // 65367 + 169 === 65536
         this.offset = offset
-        return frameSize - (buffer.length - 7 - this.offset)
+        return frameSize - (buffer.length - HEADER_SIZE - this.offset)
       }
 
       debug('fetching type: %d, channel: %d, size: %d', frameType, frameChannel, frameSize)
@@ -333,7 +334,9 @@ export class Parser {
       // Verify that we've correctly parsed everything
       if (buffer[this.offset++] !== INDICATOR_FRAME_END) {
         debug('invalid response', response)
-        this.reset()
+        this.offset = 0
+        this.buffer = Buffer.alloc(0)
+        this.bitIndex = 0
         queueMicrotask(() => this.handleResponse(frameChannel, response instanceof Error ? response : kMissingFrame))
       } else {
         // pass the response on to the client library
