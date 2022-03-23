@@ -324,9 +324,9 @@ export class AMQPTransport extends EventEmitter {
       const largestUninterruptedTagIndex = sortedList.findIndex(comparator)
       const tag = sortedList[largestUninterruptedTagIndex]
       const before = sortedList.length
-      sortedList = sortedList.slice(largestUninterruptedTagIndex)
+      sortedList = sortedList.slice(largestUninterruptedTagIndex + 1)
       const after = sortedList.length
-      this.log.warn({ remove: before - after, tag }, 'confirmed elements after')
+      this.log.warn({ remove: before - after, tag, before, after }, 'confirmed elements after')
       latestConfirm = Date.now()
       consumer.multiAck(tag)
     }
@@ -336,11 +336,9 @@ export class AMQPTransport extends EventEmitter {
       if (interval) interval.refresh()
 
       latestConfirm = Date.now()
-      const idx = multiAckEvery
-      const tag = sortedList[idx]
-
+      const tag = sortedList[multiAckEvery - 1]
       const before = sortedList.length
-      sortedList = sortedList.slice(idx)
+      sortedList = sortedList.slice(multiAckEvery)
       const after = sortedList.length
       this.log.warn({ remove: before - after, tag }, 'confirmed elements')
 
@@ -366,13 +364,6 @@ export class AMQPTransport extends EventEmitter {
 
     this.on(preEvent, (m: Message) => {
       this.log.trace({ consumerTag, deliveryTag: m.deliveryTag, same: m.consumerTag === consumerTag }, 'pre-message')
-
-      const { deliveryTag } = m
-      if (!deliveryTag || m.consumerTag !== consumerTag) {
-        return
-      }
-
-      sorted.add(sortedList, deliveryTag)
     })
 
     this.on(postEvent, (m: Message) => {
@@ -383,11 +374,14 @@ export class AMQPTransport extends EventEmitter {
         return
       }
 
-      if (multiAckEvery && sortedList.length > multiAckEvery) {
+      // must be added after its processed
+      sorted.add(sortedList, deliveryTag)
+
+      if (multiAckEvery && sortedList.length >= multiAckEvery) {
         const firstTag = sortedList[0]
-        const lastNeededTag = sortedList[multiAckEvery]
+        const lastNeededTag = sortedList[multiAckEvery - 1]
         this.log.trace({ firstTag, lastNeededTag, multiAckEvery, diff: lastNeededTag - firstTag }, 'evaluating confirm')
-        if (lastNeededTag - firstTag === multiAckEvery) {
+        if (lastNeededTag - firstTag === multiAckEvery - 1) {
           confirm()
         }
       }

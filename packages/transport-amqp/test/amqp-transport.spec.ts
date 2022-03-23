@@ -958,7 +958,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         neck: 300,
         multiAckAfter: 3000,
         multiAckEvery: 150,
-        debug: true,
+        debug: false,
         exchange: 'test-direct',
         listen: [listen],
         queue,
@@ -975,6 +975,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
       publisher = await connect({
         name: 'publisher',
+        debug: false,
         connection: {
           host: RABBITMQ_HOST,
           port: RABBITMQ_PORT,
