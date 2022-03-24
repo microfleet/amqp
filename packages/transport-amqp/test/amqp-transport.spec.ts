@@ -944,7 +944,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     const listen = v4()
 
     before('init transport', async () => {
-      const max = 150
+      const max = 2000
       const router = async (body: any, m: Message): Promise<any> => {
         await setTimeout(Math.floor(Math.random() * (max + 1))) // up to 1 second
         return { body, tag: m.deliveryTag }
@@ -956,9 +956,9 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
           port: RABBITMQ_PORT,
         },
         neck: 300,
-        multiAckAfter: 3000,
+        multiAckAfter: 5000,
         multiAckEvery: 150,
-        debug: false,
+        debug: true,
         exchange: 'test-direct',
         listen: [listen],
         queue,
@@ -975,7 +975,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
       publisher = await connect({
         name: 'publisher',
-        debug: false,
+        debug: true,
         connection: {
           host: RABBITMQ_HOST,
           port: RABBITMQ_PORT,
@@ -991,9 +991,19 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     })
 
     it('test we can publish and retrieve tons of messages', async () => {
-      await timesLimit(50000, 500, async (i: number) => {
-        return publisher.publishAndWait(listen, { test: "message", n: i }, { timeout: 3000 })
+      await timesLimit(2974, 500, async (i: number) => {
+        return publisher.publishAndWait(listen, { test: "message", n: i }, { timeout: 10000 })
       })
+
+      // must have confirmed
+      await setTimeout(4 * 1e3)
+
+      const { queue: q } = await transport.createQueue({ queue, passive: true })
+      const data = await q.declare()
+
+      assert.equal(data.messageCount, 0)
+      // eslint-disable-next-line no-console
+      console.info(data)
     })
   })
 })

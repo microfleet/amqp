@@ -336,16 +336,15 @@ export class AMQPTransport extends EventEmitter {
       latestConfirm = Date.now()
     }
 
-    const confirm = () => {
+    const confirm = (tag: number, cut: number) => {
       if (!multiAckEvery) return
       if (interval) interval.refresh()
 
-      const tag = sortedList[multiAckEvery - 1]
       const before = sortedList.length
-      sortedList = sortedList.slice(multiAckEvery)
+      sortedList = sortedList.slice(cut)
       const after = sortedList.length
 
-      this.log.debug({ remove: before - after, tag, sortedList, multiAckEvery, state: consumer.state, consuming: consumer.consumerState }, 'confirmed elements')
+      this.log.warn({ remove: before - after, tag, sortedList, multiAckEvery, state: consumer.state, consuming: consumer.consumerState }, 'confirmed elements')
 
       consumer.multiAck(tag)
       smallestUnconfirmedDeliveryTag = tag + 1
@@ -391,6 +390,21 @@ export class AMQPTransport extends EventEmitter {
       }
     })
 
+    const evaluateConfirmAndInvoke = (sliceSize: number, base: number): null | [number, number] => {
+      if (sortedList.length < sliceSize) {
+        return null
+      }
+
+      const firstTag = sortedList[0]
+      const lastTag = sortedList[sliceSize - 1]
+      const coveredRange = lastTag - firstTag === sliceSize - 1
+      if (!coveredRange) {
+        return null
+      }
+
+      return evaluateConfirmAndInvoke(sliceSize + base, base) || [lastTag, sliceSize]
+    }
+
     this.on(postEvent, (m: Message) => {
       this.log.trace({ consumerTag, deliveryTag: m.deliveryTag, same: m.consumerTag === consumerTag }, 'post-message')
 
@@ -402,12 +416,12 @@ export class AMQPTransport extends EventEmitter {
       // must be added after its processed
       sorted.add(sortedList, deliveryTag)
 
-      if (multiAckEvery && sortedList.length >= multiAckEvery && sortedList[0] === smallestUnconfirmedDeliveryTag) {
-        const firstTag = sortedList[0]
-        const lastNeededTag = sortedList[multiAckEvery - 1]
-        this.log.trace({ firstTag, lastNeededTag, multiAckEvery, diff: lastNeededTag - firstTag }, 'evaluating confirm')
-        if (lastNeededTag - firstTag === multiAckEvery - 1) {
-          confirm()
+      // in case we have multiple batches to be processed
+      if (sortedList[0] === smallestUnconfirmedDeliveryTag && multiAckEvery) {
+        this.log.trace({ sortedList, smallestUnconfirmedDeliveryTag, multiAckEvery }, 'evaluating')
+        const s = evaluateConfirmAndInvoke(multiAckEvery, multiAckEvery)
+        if (s) {
+          confirm(...s)
         }
       }
     })
