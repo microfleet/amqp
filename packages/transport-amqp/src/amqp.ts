@@ -306,6 +306,7 @@ export class AMQPTransport extends EventEmitter {
     let interval: NodeJS.Timer | null = null
     let sortedList: number[] = []
     let latestConfirm = 0
+    let smallestUnconfirmedDeliveryTag = Number.MAX_SAFE_INTEGER
     
     const comparator = (val: number, idx: number, it: number[]) => {
       const next = it[idx + 1]
@@ -317,25 +318,28 @@ export class AMQPTransport extends EventEmitter {
     const confirmAfter = () => {
       if (!multiAckAfter || 
           latestConfirm >= Date.now() - multiAckAfter || 
-          sortedList.length === 0) {
+          sortedList.length === 0 ||
+          sortedList[0] !== smallestUnconfirmedDeliveryTag) {
         return
       }
 
-      latestConfirm = Date.now()
       const largestUninterruptedTagIndex = sortedList.findIndex(comparator)
       const tag = sortedList[largestUninterruptedTagIndex]
       const before = sortedList.length
       sortedList = sortedList.slice(largestUninterruptedTagIndex + 1)
       const after = sortedList.length
+
       this.log.warn({ remove: before - after, tag, before, after, sortedList, multiAckAfter, state: consumer.state, consuming: consumer.consumerState }, 'confirmed elements')
+      
       consumer.multiAck(tag)
+      smallestUnconfirmedDeliveryTag = tag + 1
+      latestConfirm = Date.now()
     }
 
     const confirm = () => {
       if (!multiAckEvery) return
       if (interval) interval.refresh()
 
-      latestConfirm = Date.now()
       const tag = sortedList[multiAckEvery - 1]
       const before = sortedList.length
       sortedList = sortedList.slice(multiAckEvery)
@@ -344,11 +348,14 @@ export class AMQPTransport extends EventEmitter {
       this.log.debug({ remove: before - after, tag, sortedList, multiAckEvery, state: consumer.state, consuming: consumer.consumerState }, 'confirmed elements')
 
       consumer.multiAck(tag)
+      smallestUnconfirmedDeliveryTag = tag + 1
+      latestConfirm = Date.now()
     }
 
     consumer.on('consuming', () => {
       consumerTag = consumer.consumerTag
       latestConfirm = 0
+      smallestUnconfirmedDeliveryTag = Number.MAX_SAFE_INTEGER
       sortedList = []
 
       if (multiAckAfter) {
@@ -366,12 +373,22 @@ export class AMQPTransport extends EventEmitter {
 
       sortedList = []
       latestConfirm = 0
+      smallestUnconfirmedDeliveryTag = Number.MAX_SAFE_INTEGER
 
       this.log.error({ consumerTag }, 'consumer closed')
     })
 
     this.on(preEvent, (m: Message) => {
       this.log.trace({ consumerTag, deliveryTag: m.deliveryTag, same: m.consumerTag === consumerTag }, 'pre-message')
+      
+      const { deliveryTag } = m
+      if (!deliveryTag || m.consumerTag !== consumerTag) {
+        return
+      }
+
+      if (deliveryTag < smallestUnconfirmedDeliveryTag) {
+        smallestUnconfirmedDeliveryTag = deliveryTag
+      }
     })
 
     this.on(postEvent, (m: Message) => {
@@ -385,7 +402,7 @@ export class AMQPTransport extends EventEmitter {
       // must be added after its processed
       sorted.add(sortedList, deliveryTag)
 
-      if (multiAckEvery && sortedList.length >= multiAckEvery) {
+      if (multiAckEvery && sortedList.length >= multiAckEvery && sortedList[0] === smallestUnconfirmedDeliveryTag) {
         const firstTag = sortedList[0]
         const lastNeededTag = sortedList[multiAckEvery - 1]
         this.log.trace({ firstTag, lastNeededTag, multiAckEvery, diff: lastNeededTag - firstTag }, 'evaluating confirm')
