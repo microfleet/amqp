@@ -321,13 +321,13 @@ export class AMQPTransport extends EventEmitter {
         return
       }
 
+      latestConfirm = Date.now()
       const largestUninterruptedTagIndex = sortedList.findIndex(comparator)
       const tag = sortedList[largestUninterruptedTagIndex]
       const before = sortedList.length
       sortedList = sortedList.slice(largestUninterruptedTagIndex + 1)
       const after = sortedList.length
-      this.log.warn({ remove: before - after, tag, before, after }, 'confirmed elements after')
-      latestConfirm = Date.now()
+      this.log.warn({ remove: before - after, tag, before, after, sortedList, multiAckAfter, state: consumer.state, consuming: consumer.consumerState }, 'confirmed elements')
       consumer.multiAck(tag)
     }
 
@@ -340,7 +340,8 @@ export class AMQPTransport extends EventEmitter {
       const before = sortedList.length
       sortedList = sortedList.slice(multiAckEvery)
       const after = sortedList.length
-      this.log.warn({ remove: before - after, tag }, 'confirmed elements')
+
+      this.log.debug({ remove: before - after, tag, sortedList, multiAckEvery, state: consumer.state, consuming: consumer.consumerState }, 'confirmed elements')
 
       consumer.multiAck(tag)
     }
@@ -353,6 +354,8 @@ export class AMQPTransport extends EventEmitter {
       if (multiAckAfter) {
         interval = setInterval(confirmAfter, multiAckAfter).unref()
       }
+
+      this.log.warn({ consumerTag }, 'consuming')
     })
 
     consumer.on('close', () => {
@@ -360,6 +363,11 @@ export class AMQPTransport extends EventEmitter {
         clearInterval(interval)
         interval = null
       }
+
+      sortedList = []
+      latestConfirm = 0
+
+      this.log.error({ consumerTag }, 'consumer closed')
     })
 
     this.on(preEvent, (m: Message) => {
