@@ -76,6 +76,8 @@ export class Consumer extends Channel {
     this._basicConsumePreflight = this._basicConsumePreflight.bind(this)
     this._consumerStateOpenPreflight = this._consumerStateOpenPreflight.bind(this)
     this._onConsumeError = this._onConsumeError.bind(this)
+
+    this.consumerTag = this.generateConsumerTag()
   }
 
   public async ready(): Promise<void> {
@@ -89,7 +91,6 @@ export class Consumer extends Channel {
   }
 
   public async consume(queueName: string, messageHandler: MessageHandler, options: ConsumeHandlerOpts = {}): Promise<BasicConsumeResponse> {
-    this.consumerTag = this.generateConsumerTag()
     debug(2, () => `Consuming ${queueName} on channel ${this.channel}`)
     this.consumerState = CONSUMER_STATES.CONSUMER_STATE_OPENING
 
