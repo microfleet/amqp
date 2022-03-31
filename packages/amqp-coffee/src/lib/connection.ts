@@ -18,7 +18,6 @@ import {
   ContentHeader,
   ContentHeaderProperties,
 } from '@microfleet/amqp-codec'
-import { setSocketReadBuffer, setSocketWriteBuffer } from './utils/set-sock-opts'
 import { ChannelManager } from './channel-manager'
 import { Exchange, ExchangeOptions } from './exchange'
 import { Queue, QueueOptions } from './queue'
@@ -104,13 +103,17 @@ export class Connection extends EventEmitter {
   private sendHeartbeatTimer: NodeJS.Timer | null = null
   private opening$P: Promise<void> | undefined
 
+  // for optional module loading
+  private readonly setSocketReadBuffer: (fd: number, size: number) => void | (() => void)
+  private readonly setSocketWriteBuffer: (fd: number, size: number) => void | (() => void)
+
   // connection to work with
   public connection!: tls.TLSSocket | net.Socket
   public serverProperties: Record<string, any> | null = null
   public activeHost!: string
   public activePort!: number
   public preparedHosts!: { host: string, port: number }[]
-  public hosti!: number
+  public hosti!: number 
 
   // ###
   //   host: localhost | [localhost, localhost] | [{host: localhost, port: 5672}, {host: localhost, port: 5673}]
@@ -135,6 +138,22 @@ export class Connection extends EventEmitter {
     this.frameMax = this.connectionOptions.frameMax
     this.serializer = new Serializer(this.frameMax)
     this.channelManager = new ChannelManager(this)
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { setSocketReadBuffer, setSocketWriteBuffer } = require('./utils/set-sock-opts')
+      this.setSocketReadBuffer = setSocketReadBuffer
+      this.setSocketWriteBuffer = setSocketWriteBuffer
+    } catch (e: any) {
+      this.setSocketReadBuffer = () => {/* noop */}
+      this.setSocketWriteBuffer = () => {/* noop */}
+      process.emitWarning('could not load set-sock-opts', {
+        code: 'AMQP_SOCK_OPTS',
+        detail: e.message,
+      })
+      // noop
+    }
+
 
     if (!this.connectionOptions.lazyConnect) {
       this.connect()
@@ -362,11 +381,16 @@ export class Connection extends EventEmitter {
     debug(1, () => `Connected#generic to ${this.connectionOptions.host}:${this.connectionOptions.port}`)
 
     // @ts-expect-error -- it does exist
-    setSocketReadBuffer(this.connection._handle.fd, bytes('4mb'))
-    // @ts-expect-error -- it does exist
-    setSocketWriteBuffer(this.connection._handle.fd, bytes('4mb'))
+    if (this.connection._handle && typeof this.connection._handle.fd !== 'undefined') {
+      // @ts-expect-error -- it does exist
+      const fd = this.connection._handle.fd
+      this.setSocketReadBuffer(fd, bytes('4mb'))
+      this.setSocketWriteBuffer(fd, bytes('4mb'))
+    }
 
-    if (this._connectTimeout) clearTimeout(this._connectTimeout)
+    if (this._connectTimeout) {
+      clearTimeout(this._connectTimeout)
+    }
 
     this._resetAllHeartbeatTimers()
     this._setupParser(this._reestablishChannels)
