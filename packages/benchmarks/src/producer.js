@@ -3,7 +3,7 @@
 const { once } = require('events');
 const AMQP = require('@microfleet/amqp-coffee');
 const async = require('async');
-const faker = require('faker');
+const { faker } = require('@faker-js/faker');
 const { setTimeout } = require('timers/promises');
 
 (async () => {

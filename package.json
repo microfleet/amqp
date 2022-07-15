@@ -13,7 +13,7 @@
     "@swc-node/register": "^1.4.2",
     "@swc/core-linux-x64-musl": "^1.2.160",
     "multi-semantic-release": "^2.11.1",
-    "tsconfig-paths": "^3.14.1",
+    "tsconfig-paths": "^4.0.0",
     "typescript": "^4.6.2"
   }
 }
