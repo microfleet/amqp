@@ -369,8 +369,6 @@ export abstract class Channel extends EventEmitter {
       return
     }
 
-    debug(1, `received frame: method=${frame.method.name}, name=${frame.name}`)
-
     this.callbackForMethod(frame.method)(null, frame.args)
 
     switch (frame.name) {
@@ -384,10 +382,12 @@ export abstract class Channel extends EventEmitter {
 
       case methods.channelClose.name: {
         const args = frame.args
-        this.connection.channelManager.channelClosed(this.channel)
-
         debug(1, () => ['Channel closed by server', args])
+
+        this.connection._sendMethod(this.channel, methods.channelCloseOk, {})
+
         this.state = ChannelState.closed
+        this.connection.channelManager.channelClosed(this.channel)
 
         const idx = `${args.classId}_${args.methodId}`
         if (isClassMethodId(idx)) {
