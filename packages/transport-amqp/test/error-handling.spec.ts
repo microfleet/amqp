@@ -39,7 +39,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
   const RABBITMQ_PORT = +(process.env.RABBITMQ_PORT_5672_TCP_PORT || 5672)
 
   const configuration = {
-    exchange: 'test-exchange',
+    exchange: 'test-exchange-non-existing',
     connection: {
       host: RABBITMQ_HOST,
       port: RABBITMQ_PORT,
@@ -55,7 +55,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
   })
 
   it('should throw 404 on publish to non-existing exchange', async () => {
-    for(let i=0; i<1; i++) {
+    for(let i=0; i<10; i++) {
       debug(`creating channel ${i}`)
       try {
         await amqp.publish("users", { "foo": "bar" }, { confirm: true })
@@ -83,7 +83,22 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
       }
     })
 
-    // redeclare
+    // redeclare, channel remnants 1
+    try {
+      await amqp.createQueue({
+        queue: `test-queue`,
+        arguments: {
+          'x-max-length': 1,
+          'x-dead-letter-exchange': `streamlayer.dlx`,
+          'x-overflow': 'reject-publish',
+          'x-expires': 86400
+        }
+      })
+    } catch (err) {
+      assert.ok(err)
+    }
+
+    // redeclare, channel remnants 2
     try {
       await amqp.createQueue({
         queue: `test-queue`,
