@@ -23,7 +23,7 @@ module.exports = {
       working_dir: `/src/packages/${dir}`,
       environment: {
         AMQP_TEST: '1',
-        AMQP: '4',
+        AMQP: '8',
         DEBUG: 'amqp:*',
         SWC_NODE_PROJECT: './tsconfig.test.json'
       }
