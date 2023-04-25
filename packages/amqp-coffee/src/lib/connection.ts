@@ -85,7 +85,7 @@ const OpeningStates = [ConnectionState.opening, ConnectionState.reconnecting]
 export class Connection extends EventEmitter {
   public readonly id = Math.round(Math.random() * 1000)
   public state = ConnectionState.idle
-  
+
   // private stuff
   public readonly connectionOptions: ConnectionOptions
 
@@ -113,7 +113,7 @@ export class Connection extends EventEmitter {
   public activeHost!: string
   public activePort!: number
   public preparedHosts!: { host: string, port: number }[]
-  public hosti!: number 
+  public hosti!: number
 
   // ###
   //   host: localhost | [localhost, localhost] | [{host: localhost, port: 5672}, {host: localhost, port: 5673}]
@@ -166,8 +166,8 @@ export class Connection extends EventEmitter {
     // determine to host to connect to if we have an array of hosts
     this.preparedHosts = [this.connectionOptions.host].flat(2).map((uri) => {
       if (typeof uri === 'object' && uri.port && uri.host) {
-        return { 
-          host: uri.host.toLowerCase(), 
+        return {
+          host: uri.host.toLowerCase(),
           port: typeof uri.port === 'string' ? parseInt(uri.port, 10) : uri.port,
         }
       }
@@ -199,10 +199,10 @@ export class Connection extends EventEmitter {
   public async connect(): Promise<void> {
     // noop in case we are already opening the connection
     switch (this.state) {
-      case ConnectionState.opening: 
+      case ConnectionState.opening:
         return this.opening$P
 
-      case ConnectionState.open: 
+      case ConnectionState.open:
         return
 
       case ConnectionState.reconnecting:
@@ -545,6 +545,7 @@ export class Connection extends EventEmitter {
       return
     }
 
+    debug(1, JSON.stringify(datum))
     debug(4, () => [channel, datum.type])
 
     switch (datum.type) {
@@ -666,7 +667,7 @@ export class Connection extends EventEmitter {
       debug(1, () => `unhandled -- _onContent ${channel} > ${data.length}`)
     }
   }
-  
+
   private _onMethod<T extends MethodFrame>(channel: number, frame: T): void {
     this._resetHeartbeatTimer()
     if (channel > 0) {

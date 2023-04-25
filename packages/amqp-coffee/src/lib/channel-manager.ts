@@ -27,8 +27,8 @@ export class ChannelManager {
   public readonly channels: Connection['channels']
   public channelCount = 0
 
-  private publisherConfirmChannels: Publisher[] = []
-  private publisherChannels: Publisher[] = []
+  private publisherConfirmChannels: Map<number, Publisher> = new Map()
+  private publisherChannels: Map<number, Publisher> = new Map()
 
   private tempChannel: TemporaryChannel | null = null
   private tempChannel$P: Promise<TemporaryChannel> | null = null
@@ -47,16 +47,19 @@ export class ChannelManager {
       ? this.publisherConfirmChannels
       : this.publisherChannels
 
-    if (pool.length < publisherPoolSize) {
+    if (pool.size < publisherPoolSize) {
       const channel = this.nextChannelNumber()
+      debug(1, `created new publisher id=${channel}`)
       const p = new Publisher(this.connection, channel, confirm)
       this.channels.set(channel, p)
-      pool.push(p)
+      pool.set(channel, p)
       return p
     }
 
-    const i = Math.floor(Math.random() * pool.length)
-    return pool[i]
+    const i = Math.floor(Math.random() * pool.size)
+    const channel = Array.from(pool.keys())[i]
+    debug(1, `reusing channel: ${channel}`)
+    return pool.get(channel) as Publisher
   }
 
   async temporaryChannelAsync(): Promise<TemporaryChannel> {
@@ -92,7 +95,7 @@ export class ChannelManager {
     if (this.tempChannel != null) {
       debug('returning temp channel')
       cb?.(null, this.tempChannel)
-      
+
     }
 
     const channel = this.nextChannelNumber()
@@ -116,6 +119,8 @@ export class ChannelManager {
   }
 
   channelClosed(channelNumber: number) {
+    this.publisherChannels.delete(channelNumber)
+    this.publisherConfirmChannels.delete(channelNumber)
     this.channels.delete(channelNumber)
   }
 

@@ -3,7 +3,12 @@
 import async = require('async')
 import { EventEmitter, once } from 'events'
 import { debug as _debug } from './config'
-import { methods, classMethodsTable, MethodsTableMethod, MethodFrame, MethodFrameOk, FieldsToRecord, ContentHeader, isClassMethodId } from '@microfleet/amqp-codec'
+import { methods,
+  classMethodsTable,
+  MethodsTableMethod,
+  MethodFrame, MethodFrameOk, FieldsToRecord, ContentHeader,
+  isClassMethodId
+} from '@microfleet/amqp-codec'
 import { Connection, ConnectionState } from './connection'
 import { ServerClosedError, ConnectionResetError } from './errors'
 import { promisify } from 'util'
@@ -169,7 +174,7 @@ export abstract class Channel extends EventEmitter {
     }
 
     if (this.state === ChannelState.open) {
-      this.connection.channelManager.channelCount -= 1
+      // this.connection.channelManager.channelCount -= 1
       this.state = ChannelState.closed
       this.connection._sendMethod(this.channel, methods.channelClose, {
         replyText: 'Goodbye',
@@ -257,7 +262,7 @@ export abstract class Channel extends EventEmitter {
   }
 
   taskQueuePushRaw<
-    T extends Methods, 
+    T extends Methods,
     U extends MethodsOk
   >(task: Task<T, U>, cb?: AMQPResponse<U>) {
     if (cb != null && task != null) {
@@ -281,6 +286,8 @@ export abstract class Channel extends EventEmitter {
   async _taskWorker(task: Task): Promise<void> {
     if (this.transactional) {
       this.lastChannelAccess = Date.now()
+    } else {
+      debug(1, `this channel is not transactional`)
     }
 
     const { type, method, okMethod, cb, data, preflight } = task
@@ -290,14 +297,15 @@ export abstract class Channel extends EventEmitter {
       cb?.(new Error('preflight check failed'))
       return
     }
-
+    debug(1, `channel state: ${this.state}`)
+    debug(1, `connection state: ${this.connection.state}`)
     if (this.state === ChannelState.closed && this.connection.state === 'open') {
       debug(1, () => 'Channel reassign')
       this.connection.channelManager.channelReassign(this)
       await this.openAsync().catch(noop)
       return this._taskWorker(task)
     }
-    
+
     if (this.state !== ChannelState.open) {
       // if our connection is closed that ok, but if its destroyed it will not reopen
       if (this.connection.state === ConnectionState.destroyed) {
@@ -313,7 +321,7 @@ export abstract class Channel extends EventEmitter {
       return this._taskWorker(task)
     }
 
-    const p$ = okMethod != null 
+    const p$ = okMethod != null
       ? this.waitForMethodAsync(okMethod)
       : null
 
@@ -361,6 +369,8 @@ export abstract class Channel extends EventEmitter {
       return
     }
 
+    debug(1, `received frame: method=${frame.method.name}, name=${frame.name}`)
+
     this.callbackForMethod(frame.method)(null, frame.args)
 
     switch (frame.name) {
@@ -374,7 +384,7 @@ export abstract class Channel extends EventEmitter {
 
       case methods.channelClose.name: {
         const args = frame.args
-        this.connection.channelManager.channelClosed(channel)
+        this.connection.channelManager.channelClosed(this.channel)
 
         debug(1, () => ['Channel closed by server', args])
         this.state = ChannelState.closed
