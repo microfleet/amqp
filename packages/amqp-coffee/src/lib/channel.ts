@@ -286,8 +286,6 @@ export abstract class Channel extends EventEmitter {
   async _taskWorker(task: Task): Promise<void> {
     if (this.transactional) {
       this.lastChannelAccess = Date.now()
-    } else {
-      debug(1, `this channel is not transactional`)
     }
 
     const { type, method, okMethod, cb, data, preflight } = task
@@ -297,8 +295,9 @@ export abstract class Channel extends EventEmitter {
       cb?.(new Error('preflight check failed'))
       return
     }
-    debug(1, `channel state: ${this.state}`)
-    debug(1, `connection state: ${this.connection.state}`)
+
+    debug(1, () => [ `trying to send to server`, `state=${this.state}`, `connection.state=${this.connection.state}`])
+
     if (this.state === ChannelState.closed && this.connection.state === 'open') {
       debug(1, () => 'Channel reassign')
       this.connection.channelManager.channelReassign(this)

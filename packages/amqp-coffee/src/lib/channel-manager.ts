@@ -95,7 +95,6 @@ export class ChannelManager {
     if (this.tempChannel != null) {
       debug('returning temp channel')
       cb?.(null, this.tempChannel)
-
     }
 
     const channel = this.nextChannelNumber()
