@@ -55,7 +55,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
   })
 
   it('should throw 404 on publish to non-existing exchange', async () => {
-    for(let i=0; i<10; i++) {
+    for(let i=0; i<20; i++) {
       debug(`creating channel ${i}`)
       try {
         await amqp.publish("users", { "foo": "bar" }, { confirm: true })
@@ -66,14 +66,14 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     }
   })
 
-  it.skip('should not throw error if try to delete non-existing queue', async () => {
+  it('should not throw error upon deletion of non-existing queue', async () => {
     const { queue: queue1 } = await amqp.createQueue({ queue: 'e2:e4' })
     const { queue: queue2 } = await amqp.createQueue({ queue: 'e2:e4' })
     await queue1.delete()
     await queue2.delete()
   })
 
-  it.skip('should throw error 406 on queue redeclare with different parameters', async () => {
+  it('should throw error 406 on queue redeclare with different parameters', async () => {
 
     const { queue } = await amqp.createQueue({
       queue: `test-queue`,
@@ -84,7 +84,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
       }
     })
 
-    for(let i=0; i<1; i++) {
+    for(let i=0; i<20; i++) {
       // try to redeclare and get channel remnants without close ok
       try {
         await amqp.createQueue({
