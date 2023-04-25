@@ -296,8 +296,6 @@ export abstract class Channel extends EventEmitter {
       return
     }
 
-    debug(1, () => [ `trying to send to server`, `state=${this.state}`, `connection.state=${this.connection.state}`])
-
     if (this.state === ChannelState.closed && this.connection.state === 'open') {
       debug(1, () => 'Channel reassign')
       this.connection.channelManager.channelReassign(this)
