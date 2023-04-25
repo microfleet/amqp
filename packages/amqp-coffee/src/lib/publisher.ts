@@ -6,7 +6,7 @@ import { Channel } from './channel'
 import * as defaults from './defaults'
 
 import { BasicReturnError } from './errors/basic-return-error'
-import { debug as _debug } from './config' 
+import { debug as _debug } from './config'
 import type { Connection } from './connection'
 import { InferOptions } from './channel'
 import { MessageProperties} from './message'
@@ -22,7 +22,7 @@ export interface PublishOptions extends MessageProperties {
   routingKey: string
 
   // sets `expiration` property on the message
-  timeout?: number // optional ttl value for message in the publish/send 
+  timeout?: number // optional ttl value for message in the publish/send
 
   // delivery modes
   confirm: boolean // require ack from server on publish
@@ -73,7 +73,7 @@ export class Publisher extends Channel {
   constructor(connection: Connection, channel: number, confirm?: boolean) {
     super(connection, channel)
 
-    debug(3, () => `Channel: ${channel} - ${confirm}`)
+    debug(1, () => `Channel: ${channel} - ${confirm}`)
 
     this.confirm = confirm != null ? confirm : false
     if (this.confirm) {
@@ -133,7 +133,7 @@ export class Publisher extends Channel {
     if (this[kEvents].has(eventName)) {
       return this[kEvents].get(eventName)
     }
-    
+
     const ev$ = once(this, eventName)
     this[kEvents].set(eventName, ev$)
     try {
@@ -143,10 +143,10 @@ export class Publisher extends Channel {
     }
   }
 
-  publish(exchange: string, 
-          routingKey: string, 
-          data: any, 
-          _options: Partial<PublishOptions>, 
+  publish(exchange: string,
+          routingKey: string,
+          data: any,
+          _options: Partial<PublishOptions>,
           _cb?: (err?: Error | null) => void) {
 
     let cb = _cb
@@ -207,6 +207,8 @@ export class Publisher extends Channel {
 
     if (thisSequenceNumber !== null) {
       await this._waitForSeq(thisSequenceNumber)
+    } else {
+      debug(1, `no waiting for reply`)
     }
   }
 
