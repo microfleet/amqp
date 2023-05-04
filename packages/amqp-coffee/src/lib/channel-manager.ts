@@ -91,6 +91,7 @@ export class ChannelManager {
 
   temporaryChannel(cb?: TemporaryChannelCb): TemporaryChannel {
     if (this.tempChannel != null) {
+      debug(1, () => 'returning temp channel')
       cb?.(null, this.tempChannel)
     }
 
