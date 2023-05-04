@@ -298,7 +298,6 @@ export abstract class Channel extends EventEmitter {
     }
 
     if (this.state === ChannelState.closed && this.connection.state === 'open') {
-      debug(1, () => 'Channel reassign')
       this.connection.channelManager.channelReassign(this)
       await this.openAsync().catch(noop)
       return this._taskWorker(task)
@@ -379,6 +378,7 @@ export abstract class Channel extends EventEmitter {
         break
 
       case methods.channelClose.name: {
+        // channel by closed from server
         const args = frame.args
 
         this.connection._sendMethod(this.channel, methods.channelCloseOk, {})

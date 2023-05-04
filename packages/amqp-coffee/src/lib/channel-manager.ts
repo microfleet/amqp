@@ -27,8 +27,8 @@ export class ChannelManager {
   public readonly channels: Connection['channels']
   public channelCount = 0
 
-  private publisherConfirmChannels: Map<number, Publisher> = new Map()
-  private publisherChannels: Map<number, Publisher> = new Map()
+  private publisherConfirmChannels: Publisher[] = []
+  private publisherChannels: Publisher[] = []
 
   private tempChannel: TemporaryChannel | null = null
   private tempChannel$P: Promise<TemporaryChannel> | null = null
@@ -47,21 +47,17 @@ export class ChannelManager {
       ? this.publisherConfirmChannels
       : this.publisherChannels
 
-    if (pool.size < publisherPoolSize) {
+    if (pool.length < publisherPoolSize) {
       const channel = this.nextChannelNumber()
-      debug(1, () => ['created new publisher', channel ])
       const p = new Publisher(this.connection, channel, confirm)
       this.channels.set(channel, p)
-      pool.set(channel, p)
+      pool.push(p)
+      debug(3, () => ['created new publisher', channel, pool.length ])
       return p
     }
 
-    const i = Math.floor(Math.random() * pool.size)
-    const channel = Array.from(pool.keys())[i]
-
-    const chan = pool.get(channel) as Publisher
-    debug(1, () => ['reusing channel', channel, chan.state, pool.size])
-    return chan
+    const i = Math.floor(Math.random() * pool.length)
+    return pool[i]
   }
 
   async temporaryChannelAsync(): Promise<TemporaryChannel> {
@@ -95,7 +91,6 @@ export class ChannelManager {
 
   temporaryChannel(cb?: TemporaryChannelCb): TemporaryChannel {
     if (this.tempChannel != null) {
-      debug('returning temp channel')
       cb?.(null, this.tempChannel)
     }
 
@@ -118,13 +113,11 @@ export class ChannelManager {
     const newChannelNumber = this.nextChannelNumber()
     channel.channel = newChannelNumber
     this.channels.set(newChannelNumber, channel)
-    debug(1, () => ['channel reassigned', oldChannelNumber, newChannelNumber])
+    debug(3, () => ['channel reassigned', oldChannelNumber, newChannelNumber])
   }
 
   channelClosed(channelNumber: number) {
-    debug(1, () => ['channel closed', channelNumber])
-    this.publisherChannels.delete(channelNumber)
-    this.publisherConfirmChannels.delete(channelNumber)
+    debug(3, () => ['channel closed', channelNumber])
     this.channels.delete(channelNumber)
   }
 
