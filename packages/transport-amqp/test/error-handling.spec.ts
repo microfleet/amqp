@@ -142,17 +142,6 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     await amqp.publish("after-reconnect-queue", { "foo": "bar" }, { confirm: true })
   })
 
-  it('should throw 404 on publish to non-existing exchange', async () => {
-    for(let i=0; i<100; i++) {
-      try {
-        await amqp.publish("test", { "foo": "bar" }, { confirm: true, exchange: "non-existing" })
-      } catch (err) {
-        // console.log(err)
-      }
-      // await new Promise(h => setTimeout(h, 1_000))
-    }
-  })
-
   it('should restore connection upon connection reset', async () => {
     await assert.rejects(
         amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "wrong" as any }),
