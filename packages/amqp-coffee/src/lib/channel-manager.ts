@@ -25,7 +25,7 @@ export type TemporaryChannelCb = {
 
 export class ChannelManager {
   public readonly channels: Connection['channels']
-  public channelCount = 0
+  public channelCount = 0 // should be ever-increasing
 
   private publisherConfirmChannels: Publisher[] = []
   private publisherChannels: Publisher[] = []

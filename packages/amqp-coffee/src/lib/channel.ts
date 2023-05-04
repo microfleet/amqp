@@ -175,7 +175,6 @@ export abstract class Channel extends EventEmitter {
     }
 
     if (this.state === ChannelState.open) {
-      // this.connection.channelManager.channelCount -= 1
       this.state = ChannelState.closed
       this.connection._sendMethod(this.channel, methods.channelClose, {
         replyText: 'Goodbye',
