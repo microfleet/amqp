@@ -73,7 +73,7 @@ export class Publisher extends Channel {
   constructor(connection: Connection, channel: number, confirm?: boolean) {
     super(connection, channel)
 
-    debug(1, () => `Channel: ${channel} - ${confirm}`)
+    debug(3, () => `Channel: ${channel} - ${confirm}`)
 
     this.confirm = confirm != null ? confirm : false
     if (this.confirm) {
@@ -83,7 +83,6 @@ export class Publisher extends Channel {
 
   confirmMode(cb?: () => void): void {
     this.confirmState = ConfirmState.opening
-    debug(1, () => [this.channel, 'confirm mode waiting', `now confirmState=${this.confirmState}`])
     this.taskPush(methods.confirmSelect, { noWait: false }, methods.confirmSelectOk, () => {
       this.confirmState = ConfirmState.open
       this.confirm = true
@@ -100,7 +99,6 @@ export class Publisher extends Channel {
 
   _channelClosed(message = new Error('Channel closed, try again')): void {
     this.confirmState = ConfirmState.closed
-    debug(1, () => [ `confirm state changed`, this.confirmState ])
 
     for (const cb of this.seqCallbacks.values()) {
       if (typeof cb === 'function') {
@@ -110,15 +108,12 @@ export class Publisher extends Channel {
 
     this.seqCallbacks = new Map()
 
-    // TODO why are we sending select if channel is closed by server??
-    // if (this.confirm) {
-    //   this.confirmMode()
-    // }
+    if (this.confirm) {
+      this.confirmMode()
+    }
   }
 
   _onChannelReconnect(cb: (err?: Error, result?: any) => void): void {
-    this.confirmState = ConfirmState.noAck
-    this.confirm = false
     cb()
   }
 
