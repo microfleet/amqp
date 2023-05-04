@@ -49,7 +49,7 @@ export class ChannelManager {
 
     if (pool.size < publisherPoolSize) {
       const channel = this.nextChannelNumber()
-      debug(1, `created new publisher id=${channel}`)
+      debug(1, () => ['created new publisher', channel ])
       const p = new Publisher(this.connection, channel, confirm)
       this.channels.set(channel, p)
       pool.set(channel, p)
@@ -58,8 +58,10 @@ export class ChannelManager {
 
     const i = Math.floor(Math.random() * pool.size)
     const channel = Array.from(pool.keys())[i]
-    debug(1, `reusing channel: ${channel}`)
-    return pool.get(channel) as Publisher
+
+    const chan = pool.get(channel) as Publisher
+    debug(1, () => ['reusing channel', channel, chan.state, pool.size])
+    return chan
   }
 
   async temporaryChannelAsync(): Promise<TemporaryChannel> {
@@ -111,13 +113,16 @@ export class ChannelManager {
   }
 
   channelReassign(channel: Channel) {
+    const oldChannelNumber = channel.channel
     this.channels.delete(channel.channel)
     const newChannelNumber = this.nextChannelNumber()
     channel.channel = newChannelNumber
     this.channels.set(newChannelNumber, channel)
+    debug(1, () => ['channel reassigned', oldChannelNumber, newChannelNumber])
   }
 
   channelClosed(channelNumber: number) {
+    debug(1, () => ['channel closed', channelNumber])
     this.publisherChannels.delete(channelNumber)
     this.publisherConfirmChannels.delete(channelNumber)
     this.channels.delete(channelNumber)

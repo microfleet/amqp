@@ -1,41 +1,12 @@
-// import { HttpStatusError, Error as CommonError } from 'common-errors'
-// import { route as Proxy } from '@microfleet/amqp-coffee/test/proxy.js'
-// import ld from 'lodash'
-// import stringify from 'json-stringify-safe'
-// import sinon from 'sinon'
 import assert from 'assert'
-// import microtime from 'microtime'
-// import { promisify } from 'util'
-// import { gzip as _gzip } from 'zlib'
-// import { setTimeout } from 'timers/promises'
-// import { timesLimit } from 'async'
-const debug = require('debug')('amqp:test')
 
-// require module
 import {
-  AMQPTransport,
-  // connect,
-  // jsonSerializer,
-  // jsonDeserializer,
-  // connect,
-  // multiConnect,
-  // ExtendedMessageProperties,
-  // ResponseHandler,
-  // kReplyHeaders,
+  AMQPTransport
 } from '../src'
-// import { toMiliseconds } from '../src/utils/latency'
+
 import {
   ConnectionState,
-  // ExchangeBindOptions,
-  // Message
 } from '@microfleet/amqp-coffee'
-// import { HttpStatusError } from "common-errors";
-// import { QueueArguments } from "@microfleet/transport-amqp";
-// import { v4 } from 'uuid'
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-// const debug = require('debug')('amqp')
-// const gzip = promisify(_gzip)
 
 describe('AMQPTransport', function AMQPTransportTestSuite() {
 
@@ -45,43 +16,61 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
   const RABBITMQ_PORT = +(process.env.RABBITMQ_PORT_5672_TCP_PORT || 5672)
 
   const configuration = {
-    exchange: 'test-exchange',
+    exchange: 'amq.direct',
     connection: {
       host: RABBITMQ_HOST,
       port: RABBITMQ_PORT,
     },
   }
 
-  let amqp: AMQPTransport
+  const amqp: AMQPTransport= new AMQPTransport(configuration)
 
   it('is able to connect to rabbitmq', async () => {
-    amqp = new AMQPTransport(configuration)
     await amqp.connect()
     assert.equal(amqp.state, ConnectionState.open)
   })
 
-  it('should be able to publish existing exchange', async () => {
-    for(let i=0; i<20; i++) {
-      debug(`creating channel ${i}`)
-      try {
-        await amqp.publish("test", { "foo": "bar" }, { confirm: true })
-      } catch (err) {
-        // console.log(err)
-      }
-      // await new Promise(h => setTimeout(h, 1_000))
-    }
+  it('should be able to publish to existing exchange without errors', async () => {
+      await amqp.publish("test", { "foo": "bar" }, { confirm: true })
   })
 
-  it('should throw 404 on publish to non-existing exchange', async () => {
-    for(let i=0; i<5; i++) {
-      debug(`creating channel ${i}`)
-      try {
-        await amqp.publish("test", { "foo": "bar" }, { confirm: true, exchange: "non-existing" })
-      } catch (err) {
-        // console.log(err)
-      }
-      // await new Promise(h => setTimeout(h, 1_000))
-    }
+  it('should throw 404 while publishing to non-existing exchange', async () => {
+      await assert.rejects(
+        amqp.publish("test", { "foo": "bar" }, { confirm: true, exchange: "non-existing" }),
+        (err: any) => {
+          assert.equal(err.code, `AMQP_SERVER_CLOSED`)
+          assert.equal(err.msg, `Server closed channel`)
+          assert.equal(err.reason?.replyCode, 404)
+        return true
+    })
+  })
+
+  it('should throw 404 trying to access non-existing queue in passive mode', async () => {
+    await assert.rejects(amqp.createQueue({
+      queue: 'new-queue',
+      passive: true
+    }), (err: any) => {
+      assert.equal(err.classId, 50)
+      assert.equal(err.methodId, 10)
+      assert.equal(err.replyCode, 404)
+      return true
+    })
+  })
+
+  it('should be able to declare queue and bind it to existing exchange', async () => {
+    const { queue } = await amqp.createQueue({ queue: `bound-queue` })
+    await queue.bind("amq.direct", "bound-queue")
+    await amqp.publish("bound-queue", { "foo": "bar" }, { confirm: true })
+  })
+
+  it('should throw error while declaring queue and binding it to non-existing exchange', async () => {
+    const { queue } = await amqp.createQueue({ queue: `test-queue` })
+    await assert.rejects(queue.bind("non-existing", "test-queue"), (err: any) => {
+      assert.equal(err.classId, 50)
+      assert.equal(err.methodId, 20)
+      assert.equal(err.replyCode, 404)
+      return true
+    })
   })
 
   it('should be safe to delete non-existing queue', async () => {
@@ -91,10 +80,26 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     await queue2.delete()
   })
 
-  it('should throw 406 in case of redeclare with other parameters', async () => {
+  it('should throw 406 while trying to delete non-empty queue', async () => {
+    const { queue } = await amqp.createQueue({ queue: 'non-empty-queue' })
+    await queue.bind("amq.direct", "non-empty-queue")
+    for(let i=0; i<5; i++) {
+      await amqp.publish("non-empty-queue", { "foo": "bar" }, { confirm: true })
+    }
+    await assert.rejects(queue.delete(), (err: any) => {
+      console.log(`Precondition failed 406 received`, err)
+      console.error(err)
+      assert.equal(err.classId, 50)
+      assert.equal(err.methodId, 40)
+      assert.equal(err.replyCode, 406)
+      return true
+    })
+  })
 
-    const { queue } = await amqp.createQueue({
-      queue: `test-queue`,
+  it('should not throw 406 for createQueue()', async () => {
+    // precondition failed exception is absorbed by the library
+    const { queue: queue1 } = await amqp.createQueue({
+      queue: `test-queue-redeclared`,
       arguments: {
         'x-max-length': 1,
         'x-dead-letter-exchange': `streamlayer.dlx`,
@@ -102,29 +107,44 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
       }
     })
 
-    for(let i=0; i<5; i++) {
-      // try to redeclare and get channel remnants without close ok
-      try {
-        await amqp.createQueue({
-          queue: `test-queue`,
-          arguments: {
-            'x-max-length': 1,
-            'x-dead-letter-exchange': `streamlayer.dlx`,
-            'x-overflow': 'reject-publish',
-            'x-expires': 86400
-          }
-        })
-      } catch (err) {
-        // console.log(err)
+    const { queue: queue2 } = await amqp.createQueue({
+      queue: `test-queue-redeclared`,
+      arguments: {
+        'x-max-length': 1,
+        'x-dead-letter-exchange': `streamlayer.dlx`,
+        'x-overflow': 'reject-publish',
+        'x-expires': 86400
       }
-    }
+    })
 
     await new Promise(h => setTimeout(h, 1000))
-    await queue.delete()
+    await queue1.delete()
+    await queue2.delete()
+  })
+
+  it('should not throw 406 for declareExchange()', async () => {
+    // precondition failed exception is absorbed by the library
+    const exchange1 = await amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "direct" })
+    const exchange2 = await amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "topic"})
+    await exchange1.delete()
+    await exchange2.delete()
+  })
+
+  it('should restore connection upon connection reset', async () => {
+    await assert.rejects(
+        amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "wrong" as any }),
+        (err: any) => {
+          assert.equal(err.code, 'CONNECTION_RESET')
+          return true
+        })
+    const { queue } = await amqp.createQueue({ queue: 'after-reconnect-queue' })
+    await queue.bind("amq.direct", "after-reconnect-queue")
+    await amqp.publish("after-reconnect-queue", { "foo": "bar" }, { confirm: true })
   })
 
   it('is able to disconnect', async () => {
-    await new Promise(h => setTimeout(h, 60_000))
+    // check channels and messages in rabbitmq control panel
+    // await new Promise(h => setTimeout(h, 60_000))
     await amqp.close()
   })
 

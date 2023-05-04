@@ -100,7 +100,7 @@ export class Publisher extends Channel {
 
   _channelClosed(message = new Error('Channel closed, try again')): void {
     this.confirmState = ConfirmState.closed
-    debug(1, `confirm state changed to ${this.confirmState}`)
+    debug(1, () => [ `confirm state changed`, this.confirmState ])
 
     for (const cb of this.seqCallbacks.values()) {
       if (typeof cb === 'function') {
@@ -117,7 +117,8 @@ export class Publisher extends Channel {
   }
 
   _onChannelReconnect(cb: (err?: Error, result?: any) => void): void {
-    // we dont do anything
+    this.confirmState = ConfirmState.noAck
+    this.confirm = false
     cb()
   }
 
@@ -171,7 +172,7 @@ export class Publisher extends Channel {
       if (this._recoverableState()) {
         await this._wait(this.confirm ? 'confirm' : 'open')
       } else {
-        throw new Error(`Channel is closed and will not re-open? ${this.state} ${this.confirm} ${this.confirmState}`)
+        throw new Error(`Channel ${this.channel} is closed and will not re-open? ${this.state} ${this.confirm} ${this.confirmState}`)
       }
     }
 
@@ -209,8 +210,6 @@ export class Publisher extends Channel {
 
     if (thisSequenceNumber !== null) {
       await this._waitForSeq(thisSequenceNumber)
-    } else {
-      debug(1, `no waiting for reply`)
     }
   }
 

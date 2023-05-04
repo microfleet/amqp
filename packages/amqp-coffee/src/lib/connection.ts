@@ -1,22 +1,16 @@
-import { EventEmitter } from 'events'
-import net = require('net')
-import tls = require('tls')
-import async = require('async')
-
-import bytes = require('bytes')
-import applyDefaults = require('lodash/defaults')
+import { EventEmitter, once } from 'events'
 import { strict as assert } from 'assert'
 
 import {
-  HandshakeFrame,
-  Parser,
-  Serializer,
-  FrameType,
-  methods,
-  ParsedResponse,
-  MethodFrame,
   ContentHeader,
   ContentHeaderProperties,
+  FrameType,
+  HandshakeFrame,
+  MethodFrame,
+  methods,
+  ParsedResponse,
+  Parser,
+  Serializer,
 } from '@microfleet/amqp-codec'
 import { ChannelManager } from './channel-manager'
 import { Exchange, ExchangeOptions } from './exchange'
@@ -24,11 +18,16 @@ import { Queue, QueueOptions } from './queue'
 import * as defaults from './defaults'
 import { debug as _debug } from './config'
 import * as rabbitmAdminPlugin from './plugins/rabbit'
-import { Consumer, ConsumeHandlerOpts, MessageHandler } from './consumer'
+import { ConsumeHandlerOpts, Consumer, MessageHandler } from './consumer'
 import { PublishOptions } from './publisher'
-import { ConnectionTimeoutError, ServerVersionError, ServerClosedError, ServerClosedArgs } from './errors'
+import { ConnectionTimeoutError, ServerClosedArgs, ServerClosedError, ServerVersionError } from './errors'
 import { Channel, InferOptions, Methods } from './channel'
-import { once } from 'events'
+import net = require('net');
+import tls = require('tls');
+import async = require('async');
+
+import bytes = require('bytes');
+import applyDefaults = require('lodash/defaults');
 
 const debug = _debug('amqp:Connection')
 
@@ -447,7 +446,7 @@ export class Connection extends EventEmitter {
   }
 
   _reestablishChannels() {
-    debug(1, 'reestablishing channels')
+    debug(1, () => 'reestablishing channels')
     return async.forEachSeries(this.channels.keys(), (channel, done) => {
       debug(1, () => [channel, 'processing'])
 
@@ -545,8 +544,8 @@ export class Connection extends EventEmitter {
       return
     }
 
-    debug(1, JSON.stringify(datum))
-    debug(4, () => [channel, datum.type])
+    // debug(1, JSON.stringify(datum))
+    // debug(4, () => [channel, datum.type])
 
     switch (datum.type) {
       case FrameType.METHOD:
