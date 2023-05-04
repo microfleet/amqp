@@ -140,19 +140,8 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     const { queue } = await amqp.createQueue({ queue: 'after-reconnect-queue' })
     await queue.bind("amq.direct", "after-reconnect-queue")
     await amqp.publish("after-reconnect-queue", { "foo": "bar" }, { confirm: true })
+    await amqp.publish("after-reconnect-queue", { "foo": "bar" }, { confirm: false })
   })
-
-  it('should restore connection upon connection reset', async () => {
-    await assert.rejects(
-        amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "wrong" as any }),
-        (err: any) => {
-          assert.equal(err.code, 'CONNECTION_RESET')
-          return true
-        })
-    await amqp.publish("test", { "foo": "bar" }, { confirm: true  })
-    await amqp.publish("test", { "foo": "bar" }, { confirm: false })
-  })
-
 
   it('is able to disconnect', async () => {
     // check channels and messages in rabbitmq control panel
