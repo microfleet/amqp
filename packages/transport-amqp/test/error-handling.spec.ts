@@ -160,22 +160,8 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
           assert.equal(err.code, 'CONNECTION_RESET')
           return true
         })
-    for(let i=0; i<100; i++) {
-      try {
-        await amqp.publish("test", { "foo": "bar" }, { confirm: true, exchange: "non-existing" })
-      } catch (err) {
-        // console.log(err)
-      }
-      // await new Promise(h => setTimeout(h, 1_000))
-    }
-    for(let i=0; i<100; i++) {
-      try {
-        await amqp.publish("test", { "foo": "bar" }, { confirm: false, exchange: "non-existing" })
-      } catch (err) {
-        // console.log(err)
-      }
-      // await new Promise(h => setTimeout(h, 1_000))
-    }
+    await amqp.publish("test", { "foo": "bar" }, { confirm: true  })
+    await amqp.publish("test", { "foo": "bar" }, { confirm: false })
   })
 
 
