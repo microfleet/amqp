@@ -144,8 +144,8 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
   })
 
   it('is able to disconnect', async () => {
-    // check channels and messages in rabbitmq control panel
-    await new Promise(h => setTimeout(h, 60_000))
+    // uncomment to check channels and messages in rabbitmq control panel
+    // await new Promise(h => setTimeout(h, 60_000))
     await amqp.close()
   })
 
