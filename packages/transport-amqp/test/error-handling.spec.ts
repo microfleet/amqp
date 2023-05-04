@@ -168,6 +168,14 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
       }
       // await new Promise(h => setTimeout(h, 1_000))
     }
+    for(let i=0; i<100; i++) {
+      try {
+        await amqp.publish("test", { "foo": "bar" }, { confirm: false, exchange: "non-existing" })
+      } catch (err) {
+        // console.log(err)
+      }
+      // await new Promise(h => setTimeout(h, 1_000))
+    }
   })
 
 
