@@ -30,11 +30,11 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     assert.equal(amqp.state, ConnectionState.open)
   })
 
-  it.skip('should be able to publish to existing exchange without errors', async () => {
+  it('should be able to publish to existing exchange without errors', async () => {
       await amqp.publish("test", { "foo": "bar" }, { confirm: true })
   })
 
-  it.skip('should throw 404 while publishing to non-existing exchange', async () => {
+  it('should throw 404 while publishing to non-existing exchange', async () => {
       await assert.rejects(
         amqp.publish("test", { "foo": "bar" }, { confirm: true, exchange: "non-existing" }),
         (err: any) => {
@@ -45,7 +45,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     })
   })
 
-  it.skip('should throw 404 trying to access non-existing queue in passive mode', async () => {
+  it('should throw 404 trying to access non-existing queue in passive mode', async () => {
     await assert.rejects(amqp.createQueue({
       queue: 'new-queue',
       passive: true
@@ -57,13 +57,13 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     })
   })
 
-  it.skip('should be able to declare queue and bind it to existing exchange', async () => {
+  it('should be able to declare queue and bind it to existing exchange', async () => {
     const { queue } = await amqp.createQueue({ queue: `bound-queue` })
     await queue.bind("amq.direct", "bound-queue")
     await amqp.publish("bound-queue", { "foo": "bar" }, { confirm: true })
   })
 
-  it.skip('should throw error while declaring queue and binding it to non-existing exchange', async () => {
+  it('should throw error while declaring queue and binding it to non-existing exchange', async () => {
     const { queue } = await amqp.createQueue({ queue: `test-queue` })
     await assert.rejects(queue.bind("non-existing", "test-queue"), (err: any) => {
       assert.equal(err.classId, 50)
@@ -73,14 +73,14 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     })
   })
 
-  it.skip('should be safe to delete non-existing queue', async () => {
+  it('should be safe to delete non-existing queue', async () => {
     const { queue: queue1 } = await amqp.createQueue({ queue: 'redeclared-queue' })
     const { queue: queue2 } = await amqp.createQueue({ queue: 'redeclared-queue' })
     await queue1.delete()
     await queue2.delete()
   })
 
-  it.skip('should throw 406 while trying to delete non-empty queue', async () => {
+  it('should throw 406 while trying to delete non-empty queue', async () => {
     const { queue } = await amqp.createQueue({ queue: 'non-empty-queue' })
     await queue.bind("amq.direct", "non-empty-queue")
     for(let i=0; i<5; i++) {
@@ -96,7 +96,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     })
   })
 
-  it.skip('should not throw 406 for createQueue()', async () => {
+  it('should not throw 406 for createQueue()', async () => {
     // precondition failed exception is absorbed by the library
     const { queue: queue1 } = await amqp.createQueue({
       queue: `test-queue-redeclared`,
@@ -122,7 +122,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     await queue2.delete()
   })
 
-  it.skip('should not throw 406 for declareExchange()', async () => {
+  it('should not throw 406 for declareExchange()', async () => {
     // precondition failed exception is absorbed by the library
     const exchange1 = await amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "direct" })
     const exchange2 = await amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "topic"})
@@ -130,7 +130,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     await exchange2.delete()
   })
 
-  it.skip('should restore connection upon connection reset', async () => {
+  it('should restore connection upon connection reset', async () => {
     await assert.rejects(
         amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "wrong" as any }),
         (err: any) => {
@@ -142,7 +142,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     await amqp.publish("after-reconnect-queue", { "foo": "bar" }, { confirm: true })
   })
 
-  it.skip('should throw 404 on publish to non-existing exchange', async () => {
+  it('should throw 404 on publish to non-existing exchange', async () => {
     for(let i=0; i<100; i++) {
       try {
         await amqp.publish("test", { "foo": "bar" }, { confirm: true, exchange: "non-existing" })
