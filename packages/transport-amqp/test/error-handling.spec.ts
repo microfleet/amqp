@@ -96,7 +96,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     })
   })
 
-  it('should not throw 406 for createQueue()', async () => {
+  it('should not throw 406 for createQueue() (beware 406 is consumed by library)', async () => {
     // precondition failed exception is absorbed by the library
     const { queue: queue1 } = await amqp.createQueue({
       queue: `test-queue-redeclared`,
@@ -122,7 +122,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     await queue2.delete()
   })
 
-  it('should not throw 406 for declareExchange()', async () => {
+  it('should not throw 406 for declareExchange() (beware, 406 is consumed by library)', async () => {
     // precondition failed exception is absorbed by the library
     const exchange1 = await amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "direct" })
     const exchange2 = await amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "topic"})
@@ -131,6 +131,8 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
   })
 
   it('should restore connection upon connection reset', async () => {
+    // idea: initiate connection reset by giving wrong type, make server drop connection
+    // and check workability of methods, should not throw exceptions
     await assert.rejects(
         amqp.declareExchange({ exchange: "test-exchange-redeclared", type: "wrong" as any }),
         (err: any) => {
