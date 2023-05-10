@@ -25,7 +25,7 @@ export type TemporaryChannelCb = {
 
 export class ChannelManager {
   public readonly channels: Connection['channels']
-  public channelCount = 0
+  public channelCount = 0 // should be ever-increasing
 
   private publisherConfirmChannels: Publisher[] = []
   private publisherChannels: Publisher[] = []
@@ -52,6 +52,7 @@ export class ChannelManager {
       const p = new Publisher(this.connection, channel, confirm)
       this.channels.set(channel, p)
       pool.push(p)
+      debug(3, () => ['created new publisher', channel, pool.length ])
       return p
     }
 
@@ -90,9 +91,8 @@ export class ChannelManager {
 
   temporaryChannel(cb?: TemporaryChannelCb): TemporaryChannel {
     if (this.tempChannel != null) {
-      debug('returning temp channel')
+      debug(1, () => 'returning temp channel')
       cb?.(null, this.tempChannel)
-      
     }
 
     const channel = this.nextChannelNumber()
@@ -109,13 +109,16 @@ export class ChannelManager {
   }
 
   channelReassign(channel: Channel) {
+    const oldChannelNumber = channel.channel
     this.channels.delete(channel.channel)
     const newChannelNumber = this.nextChannelNumber()
     channel.channel = newChannelNumber
     this.channels.set(newChannelNumber, channel)
+    debug(3, () => ['channel reassigned', oldChannelNumber, newChannelNumber])
   }
 
   channelClosed(channelNumber: number) {
+    debug(3, () => ['channel closed', channelNumber])
     this.channels.delete(channelNumber)
   }
 

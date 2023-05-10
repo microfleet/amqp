@@ -6,7 +6,7 @@ import { Channel } from './channel'
 import * as defaults from './defaults'
 
 import { BasicReturnError } from './errors/basic-return-error'
-import { debug as _debug } from './config' 
+import { debug as _debug } from './config'
 import type { Connection } from './connection'
 import { InferOptions } from './channel'
 import { MessageProperties} from './message'
@@ -22,7 +22,7 @@ export interface PublishOptions extends MessageProperties {
   routingKey: string
 
   // sets `expiration` property on the message
-  timeout?: number // optional ttl value for message in the publish/send 
+  timeout?: number // optional ttl value for message in the publish/send
 
   // delivery modes
   confirm: boolean // require ack from server on publish
@@ -83,7 +83,6 @@ export class Publisher extends Channel {
 
   confirmMode(cb?: () => void): void {
     this.confirmState = ConfirmState.opening
-    debug(1, () => [this.channel, 'confirm mode waiting'])
     this.taskPush(methods.confirmSelect, { noWait: false }, methods.confirmSelectOk, () => {
       this.confirmState = ConfirmState.open
       this.confirm = true
@@ -115,7 +114,6 @@ export class Publisher extends Channel {
   }
 
   _onChannelReconnect(cb: (err?: Error, result?: any) => void): void {
-    // we dont do anything
     cb()
   }
 
@@ -133,7 +131,7 @@ export class Publisher extends Channel {
     if (this[kEvents].has(eventName)) {
       return this[kEvents].get(eventName)
     }
-    
+
     const ev$ = once(this, eventName)
     this[kEvents].set(eventName, ev$)
     try {
@@ -143,10 +141,10 @@ export class Publisher extends Channel {
     }
   }
 
-  publish(exchange: string, 
-          routingKey: string, 
-          data: any, 
-          _options: Partial<PublishOptions>, 
+  publish(exchange: string,
+          routingKey: string,
+          data: any,
+          _options: Partial<PublishOptions>,
           _cb?: (err?: Error | null) => void) {
 
     let cb = _cb
@@ -169,7 +167,7 @@ export class Publisher extends Channel {
       if (this._recoverableState()) {
         await this._wait(this.confirm ? 'confirm' : 'open')
       } else {
-        throw new Error(`Channel is closed and will not re-open? ${this.state} ${this.confirm} ${this.confirmState}`)
+        throw new Error(`Channel ${this.channel} is closed and will not re-open? ${this.state} ${this.confirm} ${this.confirmState}`)
       }
     }
 

@@ -3,7 +3,12 @@
 import async = require('async')
 import { EventEmitter, once } from 'events'
 import { debug as _debug } from './config'
-import { methods, classMethodsTable, MethodsTableMethod, MethodFrame, MethodFrameOk, FieldsToRecord, ContentHeader, isClassMethodId } from '@microfleet/amqp-codec'
+import { methods,
+  classMethodsTable,
+  MethodsTableMethod,
+  MethodFrame, MethodFrameOk, FieldsToRecord, ContentHeader,
+  isClassMethodId
+} from '@microfleet/amqp-codec'
 import { Connection, ConnectionState } from './connection'
 import { ServerClosedError, ConnectionResetError } from './errors'
 import { promisify } from 'util'
@@ -102,7 +107,7 @@ export abstract class Channel extends EventEmitter {
 
   open(cb?: (err?: Error | null, result?: any) => void) {
     if (this.state === ChannelState.closed) {
-      debug(1, ['opening channel', this.channel])
+      debug(1, () => ['opening channel', this.channel])
 
       this.state = ChannelState.opening
 
@@ -112,7 +117,7 @@ export abstract class Channel extends EventEmitter {
 
       if (this.transactional) this.temporaryChannel()
     } else if (cb) {
-      debug(1, ['state isnt closed', this.channel])
+      debug(1, () => ['state isnt closed', this.channel])
       cb(new Error("state isn't closed. not opening channel"))
     }
   }
@@ -121,10 +126,11 @@ export abstract class Channel extends EventEmitter {
     debug(1, () => [this.channel, 'channel reset called'])
 
     if (this.state !== ChannelState.open) {
+      debug(1, () => ['channel state', this.channel, this.state])
       this._callOutstandingCallbacks(new ConnectionResetError())
     }
 
-    // if our state is closed and either we arn't a transactional channel (queue, exchange declare etc..)
+    // if our state is closed and either we aren't a transactional channel (queue, exchange declare etc..)
     // or we're within our acceptable time window for this queue
     if (this.state === ChannelState.closed
         && (
@@ -140,7 +146,7 @@ export abstract class Channel extends EventEmitter {
       async.series([
         (next) => this.open(next),
         (next) => this._onChannelReconnect(next),
-      ], cb)
+      ], (err) => cb?.(err))
     } else {
       cb?.()
     }
@@ -169,7 +175,6 @@ export abstract class Channel extends EventEmitter {
     }
 
     if (this.state === ChannelState.open) {
-      this.connection.channelManager.channelCount -= 1
       this.state = ChannelState.closed
       this.connection._sendMethod(this.channel, methods.channelClose, {
         replyText: 'Goodbye',
@@ -257,7 +262,7 @@ export abstract class Channel extends EventEmitter {
   }
 
   taskQueuePushRaw<
-    T extends Methods, 
+    T extends Methods,
     U extends MethodsOk
   >(task: Task<T, U>, cb?: AMQPResponse<U>) {
     if (cb != null && task != null) {
@@ -292,12 +297,11 @@ export abstract class Channel extends EventEmitter {
     }
 
     if (this.state === ChannelState.closed && this.connection.state === 'open') {
-      debug(1, () => 'Channel reassign')
       this.connection.channelManager.channelReassign(this)
       await this.openAsync().catch(noop)
       return this._taskWorker(task)
     }
-    
+
     if (this.state !== ChannelState.open) {
       // if our connection is closed that ok, but if its destroyed it will not reopen
       if (this.connection.state === ConnectionState.destroyed) {
@@ -313,7 +317,7 @@ export abstract class Channel extends EventEmitter {
       return this._taskWorker(task)
     }
 
-    const p$ = okMethod != null 
+    const p$ = okMethod != null
       ? this.waitForMethodAsync(okMethod)
       : null
 
@@ -373,11 +377,13 @@ export abstract class Channel extends EventEmitter {
         break
 
       case methods.channelClose.name: {
+        // channel by closed from server
         const args = frame.args
-        this.connection.channelManager.channelClosed(channel)
 
-        debug(1, () => ['Channel closed by server', args])
+        this.connection._sendMethod(this.channel, methods.channelCloseOk, {})
+
         this.state = ChannelState.closed
+        this.connection.channelManager.channelClosed(this.channel)
 
         const idx = `${args.classId}_${args.methodId}`
         if (isClassMethodId(idx)) {
@@ -386,7 +392,6 @@ export abstract class Channel extends EventEmitter {
           const closingMethodOk = methods[closingMethodSignature]
           this.callbackForMethod(closingMethodOk)(args) // this would be the error
         }
-
         this._channelClosed(new ServerClosedError(args))
         this._callOutstandingCallbacks(new Error(`Channel closed by server ${JSON.stringify(args)}`))
         break
@@ -404,8 +409,6 @@ export abstract class Channel extends EventEmitter {
   }
 
   _connectionClosed() {
-    debug(1, [this.channel, 'channel closed event'])
-
     // if the connection closes, make sure we reflect that because that channel is also closed
     if (this.state !== ChannelState.closed) {
       this.state = ChannelState.closed

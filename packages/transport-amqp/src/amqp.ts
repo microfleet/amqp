@@ -3,8 +3,8 @@ import { Logger } from 'pino'
 // deps
 import uuid = require('uuid')
 import flatstr = require('flatstr')
-import stringify = require('json-stringify-safe')
-import EventEmitter = require('eventemitter3')
+import stringify from 'json-stringify-safe'
+import { EventEmitter } from 'eventemitter3'
 import { once } from 'events'
 import os = require('os')
 import is = require('is')

@@ -1,22 +1,16 @@
-import { EventEmitter } from 'events'
-import net = require('net')
-import tls = require('tls')
-import async = require('async')
-
-import bytes = require('bytes')
-import applyDefaults = require('lodash/defaults')
+import { EventEmitter, once } from 'events'
 import { strict as assert } from 'assert'
 
 import {
-  HandshakeFrame,
-  Parser,
-  Serializer,
-  FrameType,
-  methods,
-  ParsedResponse,
-  MethodFrame,
   ContentHeader,
   ContentHeaderProperties,
+  FrameType,
+  HandshakeFrame,
+  MethodFrame,
+  methods,
+  ParsedResponse,
+  Parser,
+  Serializer,
 } from '@microfleet/amqp-codec'
 import { ChannelManager } from './channel-manager'
 import { Exchange, ExchangeOptions } from './exchange'
@@ -24,11 +18,16 @@ import { Queue, QueueOptions } from './queue'
 import * as defaults from './defaults'
 import { debug as _debug } from './config'
 import * as rabbitmAdminPlugin from './plugins/rabbit'
-import { Consumer, ConsumeHandlerOpts, MessageHandler } from './consumer'
+import { ConsumeHandlerOpts, Consumer, MessageHandler } from './consumer'
 import { PublishOptions } from './publisher'
-import { ConnectionTimeoutError, ServerVersionError, ServerClosedError, ServerClosedArgs } from './errors'
+import { ConnectionTimeoutError, ServerClosedArgs, ServerClosedError, ServerVersionError } from './errors'
 import { Channel, InferOptions, Methods } from './channel'
-import { once } from 'events'
+import net = require('net');
+import tls = require('tls');
+import async = require('async');
+
+import bytes = require('bytes');
+import applyDefaults = require('lodash/defaults');
 
 const debug = _debug('amqp:Connection')
 
@@ -85,7 +84,7 @@ const OpeningStates = [ConnectionState.opening, ConnectionState.reconnecting]
 export class Connection extends EventEmitter {
   public readonly id = Math.round(Math.random() * 1000)
   public state = ConnectionState.idle
-  
+
   // private stuff
   public readonly connectionOptions: ConnectionOptions
 
@@ -113,7 +112,7 @@ export class Connection extends EventEmitter {
   public activeHost!: string
   public activePort!: number
   public preparedHosts!: { host: string, port: number }[]
-  public hosti!: number 
+  public hosti!: number
 
   // ###
   //   host: localhost | [localhost, localhost] | [{host: localhost, port: 5672}, {host: localhost, port: 5673}]
@@ -166,8 +165,8 @@ export class Connection extends EventEmitter {
     // determine to host to connect to if we have an array of hosts
     this.preparedHosts = [this.connectionOptions.host].flat(2).map((uri) => {
       if (typeof uri === 'object' && uri.port && uri.host) {
-        return { 
-          host: uri.host.toLowerCase(), 
+        return {
+          host: uri.host.toLowerCase(),
           port: typeof uri.port === 'string' ? parseInt(uri.port, 10) : uri.port,
         }
       }
@@ -199,10 +198,10 @@ export class Connection extends EventEmitter {
   public async connect(): Promise<void> {
     // noop in case we are already opening the connection
     switch (this.state) {
-      case ConnectionState.opening: 
+      case ConnectionState.opening:
         return this.opening$P
 
-      case ConnectionState.open: 
+      case ConnectionState.open:
         return
 
       case ConnectionState.reconnecting:
@@ -447,7 +446,7 @@ export class Connection extends EventEmitter {
   }
 
   _reestablishChannels() {
-    debug(1, 'reestablishing channels')
+    debug(1, () => 'reestablishing channels')
     return async.forEachSeries(this.channels.keys(), (channel, done) => {
       debug(1, () => [channel, 'processing'])
 
@@ -545,7 +544,8 @@ export class Connection extends EventEmitter {
       return
     }
 
-    debug(4, () => [channel, datum.type])
+    // debug(1, JSON.stringify(datum))
+    // debug(4, () => [channel, datum.type])
 
     switch (datum.type) {
       case FrameType.METHOD:
@@ -590,6 +590,9 @@ export class Connection extends EventEmitter {
   }
 
   _sendMethod<T extends Methods>(channel: number, method: T, args: Partial<InferOptions<T>>) {
+
+    debug(3, () => [`_sendMethod`, `state=${this.state}`, `OpeningStates=${JSON.stringify(OpeningStates)}`])
+
     if (channel !== 0 && OpeningStates.includes(this.state)) {
       // TODO: introduce queue instead of spawning promises
       this.once('ready', () => {
@@ -666,7 +669,7 @@ export class Connection extends EventEmitter {
       debug(1, () => `unhandled -- _onContent ${channel} > ${data.length}`)
     }
   }
-  
+
   private _onMethod<T extends MethodFrame>(channel: number, frame: T): void {
     this._resetHeartbeatTimer()
     if (channel > 0) {

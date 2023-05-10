@@ -1,5 +1,5 @@
 version: v1.0
-name: microfleet/amqp-coffee
+name: microfleet/amqp
 agent:
   machine:
     type: e1-standard-2
@@ -17,8 +17,8 @@ global_job_config:
   prologue:
     commands:
       - set -e
-      - sem-version node 16
-      - curl -f https://get.pnpm.io/v6.16.js | node - add --global pnpm@6
+      - sem-version node 18
+      - curl -f https://get.pnpm.io/v6.16.js | node - add --global pnpm@8
       - checkout
       - cache restore node-$(checksum pnpm-lock.yaml)
       - pnpm i --prefer-offline
