@@ -146,7 +146,7 @@ export abstract class Channel extends EventEmitter {
       async.series([
         (next) => this.open(next),
         (next) => this._onChannelReconnect(next),
-      ], cb)
+      ], (err) => cb?.(err))
     } else {
       cb?.()
     }

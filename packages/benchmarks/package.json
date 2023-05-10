@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "main": "./src/service.js",
   "dependencies": {
+    "@faker-js/faker": "^7.6.0",
     "@microfleet/amqp-coffee": "workspace:^",
     "@microfleet/transport-amqp": "workspace:^",
     "async": "^3.2.3",
-    "clinic": "^11.1.0",
-    "@faker-js/faker": "^6.0.0",
+    "clinic": "^12.1.0",
     "os-utils": "^0.0.14"
   }
 }

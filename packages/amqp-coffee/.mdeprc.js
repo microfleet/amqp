@@ -5,7 +5,7 @@ const root = `/src/packages/${dir}/node_modules/.bin`
 
 module.exports = {
   ...require('../../.mdeprc.js'),
-  node: "16",
+  node: "18",
   auto_compose: true,
   services: ["rabbitmq"],
   tests: "./test/**/*.test.{ts,coffee}",

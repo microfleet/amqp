@@ -34,7 +34,7 @@ export class Cache {
       return null
     }
 
-    const hashKey = typeof message === 'string' ? message : stringify(message)
+    const hashKey = typeof message === 'string' ? message : stringify(message) as string
     const response = this.cache.get(hashKey)
 
     if (response !== undefined) {
