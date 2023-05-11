@@ -98,7 +98,7 @@ export abstract class Channel extends EventEmitter {
       const { temporaryChannelTimeout, temporaryChannelTimeoutCheck } = this.connection.connectionOptions
       this.channelTracker = setInterval(() => {
         if (this.lastChannelAccess < (Date.now() - temporaryChannelTimeout)) {
-          debug(4, () => 'Closing channel due to inactivity')
+          debug(4, () => [this.channel, 'Closing channel due to inactivity'])
           this.close(true)
         }
       }, temporaryChannelTimeoutCheck)

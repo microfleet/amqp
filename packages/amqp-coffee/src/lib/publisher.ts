@@ -107,13 +107,13 @@ export class Publisher extends Channel {
     }
 
     this.seqCallbacks = new Map()
-
-    if (this.confirm) {
-      this.confirmMode()
-    }
   }
 
   _onChannelReconnect(cb: (err?: Error, result?: any) => void): void {
+    if (this.confirm) {
+      this.confirmMode()
+    }
+
     cb()
   }
 
@@ -164,9 +164,15 @@ export class Publisher extends Channel {
       : Object.create(null)
 
     if (this._inoperableState()) {
+      debug(4, () => ['publish channel in inoperable state'])
       if (this._recoverableState()) {
+        debug(4, () => ['state recoverable, wait for:', this.confirm ? 'confirm' : 'open'])
+        if (this.confirm && (this.confirmState === ConfirmState.closed || this.confirmState === ConfirmState.noAck)) {
+          this.confirmMode()
+        }
         await this._wait(this.confirm ? 'confirm' : 'open')
       } else {
+        debug(4, () => ['state irrecoverable'])
         throw new Error(`Channel ${this.channel} is closed and will not re-open? ${this.state} ${this.confirm} ${this.confirmState}`)
       }
     }
@@ -200,7 +206,7 @@ export class Publisher extends Channel {
       }
     }
 
-    debug(4, () => JSON.stringify(options))
+    debug(4, () => ['queue publish', JSON.stringify(options)])
     this.queuePublish(methods.basicPublish, data, options)
 
     if (thisSequenceNumber !== null) {

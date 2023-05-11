@@ -544,8 +544,7 @@ export class Connection extends EventEmitter {
       return
     }
 
-    // debug(1, JSON.stringify(datum))
-    // debug(4, () => [channel, datum.type])
+    debug(4, () => ['received into', '>', channel, datum.type, JSON.stringify(datum)])
 
     switch (datum.type) {
       case FrameType.METHOD:

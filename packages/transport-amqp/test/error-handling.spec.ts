@@ -10,7 +10,7 @@ import {
 
 describe('AMQPTransport', function AMQPTransportTestSuite() {
 
-  this.timeout(600_000)
+  this.timeout(30000)
 
   const RABBITMQ_HOST = process.env.RABBITMQ_PORT_5672_TCP_ADDR || 'localhost'
   const RABBITMQ_PORT = +(process.env.RABBITMQ_PORT_5672_TCP_PORT || 5672)
@@ -25,7 +25,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
   const amqp: AMQPTransport= new AMQPTransport(configuration)
 
-  it('is able to connect to rabbitmq', async () => {
+  before('is able to connect to rabbitmq', async () => {
     await amqp.connect()
     assert.equal(amqp.state, ConnectionState.open)
   })
@@ -60,6 +60,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
   it('should be able to declare queue and bind it to existing exchange', async () => {
     const { queue } = await amqp.createQueue({ queue: `bound-queue` })
     await queue.bind("amq.direct", "bound-queue")
+    console.error('pre-publish')
     await amqp.publish("bound-queue", { "foo": "bar" }, { confirm: true })
   })
 
@@ -145,7 +146,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     await amqp.publish("after-reconnect-queue", { "foo": "bar" }, { confirm: false })
   })
 
-  it('is able to disconnect', async () => {
+  after('is able to disconnect', async () => {
     // uncomment to check channels and messages in rabbitmq control panel
     // await new Promise(h => setTimeout(h, 60_000))
     await amqp.close()

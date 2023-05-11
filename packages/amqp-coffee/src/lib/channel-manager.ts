@@ -57,6 +57,7 @@ export class ChannelManager {
     }
 
     const i = Math.floor(Math.random() * pool.length)
+    debug(3, () => ['returning publisher channel', pool[i].channel])
     return pool[i]
   }
 
