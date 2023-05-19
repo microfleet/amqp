@@ -1,7 +1,7 @@
 import { ConsumeHandlerOpts } from '@microfleet/amqp-coffee'
 import { MSError, SerializedError } from './utils/serialization'
 import { PartialDeep } from 'type-fest'
-import { Configuration, Queue as QueueOptions } from './schema'
+import { Configuration } from './schema'
 import { MessageConsumer } from './router'
 import { AMQPTransport } from './'
 
@@ -12,6 +12,7 @@ export type ConsumeOpts = ConsumeHandlerOpts & {
   multiAckAfter?: number
   preEvent?: string | symbol
   postEvent?: string | symbol
+  autoDeserialize?: boolean
 }
 
 /**
@@ -94,7 +95,7 @@ export const create = (
 export const connect = async (
   config: PartialDeep<Configuration>,
   _messageHandler?: MessageConsumer,
-  _opts: Partial<QueueOptions> = {}
+  _opts: Partial<ConsumeOpts> = {}
 ) => {
   const [amqp, messageHandler] = create(config, _messageHandler)
 

@@ -6,7 +6,7 @@ import sinon from 'sinon'
 import assert from 'assert'
 import microtime from 'microtime'
 import { promisify } from 'util'
-import { gzip as _gzip } from 'zlib'
+import { gzip as _gzip, gunzip as _gunzip } from 'zlib'
 import { setTimeout } from 'timers/promises'
 import { timesLimit } from 'async'
 
@@ -28,6 +28,7 @@ import { v4 } from 'uuid'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const debug = require('debug')('amqp')
 const gzip = promisify(_gzip)
+const gunzip = promisify(_gunzip)
 
 describe('AMQPTransport', function AMQPTransportTestSuite() {
   const RABBITMQ_HOST = process.env.RABBITMQ_PORT_5672_TCP_ADDR || 'localhost'
@@ -789,7 +790,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
       await proxy.close()
     })
 
-    function router(messageBody: any, properties: ExtendedMessageProperties, raw: Message, next: ResponseHandler) {
+    const router = (messageBody: any, properties: ExtendedMessageProperties, raw: Message, next: ResponseHandler) => {
       const error = new Error('Error occured but at least you still have your headers')
 
       switch (properties.routingKey) {
@@ -933,6 +934,92 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
           assert.deepStrictEqual(msg, sample)
         }
       }
+    })
+  })
+
+  describe('autoConsumed + router + autoDeserialize = false', () => {
+    let transport: AMQPTransport
+    let publisher: AMQPTransport
+
+    const queue = v4()
+    const listen = v4()
+    const bufutf8 = Buffer.from('a'.repeat(5000))
+
+    let gzipped = 0
+    let string = 0
+
+    before('init transport', async () => {
+      const router = async (body: Buffer | Error, m: Message): Promise<any> => {
+        assert(Buffer.isBuffer(body))
+        assert(Buffer.isBuffer(m.raw))
+        assert(body.equals(m.raw))
+
+        if (m.properties.contentEncoding === 'gzip') {
+          (await gunzip(body)).equals(bufutf8)
+          gzipped += 1
+        } else {
+          assert(body.equals(bufutf8))
+          string += 1
+        }
+
+        return { gzipped, string, tag: m.deliveryTag }
+      }
+
+      transport = await connect({
+        connection: {
+          host: RABBITMQ_HOST,
+          port: RABBITMQ_PORT,
+        },
+        debug: false,
+        exchange: 'test-direct',
+        listen: [listen],
+        queue,
+        exchangeArgs: {
+          autoDelete: false,
+          type: 'direct',
+        },
+        defaultQueueOpts: {
+          autoDelete: true,
+          exclusive: true,
+        },
+        name: 'consumer'
+      }, router, {
+        autoDeserialize: false,
+      })
+
+      publisher = await connect({
+        name: 'publisher',
+        connection: {
+          host: RABBITMQ_HOST,
+          port: RABBITMQ_PORT,
+        },
+        debug: false,
+        exchange: 'test-direct',
+      })
+    })
+
+    after('cleanup', async () => {
+      await transport.close()
+      await publisher.close()
+    })
+
+    it('publish and read messages of different varieties', async () => {
+      const bufutf8gzip = await gzip(bufutf8)
+
+      await timesLimit(20, 500, async () => {
+        return publisher.publishAndWait(listen, bufutf8, { timeout: 10000, gzip: false, skipSerialize: true })
+      })
+
+      await timesLimit(20, 500, async () => {
+        return publisher.publishAndWait(listen, bufutf8gzip, { timeout: 10000, gzip: true, skipSerialize: true })
+      })
+
+      await timesLimit(20, 500, async () => {
+        return publisher.publishAndWait(listen, bufutf8, { timeout: 10000, gzip: true })
+      })
+
+      assert.equal(gzipped, 0)
+      assert.equal(string, 60)
     })
   })
 

@@ -36,7 +36,9 @@ const transformData = (data: string | Record<string, any> | Buffer | undefined, 
   if (typeof data === 'string') {
     options.contentType = 'string/utf8'
     return Buffer.from(data, 'utf8')
-  } if (typeof data === 'object' && !Buffer.isBuffer(data)) {
+  } 
+
+  if (typeof data === 'object' && !Buffer.isBuffer(data)) {
     if (options.contentType != null) {
       debug(1, () => `contentType specified but data isn't a buffer, ${JSON.stringify(options)}`)
       throw new Error('contentType specified but data isn\'t a buffer')
@@ -45,7 +47,9 @@ const transformData = (data: string | Record<string, any> | Buffer | undefined, 
     // default use JSON
     options.contentType = 'application/json'
     return Buffer.from(JSON.stringify(data), 'utf8')
-  } if (data === undefined) {
+  }
+
+  if (data === undefined) {
     options.contentType = 'application/undefined'
     return Buffer.allocUnsafe(0)
   }

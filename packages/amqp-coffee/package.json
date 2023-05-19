@@ -34,6 +34,7 @@
   "dependencies": {
     "@microfleet/amqp-codec": "workspace:^",
     "async": "^3.2.3",
+    "bl": "^6.0.1",
     "bson": "^5.3.0",
     "bytes": "^3.1.2",
     "debug": "^4.3.4",
@@ -54,6 +55,7 @@
     "@types/lodash": "^4.14.194",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.1.2",
+    "@types/readable-stream": "^2.3.15",
     "@types/ref-napi": "^3.0.7",
     "@types/sinon": "^10.0.14",
     "@types/uuid": "^9.0.1",

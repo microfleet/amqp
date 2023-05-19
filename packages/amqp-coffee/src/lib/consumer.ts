@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+// we dont want to take perf hit for non-null assertion where we know that object exists ^
 // Consumer
 import os = require('os')
 import { defaults as applyDefaults } from 'lodash'
@@ -64,8 +66,8 @@ export class Consumer extends Channel {
   public consumerTag = ''
 
   public outstandingDeliveryTags = new Set<number>()
-  private messageHandler!: MessageHandler
-  private incomingMessage!: MessageFactory
+  private messageHandler: MessageHandler | null = null
+  private incomingMessage: MessageFactory | null = null
   private qos = false
   private qosOptions: QosOptions | null = null
 
@@ -269,6 +271,8 @@ export class Consumer extends Channel {
     debug(1, () => [this.channel, "_channelClosed", reason.message])
 
     this.outstandingDeliveryTags = new Set()
+    this.incomingMessage?.cleanup()
+
     if (this.connection.state === ConnectionState.open 
         && this.consumerState === CONSUMER_STATES.CONSUMER_STATE_OPEN) {
       debug(1, () => [this.channel, "consumerState < Channel Closed"])
@@ -374,8 +378,8 @@ export class Consumer extends Channel {
   }
 
   _onContentHeader(channel: number, { size, weight, properties }: ContentHeader) {
-    this.incomingMessage.setProperties(weight, size, properties)
-    this.incomingMessage.evaluateMaxFrame(this.connection.frameMax - MaxEmptyFrameSize)
+    this.incomingMessage!.setProperties(weight, size, properties)
+    this.incomingMessage!.evaluateMaxFrame(this.connection.frameMax - MaxEmptyFrameSize)
 
     if (size == 0) {
       this._onContent(channel, null)
@@ -387,20 +391,21 @@ export class Consumer extends Channel {
 
     if (chunk !== null) {
       debug(4, () => 'handling chunk')
-      incomingMessage.handleChunk(chunk)
+      incomingMessage!.handleChunk(chunk)
     }
 
-    if (incomingMessage.ready()) {
-      const message = incomingMessage.create(this)
-      debug(4, () => ['message ready', message.deliveryTag, message.properties])
+    if (incomingMessage!.ready()) {
+      incomingMessage!.create(this).then((message) => {
+        debug(4, () => ['message ready', message.deliveryTag, message.properties])
 
-      const { deliveryTag } = message
-      if (deliveryTag !== undefined) {
-        this.outstandingDeliveryTags.add(deliveryTag)
-        debug(4, () => ['outstanding tags', this.outstandingDeliveryTags.size])
-      }
+        const { deliveryTag } = message
+        if (deliveryTag !== undefined) {
+          this.outstandingDeliveryTags.add(deliveryTag)
+          debug(4, () => ['outstanding tags', this.outstandingDeliveryTags.size])
+        }
 
-      queueMicrotask(() => this.messageHandler(message))
+        this.messageHandler!(message)
+      })
     }
   }
 

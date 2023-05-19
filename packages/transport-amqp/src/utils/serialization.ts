@@ -1,8 +1,8 @@
-import is = require('is');
-import flatstr = require('flatstr')
-import stringify = require('json-stringify-safe')
+import is from 'is'
+import flatstr from 'flatstr'
+import stringify from 'json-stringify-safe'
 import { ValidationError } from 'common-errors'
-import { gunzip as _gunzip, gzip as _gzip } from 'zlib'
+import { gunzip as _gunzip, gzip as _gzip, brotliCompress as _brotliCompress } from 'node:zlib'
 import { promisify } from 'util'
 import { Publish as PublishOptions } from '../schema'
 
@@ -20,6 +20,7 @@ export type SerializedError = {
 const PARSE_ERR = new ValidationError('couldn\'t deserialize input', '500', 'message.raw')
 const gunzip = promisify(_gunzip)
 const gzip = promisify(_gzip)
+const brotliCompress = promisify(_brotliCompress)
 
 // error data that is going to be copied
 const copyErrorData = [
@@ -172,18 +173,24 @@ export function jsonDeserializer(_: string, value: any) {
  */
 export const serialize = async (message: any, publishOptions: PublishOptions): Promise<Buffer> => {
   let serialized: Buffer
-  switch (publishOptions.contentType) {
-    case 'application/json':
-    case 'string/utf8':
-      serialized = Buffer.from(flatstr(stringify(message, jsonSerializer)))
-      break
+  if (!Buffer.isBuffer(message)) {
+    switch (publishOptions.contentType) {
+      case 'application/json':
+      case 'string/utf8':
+        serialized = Buffer.from(flatstr(stringify(message, jsonSerializer)))
+        break
 
-    default:
-      throw new Error('invalid content-type')
+      default:
+        throw new Error('invalid content-type')
+    }
+  } else {
+    serialized = message
   }
 
   if (publishOptions.contentEncoding === 'gzip') {
     return gzip(serialized)
+  } else if (publishOptions.contentEncoding === 'br') {
+    return brotliCompress(serialized)
   }
 
   return serialized

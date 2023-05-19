@@ -1,9 +1,12 @@
 /* eslint-disable max-classes-per-file */
 
 import bson = require('bson')
+import { strict as assert } from 'node:assert'
+import {  Transform } from 'node:stream'
+import { createBrotliDecompress, createGunzip } from 'node:zlib'
+import BufferListStream from 'bl'
 import { MethodFrameBasicDeliver } from '@microfleet/amqp-codec'
 import type { Consumer } from './consumer'
-import { assert } from 'console'
 
 export type IncomingMessage = MethodFrameBasicDeliver['args']
 
@@ -59,10 +62,14 @@ const emptyBuffer = Buffer.alloc(0)
 export const kSub = Symbol.for('@microfleet/amqp-coffee:subscription')
 export const kData = Symbol.for('@microfleet/amqp-coffee:data')
 export const kUsed = Symbol.for('@microfleet/amqp-coffee:used')
+export const kDecoder = Symbol.for('@microfleet/amqp-coffee:decoder')
+export const kError = Symbol.for('@microfleet/amqp-coffee:error')
+export const kFinished = Symbol.for('@microfleet/amqp-coffee:finished')
 export const kArbitrary = Symbol('@microfleet/amqp-coffee:arbitrary')
+
 export class Message {
   public properties: MessageProperties
-  public readonly raw: Buffer
+  public readonly raw: Buffer | Error
   public readonly size: number
   public readonly deliveryTag?: number
   public readonly routingKey?: string
@@ -78,7 +85,7 @@ export class Message {
     const { properties, args, size } = factory
 
     // message content
-    this.raw = factory[kData] || emptyBuffer
+    this.raw = factory[kData] || factory[kError] || emptyBuffer
 
     // msg properties
     this.properties = properties
@@ -98,6 +105,10 @@ export class Message {
   get data() {
     const { contentType } = this.properties
     const { raw, size } = this
+
+    if (raw instanceof Error) {
+      return raw
+    }
 
     // eslint-disable-next-line default-case
     switch (contentType) {
@@ -153,12 +164,31 @@ export class Message {
   }
 }
 
+function prepareBufferStream(factory: MessageFactory, decoder: Transform): void {
+  factory[kDecoder] = decoder
+  factory[kFinished] = new Promise<void>((resolve) => {
+    decoder.pipe(new BufferListStream((err: Error | null, data: Buffer) => {
+      if (err) {
+        factory[kError] = err
+        resolve()
+        return
+      }
+
+      factory[kData] = data
+      resolve()
+    }))
+  })
+}
+
 export class MessageFactory {
   public weight = 0
   public size = 0
   public properties!: MessageProperties
   public [kUsed] = 0
   public [kData]: Buffer | null = null
+  public [kDecoder]: Transform | null = null
+  public [kError]: Error | null = null
+  public [kFinished]: Promise<void> | null = null
 
   constructor(public args: IncomingMessage) {
 
@@ -168,12 +198,25 @@ export class MessageFactory {
     this.weight = weight
     this.size = size
     this.properties = properties
+    const { contentEncoding } = this.properties
+    
+    if (size > 0) {
+      // we'll perform streaming decompression and set encoding to plain for further processing
+      // based on contentType
+      if (contentEncoding === 'gzip') {
+        prepareBufferStream(this, createGunzip())
+        this.properties.contentEncoding = 'plain'
+      } else if (contentEncoding === 'br') {
+        prepareBufferStream(this, createBrotliDecompress())
+        this.properties.contentEncoding = 'plain'
+      }
+    }
   }
 
   evaluateMaxFrame(maxFrame: number) {
     // if we're only expecting one packet lets just copy the buffer when we get it
     // otherwise lets create a new incoming data buffer and pre alloc the space
-    if (this.size > maxFrame) {
+    if (this.size > maxFrame && this[kDecoder] === null) {
       this[kData] = Buffer.allocUnsafe(this.size)
     }
   }
@@ -186,16 +229,21 @@ export class MessageFactory {
   handleChunk(chunk: Buffer): void {
     const { size } = this
     const { length } = chunk
-    const currentBuf = this[kData]
 
-    if (currentBuf === null && size === length) {
+    const currentBuf = this[kData]
+    const decoder = this[kDecoder]
+    const used = this[kUsed]
+
+    // update used size
+    this[kUsed] = used + length
+
+    if (decoder !== null) {
+      decoder[this[kUsed] >= size ? 'end' : 'write'](chunk)
+    } else if (currentBuf === null && size === length) {
       this[kData] = chunk
-      this[kUsed] = length
     } else if (currentBuf) {
       // if there are multiple packets just copy the data starting from the last used bit.
-      const used = this[kUsed]
       chunk.copy(currentBuf, used)
-      this[kUsed] = used + length
     } else {
       assert('invalid data handling logic')
     }
@@ -208,12 +256,23 @@ export class MessageFactory {
     return this[kUsed] >= this.size || this.size == 0
   }
 
+  cleanup() {
+    this[kData] = null
+    this[kError] = null
+    this[kFinished] = null
+    this[kDecoder]?.destroy()
+  }
+
   /**
    * Returns parsed message instance
    * @param {Consumer} subscription
    * @returns
    */
-  create(subscription: Consumer): Message {
+  async create(subscription: Consumer): Promise<Message> {
+    if (this[kData] === null && this[kDecoder] !== null) {
+      await this[kFinished]
+    }
+
     return new Message(this, subscription)
   }
 }

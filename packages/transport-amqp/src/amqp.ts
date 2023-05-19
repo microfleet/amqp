@@ -66,7 +66,8 @@ export interface ReplyOptions {
 
 export interface ConsumedQueueOptions extends Omit<Partial<QueueOptions>, 'queue'> {
   router?: WrappedRouter,
-  queue: string
+  queue: string,
+  autoDeserialize?: boolean
 }
 
 declare module '@microfleet/amqp-coffee' {
@@ -264,7 +265,7 @@ export class AMQPTransport extends EventEmitter {
       consumer?: Consumer
     } = Object.create(null)
 
-    const userParams = typeof opts === 'string' ? { queue: opts } : opts
+    const { autoDeserialize = true, ...userParams } = typeof opts === 'string' ? { queue: opts } : opts
     const requestedName = userParams.queue
     const params: Partial<ConsumedQueueOptions> = merge({ autoDelete: !requestedName, durable: !!requestedName }, userParams)
 
@@ -287,7 +288,7 @@ export class AMQPTransport extends EventEmitter {
     log.info({ queue: queueName }, 'consumer is being created')
 
     // setup consumer
-    const messageHandler = this.prepareConsumer(params.router, true)
+    const messageHandler = this.prepareConsumer(params.router, true, false, autoDeserialize)
 
     ctx.consumer = await amqp.consume(queueName, setQoS(params), messageHandler)
 
@@ -595,13 +596,9 @@ export class AMQPTransport extends EventEmitter {
    * @param listen
    * @param options
    */
-  async createConsumedQueue(messageHandler: MessageConsumer, listen: string[] = [], options: ConsumeOpts = {}) {
+  async createConsumedQueue(messageHandler: MessageConsumer, listen: string[] = [], { autoDeserialize, ...options }: ConsumeOpts = {}) {
     if (is.fn(messageHandler) === false || Array.isArray(listen) === false) {
       throw new ArgumentError('messageHandler and listen must be present')
-    }
-
-    if (is.object(options) === false) {
-      throw new ArgumentError('options')
     }
 
     const { config } = this
@@ -662,7 +659,7 @@ export class AMQPTransport extends EventEmitter {
     
     // define auto-ack schema
     const postEvent = Symbol('consumed:post')
-    const preparedConsumerHandled = this.prepareConsumer(router, true, postEvent)
+    const preparedConsumerHandled = this.prepareConsumer(router, true, postEvent, autoDeserialize)
 
     // unique event for this consumer
     queueOptions.postEvent = postEvent
@@ -1184,6 +1181,7 @@ export class AMQPTransport extends EventEmitter {
     _router: WrappedRouter, 
     emitPre: boolean | string | symbol = false,
     emitPost: boolean | string | symbol = false,
+    autoDeserialize = true
   ) {
     // use bind as it is now fast
     const router = _router.bind(this)
@@ -1197,8 +1195,15 @@ export class AMQPTransport extends EventEmitter {
       const { properties } = incoming
       const { contentType, contentEncoding } = properties
 
+      // message will be skipped and error will be logged
+      if (incoming.raw instanceof Error) {
+        throw incoming.raw
+      }
+
       // parsed input data
-      const messageBody = await deserialize(incoming.raw, contentType, contentEncoding)
+      const messageBody = autoDeserialize 
+        ? await deserialize(incoming.raw, contentType, contentEncoding)
+        : incoming.raw
 
       return messageBody
     }
