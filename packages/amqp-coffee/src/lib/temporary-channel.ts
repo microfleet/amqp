@@ -11,11 +11,18 @@ import { TemporaryChannelCb } from './channel-manager'
 // This is just a skeleton of a simple channel object to pass around
 export class TemporaryChannel extends Channel {
   private cb?: TemporaryChannelCb | null
-  
+
   constructor(connection: Connection, channel: number, cb?: TemporaryChannelCb) {
     super(connection, channel)
     this.temporaryChannel()
     this.cb = cb
+
+    // so that reconnection will be queued in case service is interrupted too soon
+    if (cb) {
+      this.once('open', function onOpen(this: TemporaryChannel) {
+        this.cb?.(null, this)
+      })
+    }
   }
 
   _channelOpen() {
