@@ -298,34 +298,77 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     it('publishes batches of messages, they must return cached values and then new ones', async () => {
       const publish = () => cached.publishAndWait('test.default', 1, { cache: 2000 })
       const spy = sinon.spy(cached, 'publish')
-      const promises = [
-        publish(),
-        publish(),
-        publish(),
-        publish(),
-        publish(),
-        setTimeout(300).then(publish),
-        setTimeout(5000).then(publish),
-      ]
 
-      const [
-        initial,
-        one, two, three, four,
-        cachedP, 
-        nonCached
-      ] = await Promise.all(promises)
+      try {
+        const promises = [
+          publish(),
+          publish(),
+          publish(),
+          publish(),
+          publish(),
+          setTimeout(300).then(publish),
+          setTimeout(5000).then(publish),
+        ]
 
-      // only called twice - once after expiration and everything else is deduped or read from cache
-      assert.equal(spy.callCount, 2)
+        const [
+          initial,
+          one, two, three, four,
+          cachedP, 
+          nonCached
+        ] = await Promise.all(promises)
 
-      // all identical
-      assert.equal(toMiliseconds(initial.time), toMiliseconds(one.time))
-      assert.equal(toMiliseconds(initial.time), toMiliseconds(two.time))
-      assert.equal(toMiliseconds(initial.time), toMiliseconds(three.time))
-      assert.equal(toMiliseconds(initial.time), toMiliseconds(four.time))
+        // only called twice - once after expiration and everything else is deduped or read from cache
+        assert.equal(spy.callCount, 2)
 
-      assert.equal(toMiliseconds(initial.time), toMiliseconds(cachedP.time))
-      assert(toMiliseconds(initial.time) < toMiliseconds(nonCached.time))
+        // all identical
+        assert.equal(toMiliseconds(initial.time), toMiliseconds(one.time))
+        assert.equal(toMiliseconds(initial.time), toMiliseconds(two.time))
+        assert.equal(toMiliseconds(initial.time), toMiliseconds(three.time))
+        assert.equal(toMiliseconds(initial.time), toMiliseconds(four.time))
+
+        assert.equal(toMiliseconds(initial.time), toMiliseconds(cachedP.time))
+        assert(toMiliseconds(initial.time) < toMiliseconds(nonCached.time))
+      } finally {
+        spy.restore()
+      }
+    })
+
+    it('publishes batches of messages, they must return cached values and then new ones', async () => {
+      const publish = () => cached.publishAndWait('test.default', 1, { cache: true })
+      const spy = sinon.spy(cached, 'publish')
+
+      try {
+        const promises = [
+          publish(),
+          publish(),
+          publish(),
+          publish(),
+          publish(),
+          setTimeout(300).then(publish),
+          setTimeout(5000).then(publish),
+        ]
+
+        const [
+          initial,
+          one, two, three, four,
+          nonCached1,
+          nonCached2
+        ] = await Promise.all(promises)
+
+        // only called twice - once after expiration and everything else is deduped or read from cache
+        assert.equal(spy.callCount, 3)
+
+        // all identical
+        assert.equal(toMiliseconds(initial.time), toMiliseconds(one.time))
+        assert.equal(toMiliseconds(initial.time), toMiliseconds(two.time))
+        assert.equal(toMiliseconds(initial.time), toMiliseconds(three.time))
+        assert.equal(toMiliseconds(initial.time), toMiliseconds(four.time))
+
+        assert(toMiliseconds(initial.time) < toMiliseconds(nonCached1.time))
+        assert(toMiliseconds(nonCached1.time) < toMiliseconds(nonCached2.time))
+      } finally {
+        spy.restore()
+      }
     })
   })
 
@@ -707,7 +750,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         fail = reject
       })
 
-      const { queue, consumer } = await transport.createConsumedQueue(router)
+      const { queue } = await transport.createConsumedQueue(router)
 
       await transport.bindExchange(queue, '/')
 

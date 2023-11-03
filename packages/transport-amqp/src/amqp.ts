@@ -304,7 +304,7 @@ export class AMQPTransport extends EventEmitter {
     }
 
     const consumerTag = consumer.consumerTag
-    let interval: NodeJS.Timer | null = null
+    let interval: NodeJS.Timeout | null = null
     let sortedList: number[] = []
     let latestConfirm = 0
     let smallestUnconfirmedDeliveryTag = Number.MAX_SAFE_INTEGER
@@ -766,7 +766,9 @@ export class AMQPTransport extends EventEmitter {
 
     await Promise.race([
       consumer.cancel(),
-      setTimeout(5000)
+      setTimeout(5000, undefined, {
+        ref: false,
+      })
     ])
 
     this.log.info({ consumerTag: consumer.consumerTag, queue: consumer.consumeOptions?.queue }, 'closed consumer')

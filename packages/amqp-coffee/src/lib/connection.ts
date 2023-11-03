@@ -97,9 +97,9 @@ export class Connection extends EventEmitter {
 
   private parser!: Parser
   private readonly serializer: Serializer
-  private _connectTimeout: NodeJS.Timer | null = null
-  private heartbeatTimer: NodeJS.Timer | null = null
-  private sendHeartbeatTimer: NodeJS.Timer | null = null
+  private _connectTimeout: NodeJS.Timeout | null = null
+  private heartbeatTimer: NodeJS.Timeout | null = null
+  private sendHeartbeatTimer: NodeJS.Timeout | null = null
   private opening$P: Promise<void> | undefined
 
   // for optional module loading

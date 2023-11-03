@@ -23,14 +23,18 @@ export class Cache {
   /**
    *
    * @param message
-   * @param maxAge
+   * @param ttlOrMaxAge
    */
-  get(message: any, maxAge: number | undefined): null | string | { maxAge: number, value: any } {
+  get(message: any, ttlOrMaxAge: number | boolean | undefined): null | string | { maxAge: number, value: any } {
     if (this.enabled === false) {
       return null
     }
 
-    if (typeof maxAge !== 'number' || maxAge <= 0) {
+    if (ttlOrMaxAge === true) {
+      return typeof message === 'string' ? message : stringify(message) as string
+    }
+
+    if (typeof ttlOrMaxAge !== 'number' || ttlOrMaxAge <= 0) {
       return null
     }
 
@@ -38,7 +42,7 @@ export class Cache {
     const response = this.cache.get(hashKey)
 
     if (response !== undefined) {
-      if (latency(response.maxAge) < maxAge) {
+      if (latency(response.maxAge) < ttlOrMaxAge) {
         return response
       }
 
