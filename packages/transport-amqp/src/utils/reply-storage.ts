@@ -15,7 +15,7 @@ export interface PushOptions {
   simple?: boolean // whether return body - only response or include headers
   time: [number, number] // process.hrtime() results.
   replyOptions: Record<string, any>
-  timer: NodeJS.Timer | null
+  timer: NodeJS.Timeout | null
   future: Future | null
   cache?: string | null
 }
