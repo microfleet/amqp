@@ -86,7 +86,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
 
     const enumFromSet = (name: string, set: Set<string>): ts.EnumDeclaration => {
         return ts.factory.createEnumDeclaration(
-            undefined,
             [
                 ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
                 ts.factory.createModifier(ts.SyntaxKind.ConstKeyword)
@@ -101,7 +100,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
 
     const unionFromSet = (name: string, set: Set<string>): ts.TypeAliasDeclaration => {
         return ts.factory.createTypeAliasDeclaration(
-            undefined,
             [
                 ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
                 // ts.factory.createModifier(ts.SyntaxKind.ConstKeyword)
@@ -115,7 +113,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     }
 
     const frameTypes = ts.factory.createEnumDeclaration(
-        undefined,
         [
             ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
             ts.factory.createModifier(ts.SyntaxKind.ConstKeyword)
@@ -139,7 +136,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     // const classNamesUnion = unionFromSet('ClassNames', classNames)
 
     const fieldTypeConversion = ts.factory.createTypeAliasDeclaration(
-        undefined,
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
         ts.factory.createIdentifier('FieldTypeEquality'),
         undefined,
@@ -157,7 +153,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     )
 
     const classIdsEnum = ts.factory.createEnumDeclaration(
-        undefined,
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword), ts.factory.createModifier(ts.SyntaxKind.ConstKeyword)],
         'ClassIds',
         Array.from(classIdToNames.entries()).map(([classIndex, name]) => ts.factory.createEnumMember(
@@ -167,7 +162,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     )
     
     const classMethodIdsEnum = ts.factory.createTypeAliasDeclaration(
-        undefined,
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
         ts.factory.createIdentifier('ClassMethodIds'),
         undefined,
@@ -177,7 +171,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     )
 
     const fieldType = ts.factory.createTypeAliasDeclaration(
-        undefined,
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
         ts.factory.createIdentifier('Field'),
         undefined,
@@ -199,7 +192,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
 
     const methodTypes = Object.values(classMethodTable).map((method) => {
         return ts.factory.createTypeAliasDeclaration(
-            undefined, 
             [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
             ts.factory.createIdentifier(method.name),
             undefined,
@@ -252,7 +244,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     }, Object.create(null))
 
     const methodArgTypes = ts.factory.createTypeAliasDeclaration(
-        undefined,
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
         ts.factory.createIdentifier('MethodArgTypes'),
         undefined,
@@ -274,7 +265,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         const frameName = `MethodFrame${method.name[0].toUpperCase()}${method.name.slice(1)}`
         methodFrameNames[name] = frameName
         return ts.factory.createTypeAliasDeclaration(
-            undefined,
             [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
             ts.factory.createIdentifier(frameName),
             undefined,
@@ -316,7 +306,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
 
     // --- Discriminating Union
     const methodFrame = ts.factory.createTypeAliasDeclaration(
-        undefined,
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
         ts.factory.createIdentifier('MethodFrame'),
         undefined,
@@ -324,7 +313,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     )
 
     const methodFrameOk = ts.factory.createTypeAliasDeclaration(
-        undefined,
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
         ts.factory.createIdentifier('MethodFrameOk'),
         undefined,
@@ -356,7 +344,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
 
     const classTypes = Object.values(classes).map((classInfo) => {
         return ts.factory.createTypeAliasDeclaration(
-            undefined,
             [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
             ts.factory.createIdentifier(classInfo.name),
             undefined,
@@ -396,8 +383,7 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
         )
     })
 
-    const methodType = ts.factory.createTypeAliasDeclaration(
-        undefined, 
+    const methodType = ts.factory.createTypeAliasDeclaration( 
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
         ts.factory.createIdentifier('MethodsTable'),
         undefined,
@@ -446,7 +432,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     )
 
     const classType = ts.factory.createTypeAliasDeclaration(
-        undefined,
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
         ts.factory.createIdentifier('Classes'),
         undefined,
@@ -514,7 +499,6 @@ import * as protocol from '../src/amqp-definitions-0-9-1'
     )
 
     const classMethodsType = ts.factory.createTypeAliasDeclaration(
-        undefined,
         [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
         ts.factory.createIdentifier('ClassMethodsTable'),
         undefined,
