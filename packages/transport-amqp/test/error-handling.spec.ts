@@ -60,7 +60,6 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
   it('should be able to declare queue and bind it to existing exchange', async () => {
     const { queue } = await amqp.createQueue({ queue: `bound-queue` })
     await queue.bind("amq.direct", "bound-queue")
-    console.error('pre-publish')
     await amqp.publish("bound-queue", { "foo": "bar" }, { confirm: true })
   })
 
@@ -88,8 +87,6 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
       await amqp.publish("non-empty-queue", { "foo": "bar" }, { confirm: true })
     }
     await assert.rejects(queue.delete(), (err: any) => {
-      console.log(`Precondition failed 406 received`, err)
-      console.error(err)
       assert.equal(err.classId, 50)
       assert.equal(err.methodId, 40)
       assert.equal(err.replyCode, 406)

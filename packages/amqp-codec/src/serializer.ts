@@ -466,7 +466,7 @@ function* encodeBody(serializer: Serializer, channel: number, args: Content): Ge
     buffer.copy(header, 0, 0, 7)
 
     yield header
-    yield body.slice(offset, offset + length)
+    yield body.subarray(offset, offset + length)
     yield EndFrame
 
     offset += length
@@ -495,7 +495,7 @@ export class Serializer {
     }
 
     if (frameSize < this.maxFrameSize) {
-      this.buffer = this.buffer.slice(0, frameSize)
+      this.buffer = this.buffer.subarray(0, frameSize)
     } else {
       this.buffer = Buffer.allocUnsafe(frameSize)
     }

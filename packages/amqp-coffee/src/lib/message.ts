@@ -10,19 +10,59 @@ import type { Consumer } from './consumer'
 
 export type IncomingMessage = MethodFrameBasicDeliver['args']
 
+
+
+// <!--  MIME typing -->
+// <field name = "content-type"    domain = "shortstr"   label = "MIME content type" />
+// <!--  MIME typing -->
+// <field name = "content-encoding" domain = "shortstr"  label = "MIME content encoding" />
+// <!--  For applications, and for header exchange routing -->
+// <field name = "headers"         domain = "table"      label = "message header field table" />
+// <!--  For queues that implement persistence -->
+// <field name = "delivery-mode"   domain = "octet"      label = "non-persistent (1) or persistent (2)" />
+// <!--  For queues that implement priorities -->
+// <field name = "priority"        domain = "octet"      label = "message priority, 0 to 9" />
+// <!--  For application use, no formal behaviour -->
+// <field name = "correlation-id"  domain = "shortstr"   label = "application correlation identifier" />
+// <!--  For application use, no formal behaviour but may hold the
+//       name of a private response queue, when used in request messages -->
+// <field name = "reply-to"        domain = "shortstr"   label = "address to reply to" />
+// <!--  For implementation use, no formal behaviour -->
+// <field name = "expiration"      domain = "shortstr"   label = "message expiration specification" />
+// <!--  For application use, no formal behaviour -->
+// <field name = "message-id"      domain = "shortstr"   label = "application message identifier" />
+// <!--  For application use, no formal behaviour -->
+// <field name = "timestamp"       domain = "timestamp"  label = "message timestamp" />
+// <!--  For application use, no formal behaviour -->
+// <field name = "type"            domain = "shortstr"   label = "message type name" />
+// <!--  For application use, no formal behaviour -->
+// <field name = "user-id"         domain = "shortstr"   label = "creating user id" />
+// <!--  For application use, no formal behaviour -->
+// <field name = "app-id"          domain = "shortstr"   label = "creating application id" />
+// <!--  Deprecated, was old cluster-id property -->
+// <field name = "reserved"        domain = "shortstr"   label = "reserved, must be empty" />
 export interface MessageProperties {
-  headers?: Record<string, any> // amqp headers
+  deliveryMode: 1 | 2
+  confirm: boolean
+  mandatory: boolean
+  immediate: boolean
+  headers: Record<string, any> // amqp headers
   appId?: string // sender diagnostics data
   replyTo?: string // amqp reply-to field
   correlationId?: string // amqp correlation-id
   contentType?: string // amqp message content-type
   contentEncoding?: string // amqp message content-encoding
   userId?: string
+  // message type, optional use
   type?: string
+  // message id, optional use
   messageId?: string
-  timestamp?: Date
+  // timestamp, optional use
+  timestamp?: Date | null
   priority?: number
   expiration?: string
+  exchange: string
+  routingKey: string
 }
 
 export type parseFunction<T, R> = {
@@ -35,7 +75,7 @@ const safeParse = <R>(fn: parseFunction<Buffer, R>, data: Buffer, contentType: s
   } catch (e) {
     process.emitWarning(`data parse to ${contentType} failed`, {
       code: 'E_AMQP_PARSE_FAILED',
-      detail: data.slice(0, Math.min(50, data.length - 1)).toString() + '...', // print 50 chars at most
+      detail: data.subarray(0, Math.min(50, data.length - 1)).toString() + '...', // print 50 chars at most
     })
     return data
   }
@@ -268,11 +308,12 @@ export class MessageFactory {
    * @param {Consumer} subscription
    * @returns
    */
-  async create(subscription: Consumer): Promise<Message> {
+  create(subscription: Consumer): void {
     if (this[kData] === null && this[kDecoder] !== null) {
-      await this[kFinished]
+      this[kFinished]!.then(() => this.create(subscription))
+      return
     }
 
-    return new Message(this, subscription)
+    subscription._onMessageCreated(new Message(this, subscription))
   }
 }

@@ -2,9 +2,9 @@ import is from 'is'
 import flatstr from 'flatstr'
 import stringify from 'json-stringify-safe'
 import { ValidationError } from 'common-errors'
-import { gunzip as _gunzip, gzip as _gzip, brotliCompress as _brotliCompress } from 'node:zlib'
+import { gunzip as _gunzip, gzip as _gzip, brotliCompress as _brotliCompress, brotliDecompress as _brotliDecompress } from 'node:zlib'
 import { promisify } from 'util'
-import { Publish as PublishOptions } from '../schema'
+import { MessageProperties } from '@microfleet/amqp-coffee'
 
 // generate internal error class for passing between amqp
 export type SerializedError = {
@@ -21,6 +21,7 @@ const PARSE_ERR = new ValidationError('couldn\'t deserialize input', '500', 'mes
 const gunzip = promisify(_gunzip)
 const gzip = promisify(_gzip)
 const brotliCompress = promisify(_brotliCompress)
+const brotliDecompress = promisify(_brotliDecompress)
 
 // error data that is going to be copied
 const copyErrorData = [
@@ -171,62 +172,59 @@ export function jsonDeserializer(_: string, value: any) {
  * @param {any} message
  * @param publishOptions
  */
-export const serialize = async (message: any, publishOptions: PublishOptions): Promise<Buffer> => {
+export const serialize = (message: any, messageProperties: MessageProperties): Promise<Buffer> | Buffer => {
+  const { contentType, contentEncoding } = messageProperties
+
   let serialized: Buffer
   if (!Buffer.isBuffer(message)) {
-    switch (publishOptions.contentType) {
+    switch (contentType) {
       case 'application/json':
       case 'string/utf8':
-        serialized = Buffer.from(flatstr(stringify(message, jsonSerializer)))
+        serialized = Buffer.from(flatstr(stringify(message, jsonSerializer)), 'utf-8')
         break
 
       default:
-        throw new Error('invalid content-type')
+        return Promise.reject(new Error('invalid content-type'))
     }
   } else {
     serialized = message
   }
 
-  if (publishOptions.contentEncoding === 'gzip') {
+  if (contentEncoding === 'gzip') {
     return gzip(serialized)
-  } else if (publishOptions.contentEncoding === 'br') {
+  } else if (contentEncoding === 'br') {
     return brotliCompress(serialized)
   }
 
   return serialized
 }
 
+const toUTF8 = (x: Buffer) => x.toString('utf8')
+const toObj = (x: Buffer) => JSON.parse(x.toString('utf8'), jsonDeserializer)
 /**
  * Parses AMQP message
  * @param  _data
  * @param  [contentType='application/json']
  * @param  [contentEncoding='plain']
  */
-export const deserialize = async (_data: Buffer, contentType = 'application/json', contentEncoding = 'plain'): Promise<any> => {
-  let data
-  switch (contentEncoding) {
-    case 'gzip':
-      data = await gunzip(_data)
-      break
+export const deserialize = (_data: Buffer, contentType = 'application/json', contentEncoding = 'plain'): any | Promise<any> => {
+  let data: Promise<any> | null = null
 
-    case 'plain':
-      data = _data
-      break
-
-    default:
-      throw PARSE_ERR
+  if (contentEncoding === 'gzip')  {
+    data = gunzip(_data)
+  } else if (contentEncoding === 'br') {
+    data = brotliDecompress(_data)
+  } else if (contentEncoding !== 'plain') {
+    return Promise.reject(PARSE_ERR)
   }
 
-  switch (contentType) {
+  if (contentType === 'string/utf8') {
     // default encoding when we were pre-stringifying and sending str
     // and our updated encoding when we send buffer now
-    case 'string/utf8':
-      return data.toString('utf8')
-
-    case 'application/json':
-      return JSON.parse(data.toString(), jsonDeserializer)
-
-    default:
-      return data
+    return data !== null ? data.then(toUTF8) : toUTF8(_data)
+  } else if (contentType === 'application/json') {
+    return data !== null ? data.then(toObj) : toObj(_data)
   }
+  
+  return data !== null ? data : _data
 }

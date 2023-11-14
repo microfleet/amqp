@@ -8,8 +8,8 @@ export function toMiliseconds(hrtime: [number, number]) {
 /**
  * @param time
  */
-export function latency(time: [number, number]) {
-  return toMiliseconds(process.hrtime(time))
+export function latency(time: number) {
+  return performance.now() - time
 }
 
 export default latency

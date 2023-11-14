@@ -31,7 +31,7 @@ export interface PublishOptions extends MessageProperties {
   deliveryMode: 1 | 2  // transient or persistant, default to 1
 }
 
-const transformData = (data: string | Record<string, any> | Buffer | undefined, options: PublishOptions): Buffer => {
+const transformData = (data: string | Record<string, any> | Buffer | undefined, options: { contentType?: string }): Buffer => {
   // data must be a buffer
   if (typeof data === 'string') {
     options.contentType = 'string/utf8'
@@ -148,7 +148,7 @@ export class Publisher extends Channel {
   publish(exchange: string,
           routingKey: string,
           data: any,
-          _options: Partial<PublishOptions>,
+          _options: PublishOptions,
           _cb?: (err?: Error | null) => void) {
 
     let cb = _cb
@@ -162,11 +162,7 @@ export class Publisher extends Channel {
       .then(() => cb?.(), cb)
   }
 
-  async publishAsync(exchange: string, routingKey: string, _data: any, _options: Partial<PublishOptions>) {
-    const options: PublishOptions = _options
-      ? { ..._options }
-      : Object.create(null)
-
+  async publishAsync(exchange: string, routingKey: string, _data: any, options: PublishOptions = Object.create(null)) {
     if (this._inoperableState()) {
       debug(4, () => ['publish channel in inoperable state'])
       if (this._recoverableState()) {

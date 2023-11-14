@@ -78,11 +78,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/microfleet/amqp-coffee.git",
+    "url": "https://github.com/microfleet/amqp.git",
     "directory": "packages/amqp-coffee"
   },
   "engines": {
-    "node": ">= 14.17"
+    "node": ">= 18.17"
   },
   "files": [
     "bin/src/",

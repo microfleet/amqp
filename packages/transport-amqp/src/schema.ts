@@ -1,9 +1,19 @@
-import baseJoi from 'joi'
-import { Logger } from 'pino'
+import baseJoi, { AnySchema } from 'joi'
+import { Logger, LoggerOptions } from 'pino'
 import { ConnectionOptions, ExchangeOptions, PublishOptions, QueueOptions } from '@microfleet/amqp-coffee'
 import { Backoff, Settings as BackoffSettings } from './utils/recovery'
 
-export const Joi = baseJoi.extend((joi) => ({
+interface CoercedArraySchema<TSchema = string[] | string> extends AnySchema<TSchema> {
+  /**
+   * Allows for additional values to be considered valid booleans by converting them to false during validation.
+   * String comparisons are by default case insensitive,
+   * see `boolean.sensitive()` to change this behavior.
+   * @param values - strings, numbers or arrays of them
+   */
+  coercedArray(): this;
+}
+
+export const Joi: baseJoi.Root & CoercedArraySchema = baseJoi.extend((joi) => ({
   type: 'coercedArray',
   base: joi.alternatives().try(
     joi.array().items(joi.string()).unique(),
@@ -44,13 +54,31 @@ export interface Publish extends Partial<PublishOptions> {
   gzip?: boolean // whether to encode using gzip
   skipSerialize?: boolean // whether it was already serialized earlier
   simpleResponse?: boolean
-  reuse?: boolean
-  cache?: number | true // set to a value larger than 0 to cache the response
+  cache?: number // set to a value larger than 0 to cache the response
+}
+
+export interface DefaultPublishOptions {
+  deliveryMode: 1 | 2
+  confirm: boolean
+  mandatory: boolean
+  immediate: boolean
+  contentType: string
+  contentEncoding: string
+  headers: Record<string, any>
+  simpleResponse: boolean
+  priority: number
+  exchange: string
+  cache: number
+  gzip: boolean
+  skipSerialize: boolean
+  appId: string
+  timeout: number
 }
 
 export interface Configuration {
   name: string
   log?: Logger
+  logOptions?: LoggerOptions
   private: boolean
   cache: number
   timeout: number
@@ -75,12 +103,7 @@ export interface Configuration {
     enabled: boolean
     params: Exchange & { exchange: string }
   }
-  defaultOpts: Pick<
-    Publish, 
-    'deliveryMode' | 'confirm' | 'mandatory' | 
-    'immediate' | 'contentType' | 'contentEncoding' | 
-    'headers' | 'simpleResponse'
-  >
+  defaultOpts: DefaultPublishOptions
 }
 
 export const schema = Joi
@@ -354,7 +377,7 @@ export const schema = Joi
       .default(),
 
     defaultOpts: Joi
-      .object({
+      .object<DefaultPublishOptions>({
         deliveryMode: Joi.number().valid(1, 2)
           .description('1 - transient, 2 - saved on disk')
           .default(1),
@@ -379,12 +402,31 @@ export const schema = Joi
           .default('plain')
           .description('default content-encoding'),
 
-        headers: Joi.object()
+        headers: Joi.object<Record<string, any>>()
           .default(),
 
         simpleResponse: Joi.boolean()
           .description('whether to return only response data or include headers etc.')
           .default(true),
+        
+        priority: Joi.number()
+          .description('message priority when using priority extension')
+          .default(0),
+        
+        exchange: Joi.string()
+          .description('exchange to publish the message to')
+          .default(''),
+
+        cache: Joi.number()
+          .default(-1),
+        
+        gzip: Joi.boolean()
+          .description('set to true to encode content')
+          .default(false),
+        
+        skipSerialize: Joi.boolean()
+          .description('skips serializing message, it must be instanceof Buffer at this point')
+          .default(false)
       })
       .description('default options when publishing messages')
       .default(),

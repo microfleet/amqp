@@ -131,6 +131,11 @@ export class Consumer extends Channel {
     this.consumeOptions = consumeOptions
     this.qosOptions = qosOptions
 
+    // select correct version
+    this._onMessageCreated = this.qosEnabled()
+      ? this._onMessageCreatedWithQos
+      : this._onMessageCreatedNoQos
+
     return this._consume()
   }
 
@@ -306,7 +311,7 @@ export class Consumer extends Channel {
   }
 
   qosEnabled(): boolean {
-    return this.qos && this.consumeOptions?.noAck !== true
+    return this.qos && this.consumeOptions!.noAck !== true
   }
 
   deliveryOutstanding(deliveryTag: number): boolean {
@@ -395,18 +400,31 @@ export class Consumer extends Channel {
     }
 
     if (incomingMessage!.ready()) {
-      incomingMessage!.create(this).then((message) => {
-        debug(4, () => ['message ready', message.deliveryTag, message.properties])
-
-        const { deliveryTag } = message
-        if (deliveryTag !== undefined) {
-          this.outstandingDeliveryTags.add(deliveryTag)
-          debug(4, () => ['outstanding tags', this.outstandingDeliveryTags.size])
-        }
-
-        this.messageHandler!(message)
-      })
+      incomingMessage!.create(this)
     }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _onMessageCreated(message: Message): void {
+    throw new Error('must be overwritten')
+  }
+
+  _onMessageCreatedNoQos(message: Message) {
+    debug(4, () => ['message ready', message.deliveryTag, message.properties])
+
+    this.messageHandler!(message)
+  }
+
+  _onMessageCreatedWithQos(message: Message) {
+    debug(4, () => ['message ready', message.deliveryTag, message.properties])
+
+    const { deliveryTag } = message
+    if (deliveryTag !== undefined) {
+      this.outstandingDeliveryTags.add(deliveryTag)
+      debug(4, () => ['outstanding tags', this.outstandingDeliveryTags.size])
+    }
+
+    this.messageHandler!(message)
   }
 
   _onChannelReconnect(cb: (err?: Error | null, result?: any) => void): void {

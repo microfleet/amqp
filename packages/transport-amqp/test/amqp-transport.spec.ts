@@ -1,10 +1,10 @@
 import { HttpStatusError, Error as CommonError } from 'common-errors'
 import { route as Proxy } from '@microfleet/amqp-coffee/test/proxy.js'
 import ld from 'lodash'
+import { performance } from 'node:perf_hooks'
 import stringify from 'json-stringify-safe'
 import sinon from 'sinon'
 import assert from 'assert'
-import microtime from 'microtime'
 import { promisify } from 'util'
 import { gzip as _gzip, gunzip as _gunzip } from 'zlib'
 import { setTimeout } from 'timers/promises'
@@ -21,7 +21,6 @@ import {
   ResponseHandler,
   kReplyHeaders,
 } from '../src'
-import { toMiliseconds } from '../src/utils/latency'
 import { ConnectionState, Message } from '@microfleet/amqp-coffee'
 import { v4 } from 'uuid'
 
@@ -29,6 +28,8 @@ import { v4 } from 'uuid'
 const debug = require('debug')('amqp')
 const gzip = promisify(_gzip)
 const gunzip = promisify(_gunzip)
+
+const formatMemoryUsage = (data: number) => `${Math.round(data / 1024 / 1024 * 100) / 100} MB`
 
 describe('AMQPTransport', function AMQPTransportTestSuite() {
   const RABBITMQ_HOST = process.env.RABBITMQ_PORT_5672_TCP_ADDR || 'localhost'
@@ -177,25 +178,24 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
       connection: configuration.connection,
     }
 
-    const amqp = await connect(opts, async (message: any, raw: Message): Promise<any> => {
+    amqp_consumer = await connect(opts, async (message: any, raw: Message): Promise<any> => {
+      amqp.log.debug({ raw }, 'incoming')
+
       if (raw.routingKey === 'test.throw') {
         throw new HttpStatusError(202, 'ok')
       }
 
-      amqp.log.debug({ message }, 'incoming')
-
       return {
         resp: typeof message === 'object' ? message : `${message}-response`,
-        time: process.hrtime(),
+        time: performance.now()
       }
     })
 
     assert.equal(amqp.state, ConnectionState.open)
-    amqp_consumer = amqp
   })
 
   it('error is correctly deserialized', async () => {
-    await assert.rejects(amqp.publishAndWait('test.throw', {}), {
+    await assert.rejects(amqp.publishAndWait('test.throw', {}, { mandatory: true, confirm: true }), {
       name: 'HttpStatusError',
       message: 'ok',
       statusCode: 202,
@@ -285,18 +285,59 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
   describe('cached request', () => {
     let cached: AMQPTransport
-    
-    before('init consumer', async () => {
-      cached = new AMQPTransport(configuration)
+    let cachedConsumer: AMQPTransport
+    let requests = 0
+    let baselineMemoryUsage = process.memoryUsage()
+
+    before('init publisher', async () => {
+      cached = new AMQPTransport({
+        ...configuration,
+        cache: 1000,
+      })
       await cached.connect()
+    })
+
+    before('init consumer', async () => {
+      const opts = {
+        cache: 2000,
+        exchange: configuration.exchange,
+        queue: 'test-queue-consumer-cached',
+        listen: ['cached.test.default', 'cached.test.throw'],
+        connection: configuration.connection,
+      }
+
+      cachedConsumer = await connect(opts, async (message: any, raw: Message): Promise<any> => {
+        requests += 1
+
+        if (requests % 10000 === 0) {
+          const memoryData = process.memoryUsage()
+          const memoryUsage = {
+            rss: `${formatMemoryUsage(memoryData.rss - baselineMemoryUsage.rss)}`, // Resident Set Size - total memory allocated for the process execution
+            heapTotal: `${formatMemoryUsage(memoryData.heapTotal - baselineMemoryUsage.heapTotal)}`, // total size of the allocated heap
+            heapUsed: `${formatMemoryUsage(memoryData.heapUsed - baselineMemoryUsage.heapUsed)}`, // actual memory used during the execution
+            external: `${formatMemoryUsage(memoryData.external - baselineMemoryUsage.external)}`, // V8 external memory
+          }
+          cachedConsumer.log.info({ memoryUsage }, 'processed %d requests', requests)
+        }
+
+        if (raw.routingKey === 'cached.test.throw') {
+          throw new HttpStatusError(202, 'ok')
+        }
+
+        return {
+          resp: typeof message === 'object' ? message : `${message}-response`,
+          time: performance.now()
+        }
+      })
     })
 
     after('close published', async () => {
       await cached.close()
+      await cachedConsumer.close()
     })
 
     it('publishes batches of messages, they must return cached values and then new ones', async () => {
-      const publish = () => cached.publishAndWait('test.default', 1, { cache: 2000 })
+      const publish = () => cached.publishAndWait('cached.test.default', 1, { cache: 2000 })
       const spy = sinon.spy(cached, 'publish')
 
       try {
@@ -321,20 +362,20 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         assert.equal(spy.callCount, 2)
 
         // all identical
-        assert.equal(toMiliseconds(initial.time), toMiliseconds(one.time))
-        assert.equal(toMiliseconds(initial.time), toMiliseconds(two.time))
-        assert.equal(toMiliseconds(initial.time), toMiliseconds(three.time))
-        assert.equal(toMiliseconds(initial.time), toMiliseconds(four.time))
+        assert.equal(initial.time, one.time)
+        assert.equal(initial.time, two.time)
+        assert.equal(initial.time, three.time)
+        assert.equal(initial.time, four.time)
 
-        assert.equal(toMiliseconds(initial.time), toMiliseconds(cachedP.time))
-        assert(toMiliseconds(initial.time) < toMiliseconds(nonCached.time))
+        assert.equal(initial.time, cachedP.time)
+        assert(initial.time < nonCached.time)
       } finally {
         spy.restore()
       }
     })
 
-    it('publishes batches of messages, they must return cached values and then new ones', async () => {
-      const publish = () => cached.publishAndWait('test.default', 1, { cache: true })
+    it('publishes batches of messages, it must dedupe them', async () => {
+      const publish = () => cached.publishAndWait('cached.test.default', 1, { cache: 0 })
       const spy = sinon.spy(cached, 'publish')
 
       try {
@@ -359,16 +400,28 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         assert.equal(spy.callCount, 3)
 
         // all identical
-        assert.equal(toMiliseconds(initial.time), toMiliseconds(one.time))
-        assert.equal(toMiliseconds(initial.time), toMiliseconds(two.time))
-        assert.equal(toMiliseconds(initial.time), toMiliseconds(three.time))
-        assert.equal(toMiliseconds(initial.time), toMiliseconds(four.time))
+        assert.equal(initial.time, one.time)
+        assert.equal(initial.time, two.time)
+        assert.equal(initial.time, three.time)
+        assert.equal(initial.time, four.time)
 
-        assert(toMiliseconds(initial.time) < toMiliseconds(nonCached1.time))
-        assert(toMiliseconds(nonCached1.time) < toMiliseconds(nonCached2.time))
+        assert(initial.time < nonCached1.time)
+        assert(nonCached1.time < nonCached2.time)
       } finally {
         spy.restore()
       }
+    })
+
+    it('does not run out of memory when handling 10 mln messages with cache', async function test() {
+      this.timeout(10000000)
+
+      baselineMemoryUsage = process.memoryUsage()
+      const req = 10e5
+      await timesLimit(req, 2000, async (i: number) => {
+        return cached.publishAndWait('cached.test.default', i % 2500, { cache: 50e6 })
+      })
+
+      cached.log.info({ requests }, 'requests handled out of %d mln', req)
     })
   })
 
@@ -534,7 +587,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
       const spy = sinon.spy(function listener(message, properties, actions, callback) {
         actions.ack()
-        callback(null, microtime.now())
+        callback(null, performance.now())
       })
 
       const publish = Promise.all(messages.map(({ message, priority }) => {
@@ -1001,7 +1054,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
           (await gunzip(body)).equals(bufutf8)
           gzipped += 1
         } else {
-          assert(body.equals(bufutf8))
+          assert(body.equals(bufutf8), `body mismatch: ${body.toString()}`)
           string += 1
         }
 
@@ -1013,7 +1066,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
           host: RABBITMQ_HOST,
           port: RABBITMQ_PORT,
         },
-        debug: false,
+        debug: true,
         exchange: 'test-direct',
         listen: [listen],
         queue,
@@ -1036,7 +1089,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
           host: RABBITMQ_HOST,
           port: RABBITMQ_PORT,
         },
-        debug: false,
+        debug: true,
         exchange: 'test-direct',
       })
     })
@@ -1061,8 +1114,8 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         return publisher.publishAndWait(listen, bufutf8, { timeout: 10000, gzip: true })
       })
 
-      assert.equal(gzipped, 0)
-      assert.equal(string, 60)
+      assert.equal(gzipped, 0, 'gzip mismatch')
+      assert.equal(string, 60, 'string mismatch')
     })
   })
 

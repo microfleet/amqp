@@ -321,7 +321,7 @@ export class Connection extends EventEmitter {
     return consumerChannel
   }
 
-  public async publish(exchange: string, routingKey: string, data: any, options: Partial<PublishOptions> = {}): Promise<void> {
+  public async publish(exchange: string, routingKey: string, data: any, options: PublishOptions = Object.create(null)): Promise<void> {
     const publishChannel = this.channelManager.publisherChannel(options.confirm)
     return publishChannel.publishAsync(exchange, routingKey, data, options)
   }

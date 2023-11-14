@@ -1,33 +1,112 @@
 import Errors = require('common-errors')
 import { Cache } from './cache'
 import { generateErrorMessage } from './error'
+import reusify from 'reusify'
 
 export interface Future<T = any> {
-  promise: Promise<T>
-  deduped: false
+  promise: PromiseLike<T>
+  deduped: boolean
+  dupes: Future<T>[]
   resolve(result?: T | PromiseLike<T>): void // promise resolve action.
   reject(err?: Error | null): void // promise reject action.
+  cloneDeduped(): Future<T>
+  release(): void
 }
 
 export interface PushOptions {
   timeout: number // expected response time.
   routing: string // routing key for error message.
-  simple?: boolean // whether return body - only response or include headers
-  time: [number, number] // process.hrtime() results.
-  replyOptions: Record<string, any>
+  simple: boolean // whether return body - only response or include headers
+  time: number // performance.now()
   timer: NodeJS.Timeout | null
   future: Future | null
-  cache?: string | null
+  cache: string | null
+
+  release(): void
+  reject(err: Error): void
+  resolve(value?: any): void
 }
 
+function PushOptions(this: any) {
+  this.timeout = -1 // expected response time.
+  this.routing = '' // routing key for error message.
+  this.simple = false // whether return body - only response or include headers
+  this.time = 0 // performance.now()
+  this.timer = null
+  this.future = null
+  this.cache = null
+
+  // eslint-disable-next-line @typescript-eslint/no-this-alias
+  const that = this
+
+  this.release = function (): void {
+    pushOptionsFactory.release(that)
+  }
+
+  this.resolve = function (value?: any) {
+    that.future.resolve(value)
+    that.future.release()
+    that.future = null
+    pushOptionsFactory.release(that)
+  }
+
+  this.reject = function (err: Error) {
+    that.future.reject(err)
+    that.future.release()
+    that.future = null
+    pushOptionsFactory.release(that)
+  }
+}
+
+function Future<T>(this: any) {
+  this.resolve = null
+  this.reject = null
+  this.promise = null
+  this.deduped = false
+  this.dupes = []
+
+  // eslint-disable-next-line @typescript-eslint/no-this-alias
+  const that = this
+  
+  this.release = function (): void {
+    that.resolve = null
+    that.reject = null
+    that.promise = null
+    that.dupes.forEach(futureFactory.release)
+    that.dupes = []
+
+    futureFactory.release(that)
+  }
+
+  this.cloneDeduped = function (): Future<T> {
+    const clone = futureFactory.get()
+
+    clone.promise = that.promise
+    clone.resolve = that.resolve
+    clone.reject = that.reject
+    clone.deduped = true
+    clone.dupes = []
+
+    that.dupes.push(clone)
+
+    return clone
+  }
+}
+
+const futureFactory = reusify<Future>(Future)
+
+export const pushOptionsFactory = reusify<PushOptions>(PushOptions)
+
 const getFuture = <T = any>(): Future<T> => {
-  const future: Future<T> = Object.create(null)
-  const promise = new Promise<T>((resolve, reject) => {
+  const future: Future<T> = futureFactory.get()
+
+  future.promise = new Promise<T>((resolve, reject) => {
     future.resolve = resolve
     future.reject = reject
   })
-  future.promise = promise
   future.deduped = false
+  future.dupes = []
+
   return future
 }
 
@@ -35,7 +114,7 @@ const getFuture = <T = any>(): Future<T> => {
  * In-memory reply storage
  */
 export class ReplyStorage {
-  private readonly storage: Map<string, { [K in keyof PushOptions]: NonNullable<PushOptions[K]> }>
+  private readonly storage: Map<string, PushOptions>
   private readonly cache: Cache
 
   constructor(cache: Cache) {
@@ -56,14 +135,16 @@ export class ReplyStorage {
       return
     }
 
-    const { routing, timeout, future, cache } = rpcCall
+    const { routing, timeout, cache } = rpcCall
 
     // clean-up
     storage.delete(correlationId)
-    this.cache.cleanDedupe(cache)
+    if (cache !== null) {
+      this.cache.cleanDedupe(cache)
+    }
 
     // reject with a timeout error
-    future.reject(new Errors.TimeoutError(generateErrorMessage(routing, timeout)))
+    rpcCall.reject(new Errors.TimeoutError(generateErrorMessage(routing, timeout)))
   }
 
   /**
@@ -71,25 +152,25 @@ export class ReplyStorage {
    * @param correlationId
    * @param opts
    */
-  push<T = any>(correlationId: string, opts: PushOptions): Future<T> | { deduped: true, promise: Promise<any> } {
-    if (typeof opts.cache === 'string') {
-      const pendingFuture = this.cache.dedupe(opts.cache)
+  push<T = any>(correlationId: string, rpcCall: PushOptions): Future<T> {
+    if (typeof rpcCall.cache === 'string') {
+      const pendingFuture = this.cache.dedupe(rpcCall.cache)
       if (pendingFuture) {
-        return { promise: pendingFuture, deduped: true }
+        rpcCall.release()
+        return pendingFuture.cloneDeduped()
       }
 
-      opts.future = getFuture<T>()
-      this.cache.storeDedupe(opts.cache, opts.future.promise)
+      rpcCall.future = getFuture<T>()
+      this.cache.storeDedupe(rpcCall.cache, rpcCall.future)
     } else {
-      opts.future = getFuture<T>()
+      rpcCall.future = getFuture<T>()
     }
     
-    opts.timer = setTimeout(this.onTimeout, opts.timeout, correlationId)
+    rpcCall.timer = setTimeout(this.onTimeout, rpcCall.timeout, correlationId)
 
-    // @ts-expect-error ^ we know timer is defined
-    this.storage.set(correlationId, opts)
+    this.storage.set(correlationId, rpcCall)
 
-    return opts.future
+    return rpcCall.future
   }
 
   /**
@@ -105,17 +186,19 @@ export class ReplyStorage {
       return
     }
 
-    const { timer, future, cache } = rpcCall
+    const { timer, cache } = rpcCall
 
     // remove timer
-    clearTimeout(timer)
+    if (timer !== null) clearTimeout(timer)
 
     // remove reference
     storage.delete(correlationId)
-    this.cache.cleanDedupe(cache)
+    if (cache !== null) {
+      this.cache.cleanDedupe(cache)
+    }
 
     // now resolve promise and return an error
-    future.reject(error)
+    rpcCall.reject(error)
   }
 
   pop(correlationId: string | undefined): PushOptions | undefined {
@@ -123,21 +206,23 @@ export class ReplyStorage {
       return undefined
     }
 
-    const future = this.storage.get(correlationId)
+    const rpcCall = this.storage.get(correlationId)
 
     // if undefind - early return
-    if (future === undefined) {
+    if (rpcCall === undefined) {
       return undefined
     }
 
     // cleanup timeout
-    clearTimeout(future.timer)
+    if (rpcCall.timer !== null) clearTimeout(rpcCall.timer)
 
     // remove reference to it
     this.storage.delete(correlationId)
-    this.cache.cleanDedupe(future.cache)
+    if (rpcCall.cache !== null) {
+      this.cache.cleanDedupe(rpcCall.cache)
+    }
 
     // return data
-    return future
+    return rpcCall
   }
 }

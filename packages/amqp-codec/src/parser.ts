@@ -220,7 +220,7 @@ function parseHeaderFrame(parser: Parser, buffer: Buffer): ContentHeader | Error
 
 function parseBodyFrame(parser: Parser, buffer: Buffer, frameSize: number): Content {
   const frameEnd = parser.offset + frameSize
-  const data = buffer.slice(parser.offset, frameEnd)
+  const data = buffer.subarray(parser.offset, frameEnd)
   parser.offset = frameEnd
   return { type: FrameType.BODY, data }
 }
