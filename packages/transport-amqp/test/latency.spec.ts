@@ -1,10 +1,9 @@
 import assert = require('assert');
-import { performance } from 'node:perf_hooks'
 import { latency, toMiliseconds } from '../src/utils/latency'
 
 describe('utils: latency', () => {
   it('displays latency in miliseconds', () => {
-    const time = latency(performance.now())
+    const time = latency(Date.now())
     assert.ok(time < 0.1, `latency(performance.now()) takes more than 10 microseconds: ${time}`)
   })
 

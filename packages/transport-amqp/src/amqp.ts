@@ -1108,7 +1108,7 @@ export class AMQPTransport extends EventEmitter {
 
     let replyTo = messageProperties.replyTo || this._replyTo
 
-    const time = performance.now()
+    const time = Date.now()
     const isSimpleResponse = options.simpleResponse ?? this._defaultOpts.simpleResponse
 
     // ensure that reply queue exists before sending request
@@ -1116,7 +1116,7 @@ export class AMQPTransport extends EventEmitter {
       replyTo = await this.preparePrivateQueue(replyTo)
     }
 
-    let cachedResponse: string | null | { maxAge: number, value: any } = null
+    let cachedResponse: string | { maxAge: number, value: any } = ''
     
     // to avoid creating cache object
     if (cache !== undefined && this.cache.isEnabled(cache)) {
@@ -1127,7 +1127,7 @@ export class AMQPTransport extends EventEmitter {
         cache
       )
 
-      if (cachedResponse !== null && typeof cachedResponse === 'object') {
+      if (typeof cachedResponse === 'object') {
         options.release()
         return adaptResponse(cachedResponse.value, isSimpleResponse)
       }

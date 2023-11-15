@@ -34,12 +34,13 @@ function PushOptions(this: any) {
   this.time = 0 // performance.now()
   this.timer = null
   this.future = null
-  this.cache = null
+  this.cache = ''
 
   // eslint-disable-next-line @typescript-eslint/no-this-alias
   const that = this
 
   this.release = function (): void {
+    that.cache = ''
     pushOptionsFactory.release(that)
   }
 
@@ -47,6 +48,8 @@ function PushOptions(this: any) {
     that.future.resolve(value)
     that.future.release()
     that.future = null
+    this.timer = null
+    that.cache = ''
     pushOptionsFactory.release(that)
   }
 
@@ -54,6 +57,8 @@ function PushOptions(this: any) {
     that.future.reject(err)
     that.future.release()
     that.future = null
+    this.timer = null
+    that.cache = ''
     pushOptionsFactory.release(that)
   }
 }
@@ -72,8 +77,11 @@ function Future<T>(this: any) {
     that.resolve = null
     that.reject = null
     that.promise = null
-    that.dupes.forEach(futureFactory.release)
-    that.dupes = []
+
+    if (that.dupes.length > 0) {
+      that.dupes.forEach(futureFactory.release)
+      that.dupes = []
+    }
 
     futureFactory.release(that)
   }
@@ -104,6 +112,7 @@ const getFuture = <T = any>(): Future<T> => {
     future.resolve = resolve
     future.reject = reject
   })
+
   future.deduped = false
   future.dupes = []
 
@@ -153,15 +162,16 @@ export class ReplyStorage {
    * @param opts
    */
   push<T = any>(correlationId: string, rpcCall: PushOptions): Future<T> {
-    if (typeof rpcCall.cache === 'string') {
-      const pendingFuture = this.cache.dedupe(rpcCall.cache)
+    const { cache } = rpcCall
+    if (typeof cache === 'string' && cache !== '') {
+      const pendingFuture = this.cache.dedupe(cache)
       if (pendingFuture) {
         rpcCall.release()
         return pendingFuture.cloneDeduped()
       }
 
       rpcCall.future = getFuture<T>()
-      this.cache.storeDedupe(rpcCall.cache, rpcCall.future)
+      this.cache.storeDedupe(cache, rpcCall.future)
     } else {
       rpcCall.future = getFuture<T>()
     }
@@ -189,7 +199,10 @@ export class ReplyStorage {
     const { timer, cache } = rpcCall
 
     // remove timer
-    if (timer !== null) clearTimeout(timer)
+    if (timer !== null) {
+      clearTimeout(timer)
+      rpcCall.timer = null
+    }
 
     // remove reference
     storage.delete(correlationId)
@@ -214,7 +227,10 @@ export class ReplyStorage {
     }
 
     // cleanup timeout
-    if (rpcCall.timer !== null) clearTimeout(rpcCall.timer)
+    if (rpcCall.timer !== null) {
+      clearTimeout(rpcCall.timer)
+      rpcCall.timer = null
+    }
 
     // remove reference to it
     this.storage.delete(correlationId)

@@ -9,3 +9,4 @@ npm-debug.log
 /test/ssl/client
 .swc
 .env
+*.heapsnapshot

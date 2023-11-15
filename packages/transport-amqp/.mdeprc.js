@@ -17,6 +17,7 @@ module.exports = {
       working_dir: `/src/packages/${dir}`,
       environment: {
         NODE_ENV: 'test',
+        // NODE_OPTIONS: '--expose-gc',
         // AMQP_TEST: '1',
         // AMQP: '4',
         // DEBUG: 'amqp:*,-amqp:codec:Parser',

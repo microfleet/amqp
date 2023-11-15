@@ -4,6 +4,9 @@
     "tsconfig-paths/register",
     "source-map-support/register"
   ],
+  "node-option": [
+    "expose-gc"
+  ],
   "extensions": ["ts"],
   "bail": true,
   "exit": true,

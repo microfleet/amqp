@@ -1,7 +1,6 @@
 import { HttpStatusError, Error as CommonError } from 'common-errors'
 import { route as Proxy } from '@microfleet/amqp-coffee/test/proxy.js'
 import ld from 'lodash'
-import { performance } from 'node:perf_hooks'
 import stringify from 'json-stringify-safe'
 import sinon from 'sinon'
 import assert from 'assert'
@@ -9,6 +8,7 @@ import { promisify } from 'util'
 import { gzip as _gzip, gunzip as _gunzip } from 'zlib'
 import { setTimeout } from 'timers/promises'
 import { timesLimit } from 'async'
+// import v8 from 'v8'
 
 // require module
 import { 
@@ -187,7 +187,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
       return {
         resp: typeof message === 'object' ? message : `${message}-response`,
-        time: performance.now()
+        time: Date.now()
       }
     })
 
@@ -289,6 +289,19 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     let requests = 0
     let baselineMemoryUsage = process.memoryUsage()
 
+    function printMemoryUsage() {
+      const memoryData = process.memoryUsage()
+      const memoryUsage = {
+        rssGrowth: `${formatMemoryUsage(memoryData.rss - baselineMemoryUsage.rss)}`, // Resident Set Size - total memory allocated for the process execution
+        heapTotalGrowth: `${formatMemoryUsage(memoryData.heapTotal - baselineMemoryUsage.heapTotal)}`, // total size of the allocated heap
+        heapUsedGrowth: `${formatMemoryUsage(memoryData.heapUsed - baselineMemoryUsage.heapUsed)}`, // actual memory used during the execution
+        externalGrowth: `${formatMemoryUsage(memoryData.external - baselineMemoryUsage.external)}`, // V8 external memory
+      }
+      cachedConsumer.log.info({ memoryUsage }, 'processed %d requests', requests)
+
+      return Math.round((memoryData.heapUsed - baselineMemoryUsage.heapUsed) / 1024 / 1024 * 100) / 100
+    }
+
     before('init publisher', async () => {
       cached = new AMQPTransport({
         ...configuration,
@@ -310,14 +323,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         requests += 1
 
         if (requests % 10000 === 0) {
-          const memoryData = process.memoryUsage()
-          const memoryUsage = {
-            rss: `${formatMemoryUsage(memoryData.rss - baselineMemoryUsage.rss)}`, // Resident Set Size - total memory allocated for the process execution
-            heapTotal: `${formatMemoryUsage(memoryData.heapTotal - baselineMemoryUsage.heapTotal)}`, // total size of the allocated heap
-            heapUsed: `${formatMemoryUsage(memoryData.heapUsed - baselineMemoryUsage.heapUsed)}`, // actual memory used during the execution
-            external: `${formatMemoryUsage(memoryData.external - baselineMemoryUsage.external)}`, // V8 external memory
-          }
-          cachedConsumer.log.info({ memoryUsage }, 'processed %d requests', requests)
+          printMemoryUsage()
         }
 
         if (raw.routingKey === 'cached.test.throw') {
@@ -326,7 +332,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
         return {
           resp: typeof message === 'object' ? message : `${message}-response`,
-          time: performance.now()
+          time: Date.now()
         }
       })
     })
@@ -414,14 +420,40 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
     it('does not run out of memory when handling 10 mln messages with cache', async function test() {
       this.timeout(10000000)
+      
+      // v8.setFlagsFromString('--expose_gc')
+      // gc
+      assert(gc)
+
+      // warm up cache & objects
+      gc()
 
       baselineMemoryUsage = process.memoryUsage()
-      const req = 10e5
+      const req = 10e4
       await timesLimit(req, 2000, async (i: number) => {
         return cached.publishAndWait('cached.test.default', i % 2500, { cache: 50e6 })
       })
 
-      cached.log.info({ requests }, 'requests handled out of %d mln', req)
+      await setTimeout(1)
+      gc()
+      printMemoryUsage()
+
+      // re-take baseline memory
+      baselineMemoryUsage = process.memoryUsage()
+
+      // second round as we've "warmed the cache of objects up"
+      await timesLimit(req * 10, 2000, async (i: number) => {
+        return cached.publishAndWait('cached.test.default', i % 2500, { cache: 50e6 })
+      })
+
+      await setTimeout(1)
+      gc()
+      const heapGroth = printMemoryUsage()
+
+      assert(heapGroth < 0.3, `heap grew by ${heapGroth} MB`)
+
+      // disabling trace-gc
+      // v8.setFlagsFromString('--noexpose_gc')
     })
   })
 
@@ -587,7 +619,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
       const spy = sinon.spy(function listener(message, properties, actions, callback) {
         actions.ack()
-        callback(null, performance.now())
+        callback(null, Date.now())
       })
 
       const publish = Promise.all(messages.map(({ message, priority }) => {

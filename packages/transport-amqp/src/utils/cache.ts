@@ -1,4 +1,4 @@
-import LRUCache from 'mnemonist/lru-cache-with-delete'
+import LRUCache from 'mnemonist/lru-map-with-delete'
 import { latency } from './latency'
 import stringify from 'safe-stable-stringify'
 import { Future } from './reply-storage'
@@ -40,7 +40,7 @@ export class Cache {
    * @param message
    * @param ttlOrMaxAge
    */
-  get(cacheKey: string, ttlOrMaxAge: number): null | string | { maxAge: number, value: any } {
+  get(cacheKey: string, ttlOrMaxAge: number): string | { maxAge: number, value: any } {
     if (ttlOrMaxAge === 0) {
       return cacheKey
     }
@@ -74,11 +74,11 @@ export class Cache {
     }
 
     // only use string keys
-    if (typeof key !== 'string') {
+    if (typeof key !== 'string' || key === '') {
       return
     }
 
-    this.cache.set(key, { maxAge: performance.now(), value: data })
+    this.cache.set(key, { maxAge: Date.now(), value: data })
   }
 
   dedupe<T = any>(key: string): void | Future<T> {
