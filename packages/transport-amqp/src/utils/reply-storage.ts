@@ -21,6 +21,7 @@ export interface PushOptions {
   timer: NodeJS.Timeout | null
   future: Future | null
   cache: string | null
+  cacheError: boolean | ((err: Error) => boolean)
 
   release(): void
   reject(err: Error): void
@@ -35,30 +36,33 @@ function PushOptions(this: any) {
   this.timer = null
   this.future = null
   this.cache = ''
+  this.cacheError = false
 
   // eslint-disable-next-line @typescript-eslint/no-this-alias
   const that = this
 
-  this.release = function (): void {
+  this.release = function release(): void {
     that.cache = ''
     pushOptionsFactory.release(that)
   }
 
-  this.resolve = function (value?: any) {
+  this.resolve = function resolve(value?: any) {
     that.future.resolve(value)
     that.future.release()
     that.future = null
-    this.timer = null
+    that.timer = null
     that.cache = ''
+
     pushOptionsFactory.release(that)
   }
 
-  this.reject = function (err: Error) {
+  this.reject = function reject(err: Error) {
     that.future.reject(err)
     that.future.release()
     that.future = null
-    this.timer = null
+    that.timer = null
     that.cache = ''
+
     pushOptionsFactory.release(that)
   }
 }

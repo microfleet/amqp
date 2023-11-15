@@ -7,9 +7,14 @@ export const cacheKey = (exchange: string, route: string, headers: Record<string
   return `${exchange}~${route}~${headers ? stringify(headers) : '{}'}~${stringify(message)}`
 }
 
+export type CacheEntry<T = any> = { 
+  headers: Record<string, any>, 
+  data: T
+}
+
 export class Cache {
   private readonly enabled: boolean
-  private readonly cache!: LRUCache<string, { maxAge: number, value: any }>
+  private readonly cache!: LRUCache<string, { maxAge: number, err: Error | null, value: CacheEntry | null }>
   private readonly dedupes = new Map<string, Future<any>>()
 
   /**
@@ -40,7 +45,7 @@ export class Cache {
    * @param message
    * @param ttlOrMaxAge
    */
-  get(cacheKey: string, ttlOrMaxAge: number): string | { maxAge: number, value: any } {
+  get<T = any>(cacheKey: string, ttlOrMaxAge: number): string | { maxAge: number, err: Error | null, value: CacheEntry<T> | null } {
     if (ttlOrMaxAge === 0) {
       return cacheKey
     }
@@ -64,7 +69,7 @@ export class Cache {
    * @param key
    * @param data
    */
-  set(key: string | undefined | null, data: any): void {
+  set(key: string | undefined | null, err: Error | null, data: CacheEntry | null): void {
     if (this.enabled === false) {
       process.emitWarning('tried to use disabled cache', {
         code: 'MF_AMQP_CACHE_0001',
@@ -78,7 +83,7 @@ export class Cache {
       return
     }
 
-    this.cache.set(key, { maxAge: performance.now(), value: data })
+    this.cache.set(key, { maxAge: performance.now(), err, value: data })
   }
 
   dedupe<T = any>(key: string): void | Future<T> {
