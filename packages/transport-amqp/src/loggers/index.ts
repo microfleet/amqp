@@ -14,11 +14,11 @@ export const isCompatible = (obj: unknown): obj is Logger => {
     && levels.every((level) => typeof (obj as Record<string, unknown>)[level] === 'function')
 }
 
-export const prepareLogger = (config: { debug: boolean, log?: unknown, name: string }): Logger => {
+export const prepareLogger = (config: { debug: boolean, log?: unknown, name: string, logOptions?: any }): Logger => {
   // bunyan logger
   if (config.debug && !config.log) {
     try {
-      return PinoLogger(config.name)
+      return PinoLogger(config.name, config.logOptions)
     } catch (e: any) {
       process.emitWarning('failed to init pinoLogger', {
         detail: e.message

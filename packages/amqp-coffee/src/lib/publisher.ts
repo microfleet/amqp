@@ -14,6 +14,7 @@ import { MessageProperties} from './message'
 const debug = _debug('amqp:Publisher')
 const kEvents = Symbol('amqp:kEvents')
 const { hasOwnProperty } = Object.prototype
+const kBasicPublishDefaults = defaults.basicPublish
 
 export type BasicPublishOptions = InferOptions<typeof methods.basicPublish>
 
@@ -23,6 +24,7 @@ export interface PublishOptions extends MessageProperties {
 
   // sets `expiration` property on the message
   timeout?: number // optional ttl value for message in the publish/send
+  reuse?: boolean
 
   // delivery modes
   confirm: boolean // require ack from server on publish
@@ -31,7 +33,7 @@ export interface PublishOptions extends MessageProperties {
   deliveryMode: 1 | 2  // transient or persistant, default to 1
 }
 
-const transformData = (data: string | Record<string, any> | Buffer | undefined, options: PublishOptions): Buffer => {
+const transformData = (data: string | Record<string, any> | Buffer | undefined, options: { contentType?: string }): Buffer => {
   // data must be a buffer
   if (typeof data === 'string') {
     options.contentType = 'string/utf8'
@@ -148,7 +150,7 @@ export class Publisher extends Channel {
   publish(exchange: string,
           routingKey: string,
           data: any,
-          _options: Partial<PublishOptions>,
+          _options: PublishOptions,
           _cb?: (err?: Error | null) => void) {
 
     let cb = _cb
@@ -162,10 +164,8 @@ export class Publisher extends Channel {
       .then(() => cb?.(), cb)
   }
 
-  async publishAsync(exchange: string, routingKey: string, _data: any, _options: Partial<PublishOptions>) {
-    const options: PublishOptions = _options
-      ? { ..._options }
-      : Object.create(null)
+  async publishAsync(exchange: string, routingKey: string, _data: any, _options: Partial<PublishOptions> = Object.create(null)) {
+    const options = _options.reuse !== true ? { ..._options } : _options
 
     if (this._inoperableState()) {
       debug(4, () => ['publish channel in inoperable state'])
@@ -185,10 +185,10 @@ export class Publisher extends Channel {
     const data = transformData(_data, options)
 
     // Apply default options after we deal with potentially converting the data
-    for (const [key, value] of Object.entries(defaults.basicPublish)) {
+    for (const key in kBasicPublishDefaults) {
       if (!hasOwnProperty.call(options, key)) {
         // @ts-expect-error -- invalid error
-        options[key] = value
+        options[key] = kBasicPublishDefaults[key]
       }
     }
 

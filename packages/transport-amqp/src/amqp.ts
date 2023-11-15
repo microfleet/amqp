@@ -1,15 +1,16 @@
 import { Logger } from 'pino'
 
 // deps
-import uuid = require('uuid')
-import flatstr = require('flatstr')
+import { randomUUID } from 'node:crypto'
+import { performance } from 'node:perf_hooks'
+import flatstr from 'flatstr'
 import stringify from 'json-stringify-safe'
 import { EventEmitter } from 'eventemitter3'
 import { once } from 'events'
-import os = require('os')
-import is = require('is')
-import assert = require('assert')
-import hyperid = require('hyperid')
+import os from 'os'
+import is from 'is'
+import assert from 'assert'
+import hyperid from 'hyperid'
 import {
   NotPermittedError,
   ArgumentError,
@@ -17,12 +18,12 @@ import {
 } from 'common-errors'
 import { setTimeout } from 'timers/promises'
 import { PartialDeep } from 'type-fest'
-import sorted = require('sorted-array-functions')
+import sorted from 'sorted-array-functions'
 
 // lodash fp
-import merge = require('lodash/merge')
-import uniq = require('lodash/uniq')
-import readPkg = require('read-pkg')
+import merge from 'lodash/merge'
+import uniq from 'lodash/uniq'
+import readPkg from 'read-pkg'
 
 // local deps
 import { 
@@ -32,6 +33,7 @@ import {
   Publish as PublishOptions, 
   Queue as QueueOptions, 
   Exchange as ExchangeOptions,
+  DefaultPublishOptions,
 } from './schema'
 import { 
   Connection as AMQP, 
@@ -45,9 +47,9 @@ import {
   ConnectionState,
   QueueBindResponse
 } from '@microfleet/amqp-coffee'
-import { ReplyStorage } from './utils/reply-storage'
+import { ReplyStorage, pushOptionsFactory } from './utils/reply-storage'
 import { Backoff } from './utils/recovery'
-import { Cache } from './utils/cache'
+import { Cache, cacheKey } from './utils/cache'
 import { latency } from './utils/latency'
 import * as loggerUtils from './loggers'
 import { AmqpDLXError } from './utils/error'
@@ -55,6 +57,7 @@ import { wrapError, setQoS, ConsumeOpts } from './helpers'
 import { kReplyHeaders } from './constants'
 import { jsonSerializer, jsonDeserializer, serialize, deserialize } from './utils/serialization'
 import { initRoutingFn, WrappedRouter, MessageConsumer } from './router'
+import { NormalizedPublishProperties, PublishOptionsFactoryObject, publishOptionsFactory } from './utils/publish-options'
 
 // cache references
 const pkg = readPkg.sync()
@@ -83,17 +86,8 @@ const toUniqueStringArray = <T extends string>(routes: T | T[]): T[] => (
   Array.isArray(routes) ? uniq(routes) : [routes]
 )
 
-const adaptResponse = (response: any, replyOptions: PublishOptions): any => {
-  return replyOptions.simpleResponse === false ? response : response.data
-}
-
-const buildResponse = (messageBody: { data: any },  message: Message): { data: any, headers: Record<string, any> } => {
-  const { headers = Object.create(null) } = message.properties
-
-  return {
-    headers,
-    data: messageBody.data,
-  }
+const adaptResponse = (response: any, simpleResponse: boolean | undefined): any => {
+  return simpleResponse === false ? response : response.data
 }
 
 const error406 = (err: any) => err.replyCode === 406
@@ -105,6 +99,8 @@ const ignoreErr406 = (log: Logger, ...args: any[]) => (err: Error) => {
 
   throw err
 }
+
+const kEmptyHeaders = Object.create(null)
 
 const noop = () => { /* do nothing */ }
 const getEmitFn = (ctx: EventEmitter, event: string | boolean | symbol, base: string) => {
@@ -131,8 +127,7 @@ export class AMQPTransport extends EventEmitter {
   
   // publish options
   private readonly _extraQueueOptions: Partial<QueueOptions>
-  private readonly _defaultOpts: Partial<PublishOptions>
-  private readonly _defaultOptsKeys: (keyof PublishOptions)[]
+  private readonly _defaultOpts: DefaultPublishOptions
   private readonly _amqp: AMQP
 
   // utilities
@@ -190,8 +185,7 @@ export class AMQPTransport extends EventEmitter {
 
     // Cached serialized value
     this._appIDString = flatstr(stringify(this._appID))
-    this._defaultOpts = Object.setPrototypeOf({ ...config.defaultOpts, appId: this._appIDString }, null)
-    this._defaultOptsKeys = Object.keys(this._defaultOpts) as (keyof PublishOptions)[]
+    this._defaultOpts = Object.setPrototypeOf({ ...config.defaultOpts, appId: this._appIDString, timeout: this.config.timeout }, null)
     this._extraQueueOptions = Object.create(null)
 
     // DLX config
@@ -240,9 +234,9 @@ export class AMQPTransport extends EventEmitter {
   async close() {
     const amqp = this._amqp
     switch (amqp.state) {
-      case 'opening':
-      case 'open':
-      case 'reconnecting': {
+      case ConnectionState.opening:
+      case ConnectionState.open:
+      case ConnectionState.reconnecting: {
         await this.closeAllConsumers()
       }
     }
@@ -320,7 +314,7 @@ export class AMQPTransport extends EventEmitter {
 
     const confirmAfter = multiAckAfter
       ? () => {
-        if (latestConfirm >= Date.now() - multiAckAfter || 
+        if (latestConfirm >= performance.now() - multiAckAfter || 
             sortedList.length === 0 ||
             sortedList[0] !== smallestUnconfirmedDeliveryTag) {
           this.log.trace({ sortedList, latestConfirm, multiAckAfter, smallestUnconfirmedDeliveryTag }, 'skipping confirmAfter')
@@ -337,7 +331,7 @@ export class AMQPTransport extends EventEmitter {
         
         consumer.multiAck(tag)
         smallestUnconfirmedDeliveryTag = tag + 1
-        latestConfirm = Date.now()
+        latestConfirm = performance.now()
       }
     : noop
 
@@ -353,7 +347,7 @@ export class AMQPTransport extends EventEmitter {
 
         consumer.multiAck(tag)
         smallestUnconfirmedDeliveryTag = tag + 1
-        latestConfirm = Date.now()
+        latestConfirm = performance.now()
       }
       : noop
 
@@ -458,7 +452,7 @@ export class AMQPTransport extends EventEmitter {
     const queueOpts: Omit<ConsumeOpts, 'queue'> & { queue: string } = {
       ...this.config.privateQueueOpts,
       neck: this.config.privateQueueNeck, // mirror this
-      queue: replyTo || `microfleet.${uuid.v4()}`, // reuse same private queue name if it was specified before
+      queue: replyTo || `microfleet.${randomUUID()}`, // reuse same private queue name if it was specified before
     }
 
     // step 1 -- setup queue
@@ -919,17 +913,26 @@ export class AMQPTransport extends EventEmitter {
    * @param  _message
    * @param  options
    */
-  async sendToServer(exchange: string, queueOrRoute: string, _message: any, options: PublishOptions): Promise<void> {
-    const publishOptions = this.publishOptions(options)
+  private async sendToServer(exchange: string, queueOrRoute: string, _message: any, publishOptions: NormalizedPublishProperties): Promise<void> {
+    if (this.log.isLevelEnabled('trace')) {
+      this.log.trace({ exchange, queueOrRoute, _message, publishOptions }, 'sendToServer called')
+    }
 
-    const message = options.skipSerialize === true
+    const message = publishOptions.skipSerialize === true
       ? _message
-      : await serialize(_message, publishOptions)
+      : await serialize(_message, publishOptions.messageProperties)
 
-    await this._amqp.publish(exchange, queueOrRoute, message, publishOptions)
+    await this._amqp.publish(exchange, queueOrRoute, message, publishOptions.messageProperties)
+
+    if (this.log.isLevelEnabled('trace')) {
+      this.log.trace({ exchange, queueOrRoute, _message, publishOptions }, 'sendToServer called: after')
+    }
 
     // emit original message
     this.emit('publish', queueOrRoute, _message)
+
+    // release options for further processing
+    publishOptions.release()
   }
 
   /**
@@ -939,11 +942,17 @@ export class AMQPTransport extends EventEmitter {
    * @param message - Message to send - will be coerced to string via stringify
    * @param [options={}] - Additional options
    */
-  publish(route: string, message: any, options: PublishOptions = {}): Promise<void> {
+  publish(route: string, message: any, publishOptions?: PublishOptions): Promise<void> {
     // prepare exchange
-    const exchange = typeof options.exchange === 'string'
-      ? options.exchange
+    const exchange = typeof publishOptions?.exchange === 'string'
+      ? publishOptions.exchange
       : this.config.exchange
+
+    this.log.trace({ publishOptions }, 'pre send-to-server publishOptions, isSerialize: %s', publishOptions?.skipSerialize)
+
+    const options = this.publishOptions(exchange, publishOptions)
+
+    this.log.trace({ options }, 'pre send-to-server, isSerialize: %s', options.skipSerialize)
 
     return this.sendToServer(
       exchange,
@@ -960,11 +969,13 @@ export class AMQPTransport extends EventEmitter {
    * @param message - Message to send
    * @param [options={}] - Additional options
    */
-  send(queue: string, message: any, options: PublishOptions = {}): Promise<void> {
+  send(queue: string, message: any, publishOptions?: PublishOptions): Promise<void> {
     // prepare exchange
-    const exchange = typeof options.exchange === 'string'
-      ? options.exchange
+    const exchange = typeof publishOptions?.exchange === 'string'
+      ? publishOptions.exchange
       : ''
+    
+    const options = this.publishOptions(exchange, publishOptions)
 
     return this.sendToServer(
       exchange,
@@ -981,12 +992,17 @@ export class AMQPTransport extends EventEmitter {
    * @param message - Message to send - will be coerced to string via stringify
    * @param [options={}] - Additional options
    */
-  async publishAndWait<T = any>(route: string, message: any, options: PublishOptions = {}): Promise<T> {
+  async publishAndWait<T = any>(route: string, message: unknown, publishOptions?: PublishOptions): Promise<T> {
+    // prepare exchange
+    const exchange = typeof publishOptions?.exchange === 'string'
+      ? publishOptions.exchange
+      : this.config.exchange
+
     return this.createMessageHandler(
       route,
       message,
-      options,
       this.publish,
+      this.publishOptions(exchange, publishOptions)
     )
   }
 
@@ -997,12 +1013,17 @@ export class AMQPTransport extends EventEmitter {
    * @param message - Message to send
    * @param [options={}] - Additional options
    */
-  async sendAndWait<T = any>(queue: string, message: any, options: PublishOptions = {}): Promise<T> {
+  async sendAndWait<T = any>(queue: string, message: unknown, publishOptions?: PublishOptions): Promise<T> {
+    // prepare exchange
+    const exchange = typeof publishOptions?.exchange === 'string'
+      ? publishOptions.exchange
+      : ''
+
     return this.createMessageHandler(
       queue,
       message,
-      options,
-      this.send
+      this.send,
+      this.publishOptions(exchange, publishOptions)
     )
   }
 
@@ -1010,40 +1031,21 @@ export class AMQPTransport extends EventEmitter {
    * Specifies default publishing options
    * @param options
    */
-  private publishOptions(options: PublishOptions = {}): Omit<PublishOptions, 'skipSerialize'> {
-    // remove unused opts
-    const opts = options.reuse ? options : { ...options }
-    const { _defaultOpts } = this
-
-    // force contentEncoding
-    if (options.gzip === true) {
-      opts.contentEncoding = 'gzip'
+  private publishOptions(defaultExchange: string, options: PublishOptions | undefined): NormalizedPublishProperties {
+    if (options instanceof PublishOptionsFactoryObject) {
+      return options as NormalizedPublishProperties
     }
 
-    for (const key of this._defaultOptsKeys) {
-      if (opts[key] === undefined) {
-        // @ts-expect-error these are keys of the prop
-        opts[key] = _defaultOpts[key]
-      } else if (key === 'headers') {
-        opts[key] = { ..._defaultOpts[key], ...opts.headers }
-      }
+    const publishOptions = publishOptionsFactory.get()
+
+    publishOptions.setDefaultOpts(this._defaultOpts)
+    publishOptions.setOptions(defaultExchange, options)
+
+    if (this.log.isLevelEnabled('trace')) {
+      this.log.trace({ publishOptions }, 'publishOptions prepared')
     }
 
-    if (opts.headers === undefined) {
-      opts.headers = { timeout: opts.timeout || this.config.timeout }
-    } else if (opts.headers.timeout === undefined) {
-      opts.headers.timeout = opts.timeout || this.config.timeout
-    }
-
-    return opts
-  }
-
-  _replyOptions(options: PublishOptions = {}): ReplyOptions {
-    return {
-      simpleResponse: options.simpleResponse === undefined
-        ? this._defaultOpts.simpleResponse
-        : options.simpleResponse,
-    }
+    return publishOptions
   }
 
   /**
@@ -1061,14 +1063,11 @@ export class AMQPTransport extends EventEmitter {
       throw error
     }
 
-    const options: PublishOptions = {
-      correlationId,
-      reuse: true,
-      headers: raw.readExtendedAttributes(kReplyHeaders) || Object.create(null)
-    }
-
     try {
-      return await this.send(replyTo, message, options)
+      return await this.send(replyTo, message, {
+        correlationId,
+        headers: raw.readExtendedAttributes(kReplyHeaders) || kEmptyHeaders
+      })
     } finally {
       this.emit('after', raw)
     }
@@ -1082,6 +1081,19 @@ export class AMQPTransport extends EventEmitter {
     await once(this, 'private-queue-ready')
   }
 
+  private async preparePrivateQueue(replyTo: null | boolean): Promise<string> {
+    if (replyTo === false) {
+      await this.awaitPrivateQueue()
+    } else {
+      await this.createPrivateQueue()
+    }
+
+    // at this point it should be ready
+    assert(typeof this._replyTo === 'string')
+
+    return this._replyTo
+  }
+
   /**
    * Creates response message handler and sets timeout on the response
    * 
@@ -1089,88 +1101,82 @@ export class AMQPTransport extends EventEmitter {
    * @param message
    * @param options
    */
-  async createMessageHandler<
+  private async createMessageHandler<
     T, 
-    Z extends (queue: string, message: any, options: PublishOptions) => Promise<void>
-  >(route: string, message: any, options: PublishOptions, publishMessage: Z): Promise<T> {
-    assert(typeof options === 'object' && options !== null, 'options must be an object')
+    Z extends (queueOrRoute: string, message: unknown, options?: NormalizedPublishProperties) => Promise<void>
+  >(queueOrRoute: string, message: unknown, publishMessage: Z, options: NormalizedPublishProperties): Promise<T> {
+    const { messageProperties, cache } = options
 
-    const replyTo = options.replyTo || this._replyTo
-    const time = process.hrtime()
-    const replyOptions = this._replyOptions(options)
+    let replyTo = messageProperties.replyTo || this._replyTo
+
+    const time = performance.now()
+    const isSimpleResponse = options.simpleResponse ?? this._defaultOpts.simpleResponse
 
     // ensure that reply queue exists before sending request
     if (typeof replyTo !== 'string') {
-      if (replyTo === false) {
-        await this.awaitPrivateQueue()
-      } else {
-        await this.createPrivateQueue()
+      replyTo = await this.preparePrivateQueue(replyTo)
+    }
+
+    let cachedResponse: string | { maxAge: number, value: any } = ''
+    
+    // to avoid creating cache object
+    if (cache !== undefined && this.cache.isEnabled(cache)) {
+      // work with cache if options.cache is set and is number
+      // otherwise cachedResponse is always null
+      cachedResponse = this.cache.get(
+        cacheKey(messageProperties.exchange, queueOrRoute, messageProperties.headers, message), 
+        cache
+      )
+
+      if (typeof cachedResponse === 'object') {
+        options.release()
+        return adaptResponse(cachedResponse.value, isSimpleResponse)
       }
-
-      return this.createMessageHandler(route, message, options, publishMessage)
     }
 
-    // work with cache if options.cache is set and is number
-    // otherwise cachedResponse is always null
-    const cachedResponse = this.cache.get({
-      route,
-      message,
-      headers: options.headers,
-      exchange: options.exchange,
-      routingKey: options.routingKey,
-    }, options.cache)
-
-    if (cachedResponse !== null && typeof cachedResponse === 'object') {
-      return adaptResponse(cachedResponse.value, replyOptions)
-    }
-
-    const { replyStorage } = this
+    const { replyStorage, log } = this
 
     // generate response id
-    const correlationId = options.correlationId || this.getCorrelationId()
+    const correlationId = messageProperties.correlationId || this.getCorrelationId()
 
     // timeout before RPC times out
-    const timeout = options.timeout || this.config.timeout
+    const timeout = options.timeout ?? this.config.timeout
 
     // slightly longer timeout, if message was not consumed in time, it will return with expiration
-    const future = replyStorage.push(correlationId, {
-      timer: null,
-      future: null,
-      timeout,
-      time,
-      routing: route,
-      replyOptions,
-      cache: cachedResponse,
-    })
+    const pushOptions = pushOptionsFactory.get()
+    pushOptions.timeout = timeout
+    pushOptions.time = time
+    pushOptions.routing = queueOrRoute
+    pushOptions.cache = cachedResponse
+    pushOptions.simple = options.simpleResponse
+
+    const future = replyStorage.push(correlationId, pushOptions)
 
     if (future.deduped) {
+      options.release()
       return future.promise
     }
 
     // debugging
-    if (this.log.isLevelEnabled('trace')) {
-      this.log.trace('message pushed into reply queue in %s', latency(time))
+    if (log.isLevelEnabled('trace')) {
+      log.trace('message pushed into reply queue in %s', latency(time))
     }
 
     // add custom header for routing over amq.headers exchange
-    if (!options.headers) {
-      options.headers = { 'reply-to': replyTo }
-    } else {
-      options.headers['reply-to'] = replyTo 
-    }
+    messageProperties.headers['reply-to'] = replyTo
+
+    // specify updated params
+    messageProperties.replyTo = replyTo
+    messageProperties.correlationId = correlationId
 
     // this is to ensure that queue is not overflown and work will not
     // be completed later on
-    publishMessage.call(this, route, message, {
-      ...options,
-      replyTo,
-      correlationId,
-      expiration: Math.ceil(timeout * 0.9).toString(),
-    })
-    .catch((err: Error) => {
-      this.log.error({ err }, 'error sending message')
-      replyStorage.reject(correlationId, err)
-    })
+    publishMessage
+      .call(this, queueOrRoute, message, options)
+      .catch((err: Error) => {
+        this.log.error({ err }, 'error sending message')
+        replyStorage.reject(correlationId, err)
+      })
 
     return future.promise
   }
@@ -1192,7 +1198,7 @@ export class AMQPTransport extends EventEmitter {
     const emitPreFn = getEmitFn(this, emitPre, 'pre')
     const emitPostFn = getEmitFn(this, emitPost, 'post')
 
-    const preParseMessage = async (incoming: Message) => {
+    const preParseMessage = (incoming: Message): any | Promise<any> => {
       // extract message data
       const { properties } = incoming
       const { contentType, contentEncoding } = properties
@@ -1204,7 +1210,7 @@ export class AMQPTransport extends EventEmitter {
 
       // parsed input data
       const messageBody = autoDeserialize 
-        ? await deserialize(incoming.raw, contentType, contentEncoding)
+        ? deserialize(incoming.raw, contentType, contentEncoding)
         : incoming.raw
 
       return messageBody
@@ -1230,8 +1236,12 @@ export class AMQPTransport extends EventEmitter {
    * @param raw
    */
   private async _privateMessageRouter(messageBody: any, raw: Message): Promise<void> {
-    const { correlationId, replyTo, headers = {} } = raw.properties
+    const { correlationId, replyTo, headers = Object.create(null) } = raw.properties
     const { 'x-death': xDeath } = headers
+
+    if (this.log.isLevelEnabled('trace')) {
+      this.log.trace({ raw }, 'incoming message')
+    }
 
     // retrieve promised message
     const rpcCall = this.replyStorage.pop(correlationId)
@@ -1261,11 +1271,14 @@ export class AMQPTransport extends EventEmitter {
       return
     }
 
-    this.log.trace('response returned in %s', latency(rpcCall.time))
+    if (this.log.isLevelEnabled('trace')) {
+      this.log.trace('response returned in %s', latency(rpcCall.time))
+    }
 
     // if message was dead-lettered - reject with an error
     if (xDeath) {
-      return rpcCall.future.reject(new AmqpDLXError(xDeath, messageBody))
+      rpcCall.reject(new AmqpDLXError(xDeath, messageBody))
+      return
     }
 
     if (messageBody.error) {
@@ -1276,15 +1289,19 @@ export class AMQPTransport extends EventEmitter {
         enumerable: false,
       })
 
-      return rpcCall.future.reject(error)
+      rpcCall.reject(error)
+      return
     }
 
-    const response = buildResponse(messageBody, raw)
+    const response = {
+      headers,
+      data: messageBody.data,
+    }
 
     // has noop in case .cache isnt a string
     this.cache.set(rpcCall.cache, response)
 
-    return rpcCall.future.resolve(adaptResponse(response, rpcCall.replyOptions))
+    rpcCall.resolve(adaptResponse(response, rpcCall.simple))
   }
 
   /**

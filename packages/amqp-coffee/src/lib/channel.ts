@@ -13,6 +13,7 @@ import { Connection, ConnectionState } from './connection'
 import { ServerClosedError, ConnectionResetError } from './errors'
 import { promisify } from 'util'
 import { noop } from 'lodash'
+import { performance } from 'node:perf_hooks'
 
 const debug = _debug('amqp:Channel')
 
@@ -87,7 +88,7 @@ export abstract class Channel extends EventEmitter {
 
   temporaryChannel() {
     this.transactional = true // THIS IS NOT AMQP TRANSACTIONS
-    this.lastChannelAccess = Date.now()
+    this.lastChannelAccess = performance.now()
 
     if (process.env.AMQP_TEST != null) {
       this.connection.connectionOptions.temporaryChannelTimeout = 200
@@ -97,7 +98,7 @@ export abstract class Channel extends EventEmitter {
     if (this.channelTracker == null) {
       const { temporaryChannelTimeout, temporaryChannelTimeoutCheck } = this.connection.connectionOptions
       this.channelTracker = setInterval(() => {
-        if (this.lastChannelAccess < (Date.now() - temporaryChannelTimeout)) {
+        if (this.lastChannelAccess < (performance.now() - temporaryChannelTimeout)) {
           debug(4, () => [this.channel, 'Closing channel due to inactivity'])
           this.close(true)
         }
@@ -138,7 +139,7 @@ export abstract class Channel extends EventEmitter {
           || this.listeners('open').length > 0
           || (
             this.transactional
-            && this.lastChannelAccess > (Date.now() - this.connection.connectionOptions.temporaryChannelTimeout)
+            && this.lastChannelAccess > (performance.now() - this.connection.connectionOptions.temporaryChannelTimeout)
           ))
     ) {
       debug(1, () => 'State is closed... reconnecting')
@@ -279,13 +280,13 @@ export abstract class Channel extends EventEmitter {
     this.queue.push({ type: TaskType.method, method, args, okMethod, cb })
   }
 
-  queuePublish<T extends Methods>(method: T, data: any, options: InferOptions<T>): void {
+  queuePublish<T extends Methods>(method: T, data: any, options: Partial<InferOptions<T>>): void {
     this.queue.push({ type: TaskType.publish, method, data, options })
   }
 
   async _taskWorker(task: Task): Promise<void> {
     if (this.transactional) {
-      this.lastChannelAccess = Date.now()
+      this.lastChannelAccess = performance.now()
     }
 
     const { type, method, okMethod, cb, data, preflight } = task
@@ -357,7 +358,7 @@ export abstract class Channel extends EventEmitter {
   // incomming channel messages for us
   _onChannelMethod<T extends MethodFrame>(channel: number, frame: T) {
     if (this.transactional) {
-      this.lastChannelAccess = Date.now()
+      this.lastChannelAccess = performance.now()
     }
 
     if (channel !== this.channel) {

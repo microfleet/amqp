@@ -9,19 +9,20 @@
 (async () => {
   const AMQP = require('@microfleet/transport-amqp');
   const { cpuUsage } = require('process');
+  const kResponse = { bye: true }
 
   async function handleMessage(data, message) {
-    return { bye: true }
+    return kResponse
   };
 
-  const neck = 80
+  const neck = 1000
   const config = {
     exchange: 'bench.direct',
     queue: 'consume-test',
     listen: ['testing'],
     debug: true,
     name: 'bench-test',
-    neck,
+    // neck,
     exchangeArgs: {
       autoDelete: true,
       type: 'direct',
@@ -42,8 +43,7 @@
   transport.on('after', (message) => {
     messages += 1
     if (messages % ackEvery === 0) {
-      messages = 0
-      message.multiAck()
+      process.stdout.write(`Processed: ${messages} messages\n`)
     }
   })
 

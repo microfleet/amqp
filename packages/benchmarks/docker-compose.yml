@@ -2,7 +2,7 @@ version: '3'
 
 services:
   rabbitmq:
-    image: rabbitmq:3.9-management-alpine
+    image: rabbitmq:3.12-management-alpine
     hostname: rabbitmq
     ports:
       - 15672:15672
@@ -72,7 +72,7 @@ services:
     ]
 
   consumer:
-    image: makeomatic/node:16-tester
+    image: makeomatic/node:20-tester
     depends_on:
       - rabbitmq
     volumes:

@@ -1,12 +1,16 @@
-import HLRU from 'hashlru'
+import LRUCache from 'mnemonist/lru-map-with-delete'
 import { latency } from './latency'
 import stringify from 'safe-stable-stringify'
+import { Future } from './reply-storage'
+
+export const cacheKey = (exchange: string, route: string, headers: Record<string, any> | undefined | null, message: unknown) => {
+  return `${exchange}~${route}~${headers ? stringify(headers) : '{}'}~${stringify(message)}`
+}
 
 export class Cache {
-  public readonly enabled: boolean
-  
-  private readonly cache!: ReturnType<typeof HLRU>
-  private readonly dedupes = new Map<string, Promise<any>>()
+  private readonly enabled: boolean
+  private readonly cache!: LRUCache<string, { maxAge: number, value: any }>
+  private readonly dedupes = new Map<string, Future<any>>()
 
   /**
    * @param size
@@ -16,8 +20,19 @@ export class Cache {
 
     // if enabled - use it
     if (this.enabled) {
-      this.cache = HLRU(size)
+      this.cache = new LRUCache(size)
     }
+  }
+
+  /**
+   * @param ttlOrMaxAge
+   */
+  isEnabled(ttlOrMaxAge: number | undefined): boolean {
+    if (this.enabled === false || ttlOrMaxAge === undefined || ttlOrMaxAge < 0) {
+      return false
+    }
+
+    return true
   }
 
   /**
@@ -25,20 +40,12 @@ export class Cache {
    * @param message
    * @param ttlOrMaxAge
    */
-  get(message: any, ttlOrMaxAge: number | boolean | undefined): null | string | { maxAge: number, value: any } {
-    if (this.enabled === false) {
-      return null
+  get(cacheKey: string, ttlOrMaxAge: number): string | { maxAge: number, value: any } {
+    if (ttlOrMaxAge === 0) {
+      return cacheKey
     }
 
-    if (ttlOrMaxAge === true) {
-      return typeof message === 'string' ? message : stringify(message) as string
-    }
-
-    if (typeof ttlOrMaxAge !== 'number' || ttlOrMaxAge <= 0) {
-      return null
-    }
-
-    const hashKey = typeof message === 'string' ? message : stringify(message) as string
+    const hashKey = cacheKey
     const response = this.cache.get(hashKey)
 
     if (response !== undefined) {
@@ -57,28 +64,28 @@ export class Cache {
    * @param key
    * @param data
    */
-  set(key: string | undefined | null, data: any): null | void {
+  set(key: string | undefined | null, data: any): void {
     if (this.enabled === false) {
       process.emitWarning('tried to use disabled cache', {
         code: 'MF_AMQP_CACHE_0001',
         detail: 'enable cache to be able to use it',
       })
-      return null
+      return
     }
 
     // only use string keys
-    if (typeof key !== 'string') {
-      return null
+    if (typeof key !== 'string' || key === '') {
+      return
     }
 
-    return this.cache.set(key, { maxAge: process.hrtime(), value: data })
+    this.cache.set(key, { maxAge: performance.now(), value: data })
   }
 
-  dedupe(key: string): void | Promise<any> {
+  dedupe<T = any>(key: string): void | Future<T> {
     return this.dedupes.get(key)
   }
 
-  storeDedupe(key: string, future: Promise<any>): void {
+  storeDedupe<T = any>(key: string, future: Future<T>): void {
     this.dedupes.set(key, future)
   }
 

@@ -2,5 +2,8 @@
   "extends": "makeomatic/typescript",
   "parserOptions": {
     "ecmaVersion": "latest"
+  },
+  "rules": {
+    "@typescript-eslint/no-unsafe-declaration-merging": 0
   }
 }
