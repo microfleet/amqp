@@ -49,7 +49,7 @@ import {
 } from '@microfleet/amqp-coffee'
 import { ReplyStorage, pushOptionsFactory } from './utils/reply-storage'
 import { Backoff } from './utils/recovery'
-import { Cache, cacheKey } from './utils/cache'
+import { Cache, CacheEntry, cacheKey } from './utils/cache'
 import { latency } from './utils/latency'
 import * as loggerUtils from './loggers'
 import { AmqpDLXError } from './utils/error'
@@ -1117,7 +1117,7 @@ export class AMQPTransport extends EventEmitter {
       replyTo = await this.preparePrivateQueue(replyTo)
     }
 
-    let cachedResponse: string | { maxAge: number, value: any } = ''
+    let cachedResponse: string | { maxAge: number, err: Error | null, value: CacheEntry | null } = ''
     
     // to avoid creating cache object
     if (cache !== undefined && this.cache.isEnabled(cache)) {
@@ -1130,6 +1130,12 @@ export class AMQPTransport extends EventEmitter {
 
       if (typeof cachedResponse === 'object') {
         options.release()
+        const { err } = cachedResponse
+
+        if (err !== null) {
+          throw err
+        }
+
         return adaptResponse(cachedResponse.value, isSimpleResponse)
       }
     }
@@ -1149,6 +1155,7 @@ export class AMQPTransport extends EventEmitter {
     pushOptions.routing = queueOrRoute
     pushOptions.cache = cachedResponse
     pushOptions.simple = options.simpleResponse
+    pushOptions.cacheError = options.cacheError
 
     const future = replyStorage.push(correlationId, pushOptions)
 
@@ -1289,17 +1296,22 @@ export class AMQPTransport extends EventEmitter {
         enumerable: false,
       })
 
+      // be able to cache serialized response error
+      if (rpcCall.cacheError) {
+        this.cache.set(rpcCall.cache, error, null)
+      }
+
       rpcCall.reject(error)
       return
     }
 
-    const response = {
+    const response: CacheEntry = {
       headers,
       data: messageBody.data,
     }
 
     // has noop in case .cache isnt a string
-    this.cache.set(rpcCall.cache, response)
+    this.cache.set(rpcCall.cache, null, response)
 
     rpcCall.resolve(adaptResponse(response, rpcCall.simple))
   }

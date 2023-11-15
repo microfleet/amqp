@@ -316,7 +316,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         cache: 2000,
         exchange: configuration.exchange,
         queue: 'test-queue-consumer-cached',
-        listen: ['cached.test.default', 'cached.test.throw'],
+        listen: ['cached.test.default', 'cached.test.throw', 'cached.test.throw-cached'],
         connection: configuration.connection,
       }
 
@@ -331,6 +331,11 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
           throw new HttpStatusError(202, 'ok')
         }
 
+        if (raw.routingKey === 'cached.test.throw-cached') {
+          const err = new HttpStatusError(404, `throw me baby: ${requests}`)
+          throw err
+        }
+
         return {
           resp: typeof message === 'object' ? message : `${message}-response`,
           time: performance.now()
@@ -341,6 +346,42 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
     after('close published', async () => {
       await cached.close()
       await cachedConsumer.close()
+    })
+
+    it('able to cache an error', async () => {
+      const publish = () => cached.publishAndWait('cached.test.throw-cached', 1, { cache: 2000, cacheError: true })
+      const spy = sinon.spy(cached, 'publish')
+
+      try {
+        const promises = [
+          publish(),
+          publish(),
+          publish(),
+          publish(),
+          publish(),
+          setTimeout(300).then(publish),
+          setTimeout(5000).then(publish),
+        ]
+
+        const cachedPromises = await Promise.allSettled(promises)
+        const uncached = cachedPromises.pop()
+
+        // only called twice - once after expiration and everything else is deduped or read from cache
+        assert.equal(spy.callCount, 2)
+
+        cachedPromises.forEach((pr) => {
+          assert(pr.status === 'rejected')
+          assert.equal(pr.reason.name, 'HttpStatusError')
+          assert.equal(pr.reason.message, 'throw me baby: 1')
+        })
+
+        assert(uncached)
+        assert(uncached.status === 'rejected')
+        assert.equal(uncached.reason.name, 'HttpStatusError')
+        assert.equal(uncached.reason.message, 'throw me baby: 2')
+      } finally {
+        spy.restore()
+      }
     })
 
     it('publishes batches of messages, they must return cached values and then new ones', async () => {

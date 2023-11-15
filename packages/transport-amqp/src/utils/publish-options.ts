@@ -8,6 +8,7 @@ export type NormalizedPublishProperties = {
   skipSerialize: boolean
   simpleResponse: boolean
   cache: number
+  cacheError: boolean
   timeout: number
 
   // messageProperties
@@ -76,6 +77,7 @@ export function PublishOptionsFactoryObject(this: NormalizedPublishProperties) {
   this.skipSerialize = false
   this.simpleResponse = true
   this.cache = -1
+  this.cacheError = false
   this.timeout = -1
 
   // delivery modes
@@ -91,6 +93,10 @@ export function PublishOptionsFactoryObject(this: NormalizedPublishProperties) {
     // + message properties
     // @ts-expect-error - to make sure hidden class map is correct
     that.messageProperties = null
+    
+    // reset certain props to default
+    that.cacheError = false // no defaults for that, reset each time
+    
     publishOptionsFactory.release(that)
   }
 
