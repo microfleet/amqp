@@ -78,7 +78,7 @@ export class Cache {
       return
     }
 
-    this.cache.set(key, { maxAge: Date.now(), value: data })
+    this.cache.set(key, { maxAge: performance.now(), value: data })
   }
 
   dedupe<T = any>(key: string): void | Future<T> {

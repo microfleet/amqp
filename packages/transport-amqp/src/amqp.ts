@@ -2,6 +2,7 @@ import { Logger } from 'pino'
 
 // deps
 import { randomUUID } from 'node:crypto'
+import { performance } from 'node:perf_hooks'
 import flatstr from 'flatstr'
 import stringify from 'json-stringify-safe'
 import { EventEmitter } from 'eventemitter3'
@@ -313,7 +314,7 @@ export class AMQPTransport extends EventEmitter {
 
     const confirmAfter = multiAckAfter
       ? () => {
-        if (latestConfirm >= Date.now() - multiAckAfter || 
+        if (latestConfirm >= performance.now() - multiAckAfter || 
             sortedList.length === 0 ||
             sortedList[0] !== smallestUnconfirmedDeliveryTag) {
           this.log.trace({ sortedList, latestConfirm, multiAckAfter, smallestUnconfirmedDeliveryTag }, 'skipping confirmAfter')
@@ -330,7 +331,7 @@ export class AMQPTransport extends EventEmitter {
         
         consumer.multiAck(tag)
         smallestUnconfirmedDeliveryTag = tag + 1
-        latestConfirm = Date.now()
+        latestConfirm = performance.now()
       }
     : noop
 
@@ -346,7 +347,7 @@ export class AMQPTransport extends EventEmitter {
 
         consumer.multiAck(tag)
         smallestUnconfirmedDeliveryTag = tag + 1
-        latestConfirm = Date.now()
+        latestConfirm = performance.now()
       }
       : noop
 
@@ -1108,7 +1109,7 @@ export class AMQPTransport extends EventEmitter {
 
     let replyTo = messageProperties.replyTo || this._replyTo
 
-    const time = Date.now()
+    const time = performance.now()
     const isSimpleResponse = options.simpleResponse ?? this._defaultOpts.simpleResponse
 
     // ensure that reply queue exists before sending request

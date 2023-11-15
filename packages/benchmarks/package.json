@@ -8,6 +8,7 @@
     "@microfleet/amqp-coffee": "workspace:^",
     "@microfleet/transport-amqp": "workspace:^",
     "async": "^3.2.5",
+    "benchmark": "^2.1.4",
     "clinic": "^13.0.0",
     "os-utils": "^0.0.14"
   }

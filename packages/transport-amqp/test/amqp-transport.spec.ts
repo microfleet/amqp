@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks'
 import { HttpStatusError, Error as CommonError } from 'common-errors'
 import { route as Proxy } from '@microfleet/amqp-coffee/test/proxy.js'
 import ld from 'lodash'
@@ -187,7 +188,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
       return {
         resp: typeof message === 'object' ? message : `${message}-response`,
-        time: Date.now()
+        time: performance.now()
       }
     })
 
@@ -332,7 +333,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
         return {
           resp: typeof message === 'object' ? message : `${message}-response`,
-          time: Date.now()
+          time: performance.now()
         }
       })
     })
@@ -619,7 +620,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
 
       const spy = sinon.spy(function listener(message, properties, actions, callback) {
         actions.ack()
-        callback(null, Date.now())
+        callback(null, performance.now())
       })
 
       const publish = Promise.all(messages.map(({ message, priority }) => {
