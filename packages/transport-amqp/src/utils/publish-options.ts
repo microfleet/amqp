@@ -36,6 +36,7 @@ export class MessagePropertiesFactory implements MessageProperties {
   public correlationId = ''
   public priority = 0
   public routingKey = ''
+  public readonly reuse = true
 
   constructor(opts: DefaultPublishOptions) {
     // delivery props
