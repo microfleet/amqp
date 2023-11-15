@@ -1,5 +1,6 @@
 import { performance } from 'node:perf_hooks'
 import { HttpStatusError, Error as CommonError } from 'common-errors'
+// @ts-expect-error no declaration cause js in tests
 import { route as Proxy } from '@microfleet/amqp-coffee/test/proxy.js'
 import ld from 'lodash'
 import stringify from 'json-stringify-safe'
@@ -332,7 +333,11 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         }
 
         if (raw.routingKey === 'cached.test.throw-cached') {
-          const err = new HttpStatusError(404, `throw me baby: ${requests}`)
+          const code = typeof message === 'string' && message.startsWith('throw')
+            ? 500
+            : 404
+
+          const err = new HttpStatusError(code, `throw me baby: ${requests}`)
           throw err
         }
 
@@ -379,6 +384,66 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         assert(uncached.status === 'rejected')
         assert.equal(uncached.reason.name, 'HttpStatusError')
         assert.equal(uncached.reason.message, 'throw me baby: 2')
+      } finally {
+        spy.restore()
+      }
+    })
+
+    it('able to cache an error with predicate', async () => {
+      const cacheError = (err: Error & { statusCode?: number }) => {
+        if (err.name === 'HttpStatusError' && err.statusCode === 404) {
+          return true
+        }
+
+        return false
+      } 
+      const publish = (msg: any) => cached.publishAndWait('cached.test.throw-cached', msg, { cache: 2000, cacheError })
+      const spy = sinon.spy(cached, 'publish')
+
+      try {
+        const promises = [
+          publish('throw'),
+          publish('throw'),
+          publish('throw: dedupe 2'),
+          publish('throw: dedupe 3'),
+          publish('throw: dedupe 4'),
+          setTimeout(300).then(() => publish('ok')), // no cache present - will populate it
+          setTimeout(500).then(() => publish('ok')), // will use cache
+        ]
+
+        const cachedPromises = await Promise.allSettled(promises)
+        const cachedError = cachedPromises.pop()
+        const uncached = cachedPromises.pop()
+
+        // only called twice - once after expiration and everything else is deduped or read from cache
+        assert.equal(spy.callCount, 5) // throw + dedupe 2,3,4 + ok
+
+        let responseCount = 3
+        cachedPromises.forEach((pr, idx) => {
+          assert(pr.status === 'rejected')
+          assert.equal(pr.reason.name, 'HttpStatusError')
+          assert.equal(pr.reason.statusCode, 500)
+          assert.equal(pr.reason.message, `throw me baby: ${responseCount}`) // it will be the same because of deduplication
+          
+          // first 2 calls deduped
+          if (idx > 0) {
+            responseCount += 1
+          }
+        })
+
+        // will cache the error after this request
+        assert(uncached)
+        assert(uncached.status === 'rejected')
+        assert.equal(uncached.reason.name, 'HttpStatusError')
+        assert.equal(uncached.reason.statusCode, 404)
+        assert.equal(uncached.reason.message, `throw me baby: ${responseCount}`)
+
+        // must be taken from cache
+        assert(cachedError)
+        assert(cachedError.status === 'rejected')
+        assert.equal(cachedError.reason.name, 'HttpStatusError')
+        assert.equal(cachedError.reason.statusCode, 404)
+        assert.equal(cachedError.reason.message, `throw me baby: ${responseCount}`)
       } finally {
         spy.restore()
       }
@@ -997,7 +1062,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         }
       })
 
-      const { queue, consumer } = await transport.createConsumedQueue(router, ['/include-headers'])
+      const { queue } = await transport.createConsumedQueue(router, ['/include-headers'])
 
       const response = await transport.publishAndWait('/include-headers', sample, {
         confirm: true,
@@ -1038,7 +1103,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
         }
       })
 
-      const { queue, consumer } = await transport.createConsumedQueue(router, ['/return-custom-header'])
+      const { queue } = await transport.createConsumedQueue(router, ['/return-custom-header'])
 
       const response = await transport.publishAndWait('/return-custom-header', sample, {
         confirm: true,
@@ -1080,7 +1145,7 @@ describe('AMQPTransport', function AMQPTransportTestSuite() {
       })
 
       try {
-        const { queue, consumer } = await transport.createConsumedQueue(router, ['/return-headers-on-error'])
+        const { queue } = await transport.createConsumedQueue(router, ['/return-headers-on-error'])
 
         try {
           await transport.publishAndWait('/return-headers-on-error', sample, {

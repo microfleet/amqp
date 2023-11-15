@@ -55,7 +55,7 @@ export interface Publish extends Partial<PublishOptions> {
   skipSerialize?: boolean // whether it was already serialized earlier
   simpleResponse?: boolean
   cache?: number // set to a value larger than 0 to cache the response
-  cacheError?: boolean
+  cacheError?: boolean | ((err: Error) => boolean)
 }
 
 export interface DefaultPublishOptions {

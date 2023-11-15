@@ -21,7 +21,7 @@ export interface PushOptions {
   timer: NodeJS.Timeout | null
   future: Future | null
   cache: string | null
-  cacheError: boolean
+  cacheError: boolean | ((err: Error) => boolean)
 
   release(): void
   reject(err: Error): void

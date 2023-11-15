@@ -8,7 +8,7 @@ export type NormalizedPublishProperties = {
   skipSerialize: boolean
   simpleResponse: boolean
   cache: number
-  cacheError: boolean
+  cacheError: boolean | ((err: Error) => boolean)
   timeout: number
 
   // messageProperties

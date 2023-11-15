@@ -1297,7 +1297,8 @@ export class AMQPTransport extends EventEmitter {
       })
 
       // be able to cache serialized response error
-      if (rpcCall.cacheError) {
+      const { cacheError } = rpcCall
+      if (cacheError === true || (typeof cacheError === 'function' && cacheError(error) === true)) {
         this.cache.set(rpcCall.cache, error, null)
       }
 
