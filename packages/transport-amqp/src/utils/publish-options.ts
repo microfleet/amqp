@@ -86,7 +86,7 @@ export function PublishOptionsFactoryObject(this: NormalizedPublishProperties) {
   // eslint-disable-next-line @typescript-eslint/no-this-alias
   const that = this
 
-  this.release = function () {
+  this.release = function release() {
     // delivery modes
     // + message properties
     // @ts-expect-error - to make sure hidden class map is correct
@@ -94,7 +94,7 @@ export function PublishOptionsFactoryObject(this: NormalizedPublishProperties) {
     publishOptionsFactory.release(that)
   }
 
-  this.setOptions = function (defaultExchange: string, options: PublishSettings | undefined) {
+  this.setOptions = function setOptions(defaultExchange: string, options: PublishSettings | undefined) {
     const { messageProperties } = that
 
     // done
@@ -122,7 +122,7 @@ export function PublishOptionsFactoryObject(this: NormalizedPublishProperties) {
     messageProperties.exchange = options.exchange || defaultExchange
 
     // extra logic for timeout
-    if (that.timeout > 0) {
+    if (that.timeout > 0 && !messageProperties.expiration) {
       const timeout = that.timeout
       messageProperties.headers.timeout = timeout
       messageProperties.expiration = Math.ceil(timeout * 0.9).toString()
@@ -133,7 +133,7 @@ export function PublishOptionsFactoryObject(this: NormalizedPublishProperties) {
     }
   }
 
-  this.setDefaultOpts = function (opts: DefaultPublishOptions) {
+  this.setDefaultOpts = function setDefaultOpts(opts: DefaultPublishOptions) {
     // specify default options that are not part of message propertis
     that.cache = opts.cache
     that.gzip = opts.gzip
