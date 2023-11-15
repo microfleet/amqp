@@ -112,7 +112,7 @@ export class Message {
   public readonly raw: Buffer | Error
   public readonly size: number
   public readonly deliveryTag?: number
-  public readonly routingKey?: string
+  public readonly routingKey: string = ''
   public readonly exchange: string
   public readonly redelivered: boolean
   public readonly consumerTag: string

@@ -279,7 +279,7 @@ export abstract class Channel extends EventEmitter {
     this.queue.push({ type: TaskType.method, method, args, okMethod, cb })
   }
 
-  queuePublish<T extends Methods>(method: T, data: any, options: InferOptions<T>): void {
+  queuePublish<T extends Methods>(method: T, data: any, options: Partial<InferOptions<T>>): void {
     this.queue.push({ type: TaskType.publish, method, data, options })
   }
 

@@ -164,7 +164,7 @@ export class Publisher extends Channel {
       .then(() => cb?.(), cb)
   }
 
-  async publishAsync(exchange: string, routingKey: string, _data: any, _options: PublishOptions = Object.create(null)) {
+  async publishAsync(exchange: string, routingKey: string, _data: any, _options: Partial<PublishOptions> = Object.create(null)) {
     const options = _options.reuse !== true ? { ..._options } : _options
 
     if (this._inoperableState()) {
