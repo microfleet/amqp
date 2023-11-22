@@ -94,8 +94,7 @@ export class Consumer extends Channel {
 
   public async consume(queueName: string, messageHandler: MessageHandler, options: ConsumeHandlerOpts = {}): Promise<BasicConsumeResponse> {
     debug(2, () => `Consuming ${queueName} on channel ${this.channel}`)
-    this.consumerState = CONSUMER_STATES.CONSUMER_STATE_OPENING
-
+    
     let qosOptions: QosOptions | null = null
     if (options.prefetchCount != null && options.prefetchCount > 0) {
       // this should be a qos channel and we should expect ack's on messages
@@ -228,6 +227,8 @@ export class Consumer extends Channel {
   // Private
   private async _consume(): Promise<BasicConsumeResponse> {
     debug(1, () => [this.channel, "_consume called"])
+    this.consumerState = CONSUMER_STATES.CONSUMER_STATE_OPENING
+
     const{ consumeOptions } = this
     assert(consumeOptions)
 
@@ -237,7 +238,7 @@ export class Consumer extends Channel {
 
     const res = await this.taskPushAsync(
       methods.basicConsume, 
-      consumeOptions, 
+      consumeOptions,
       methods.basicConsumeOk, 
       this._basicConsumePreflight
     )
@@ -283,6 +284,8 @@ export class Consumer extends Channel {
       debug(1, () => [this.channel, "consumerState < Channel Closed"])
       this.consumerState = CONSUMER_STATES.CONSUMER_STATE_CHANNEL_CLOSED
       this._consume().catch(this._onConsumeError)
+    } else if (this.consumerState === CONSUMER_STATES.CONSUMER_STATE_OPENING && this.state === ChannelState.closed) {
+      this.consumerState = CONSUMER_STATES.CONSUMER_STATE_CHANNEL_CLOSED
     } else {
       debug(1, () => [this.channel, "consumerState < CONSUMER_STATE_CONNECTION_CLOSED"])
       this.consumerState = CONSUMER_STATES.CONSUMER_STATE_CONNECTION_CLOSED

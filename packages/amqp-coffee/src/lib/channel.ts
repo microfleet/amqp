@@ -12,9 +12,11 @@ import { methods,
 import { Connection, ConnectionState } from './connection'
 import { ServerClosedError, ConnectionResetError } from './errors'
 import { promisify } from 'util'
-import { noop } from 'lodash'
 import { performance } from 'node:perf_hooks'
+import fastq from 'fastq'
+import type { queueAsPromised } from "fastq"
 
+const noopErr = (err: Error) => debug(4, ['openAsync', err])
 const debug = _debug('amqp:Channel')
 
 export const enum TaskType {
@@ -65,6 +67,10 @@ export type Task<
   options: InferOptions<T>
 }, T, U, Data>
 
+const kChannelCloseOkName = methods.channelCloseOk.name
+const kChannelCloseName = methods.channelClose.name
+const kChannelOpenOkName = methods.channelOpenOk.name
+
 export interface Channel {
   on(event: 'open', listener: () => void): this;
   on(event: 'error', listener: (err: Error | ServerClosedError) => void): this;
@@ -74,7 +80,7 @@ export abstract class Channel extends EventEmitter {
 
   private waitingCallbacks = new Map() // channel operations
   private transactional = false
-  private queue = async.queue<Task>(this._taskWorker.bind(this), 1)
+  private queue: queueAsPromised<Task> = fastq.promise(this, this._taskWorker, 1)
   private lastChannelAccess = 0
   private channelTracker: NodeJS.Timeout | null = null
   private openAsync: () => Promise<void>
@@ -299,23 +305,29 @@ export abstract class Channel extends EventEmitter {
 
     if (this.state === ChannelState.closed && this.connection.state === 'open') {
       this.connection.channelManager.channelReassign(this)
-      await this.openAsync().catch(noop)
-      return this._taskWorker(task)
+      await this.openAsync().catch(noopErr)
+      debug(4, () => ['openAsync done: channel number', this.channel])
+      this.queue.unshift(task)
+      return
     }
+
+    const { connection } = this
 
     if (this.state !== ChannelState.open) {
       // if our connection is closed that ok, but if its destroyed it will not reopen
-      if (this.connection.state === ConnectionState.destroyed) {
+      if (connection.state === ConnectionState.destroyed) {
         cb?.(new Error('Connection is destroyed'))
         return
       }
 
-      if (this.connection.channelManager.isChannelClosed(this.channel)) {
-        this.connection.channelManager.channelReassign(this)
+      if (this.state !== ChannelState.opening && connection.channelManager.isChannelClosed(this.channel)) {
+        debug(4, () => ['channel', this.channel, 'in state', this.state, 'marked as closed'])
+        connection.channelManager.channelReassign(this)
       }
 
       await once(this, 'open')
-      return this._taskWorker(task)
+      this.queue.unshift(task)
+      return
     }
 
     const p$ = okMethod != null
@@ -323,10 +335,12 @@ export abstract class Channel extends EventEmitter {
       : null
 
     if (type === 'method') {
-      this.connection._sendMethod(this.channel, method, task.args)
+      connection._sendMethod(this.channel, method, task.args)
     } else if (type === 'publish') {
+      connection.connection.cork()
       this.connection._sendMethod(this.channel, method, task.options)
-      this.connection._sendBody(this.channel, data, task.options, () => { /* ignore err */ })
+      this.connection._sendBody(this.channel, data, task.options)
+      process.nextTick(() => connection.connection.uncork())
     } else {
       throw new Error(`a task was queue with an unknown type of ${type}`)
     }
@@ -368,44 +382,43 @@ export abstract class Channel extends EventEmitter {
 
     this.callbackForMethod(frame.method)(null, frame.args)
 
-    switch (frame.name) {
-      case methods.channelCloseOk.name:
-        this.connection.channelManager.channelClosed(this.channel)
-        this.state = ChannelState.closed
+    const { name } = frame
+    const { connection } = this
 
-        this._channelClosed(new Error('Channel closed'))
-        this._callOutstandingCallbacks(new Error('Channel closed'))
-        break
+    if (name === kChannelCloseOkName) {
+      connection.channelManager.channelClosed(this.channel)
+      this.state = ChannelState.closed
 
-      case methods.channelClose.name: {
-        // channel by closed from server
-        const args = frame.args
+      this._channelClosed(new Error('Channel closed'))
+      this._callOutstandingCallbacks(new Error('Channel closed'))
 
-        this.connection._sendMethod(this.channel, methods.channelCloseOk, {})
+    } else if (name === kChannelCloseName) {
+      // channel by closed from server
+      const { args } = frame
 
-        this.state = ChannelState.closed
-        this.connection.channelManager.channelClosed(this.channel)
+      connection._sendMethod(this.channel, methods.channelCloseOk, {})
 
-        const idx = `${args.classId}_${args.methodId}`
-        if (isClassMethodId(idx)) {
-          const closingMethod = classMethodsTable[idx].name
-          const closingMethodSignature = `${closingMethod}Ok` as MethodsOk['name']
-          const closingMethodOk = methods[closingMethodSignature]
-          this.callbackForMethod(closingMethodOk)(args) // this would be the error
-        }
-        this._channelClosed(new ServerClosedError(args))
-        this._callOutstandingCallbacks(new Error(`Channel closed by server ${JSON.stringify(args)}`))
-        break
+      this.state = ChannelState.closed
+      connection.channelManager.channelClosed(this.channel)
+
+      const idx = `${args.classId}_${args.methodId}`
+      if (isClassMethodId(idx)) {
+        const closingMethod = classMethodsTable[idx].name
+        const closingMethodSignature = `${closingMethod}Ok` as MethodsOk['name']
+        const closingMethodOk = methods[closingMethodSignature]
+        this.callbackForMethod(closingMethodOk)(args) // this would be the error
       }
 
-      case methods.channelOpenOk.name:
-        this.state = ChannelState.open
-        this._channelOpen()
-        this.emit('open')
-        break
+      this._channelClosed(new ServerClosedError(args))
+      this._callOutstandingCallbacks(new Error(`Channel closed by server ${JSON.stringify(args)}`))
 
-      default:
-        this._onMethod(channel, frame)
+    } else if (name === kChannelOpenOkName) {
+      this.state = ChannelState.open
+      this._channelOpen()
+      this.emit('open')
+
+    } else {
+      this._onMethod(channel, frame)
     }
   }
 
