@@ -154,12 +154,13 @@ describe('Publisher', () => {
 
     const options = {confirm:true, mandatory: false}
     await timesSeries(10, async (i: number) => {
-      amqp.publish("amq.direct", ["testpublish",((i%2)+1)].join(''), Buffer.alloc(50), options)
+      amqp.publish("amq.direct", ["testpublish",((i%2)+1)].join(''), Buffer.alloc(50, '0'), options)
     })
 
     let q1count = 0
     let q2count = 0
     const messageProcessor = (message: Message) => {
+      console.log('[%d/5 - %s] [%d/5 - %s] ~ %s', q1count, queueName1, q2count, queueName2, message.routingKey)
       if (message.routingKey == queueName1) q1count++
       if (message.routingKey == queueName2) q2count++
     }
