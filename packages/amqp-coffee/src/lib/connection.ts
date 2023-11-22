@@ -326,6 +326,11 @@ export class Connection extends EventEmitter {
     return publishChannel.publishAsync(exchange, routingKey, data, options)
   }
 
+  public async publishMessage(data: any, options: PublishOptions): Promise<void> {
+    const publishChannel = this.channelManager.publisherChannel(options.confirm)
+    return publishChannel.publishMessageAsync(data, options)
+  }
+
   public async close(err?: Error): Promise<void> {
     // should close all the things and reset for a new clean guy
     // @connection.removeAllListeners() TODO evaluate this

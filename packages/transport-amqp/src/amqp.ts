@@ -913,23 +913,25 @@ export class AMQPTransport extends EventEmitter {
    * @param  _message
    * @param  options
    */
-  private async sendToServer(exchange: string, queueOrRoute: string, _message: any, publishOptions: NormalizedPublishProperties): Promise<void> {
+  private async sendToServer(_message: any, publishOptions: NormalizedPublishProperties): Promise<void> {
+    const { messageProperties, skipSerialize } = publishOptions
+
     if (this.log.isLevelEnabled('trace')) {
-      this.log.trace({ exchange, queueOrRoute, _message, publishOptions }, 'sendToServer called')
+      this.log.trace({ _message, publishOptions }, 'sendToServer called')
     }
 
-    const message = publishOptions.skipSerialize === true
+    const message = skipSerialize === true
       ? _message
-      : await serialize(_message, publishOptions.messageProperties)
+      : await serialize(_message, messageProperties)
 
-    await this._amqp.publish(exchange, queueOrRoute, message, publishOptions.messageProperties)
+    await this._amqp.publishMessage(message, messageProperties)
 
     if (this.log.isLevelEnabled('trace')) {
-      this.log.trace({ exchange, queueOrRoute, _message, publishOptions }, 'sendToServer called: after')
+      this.log.trace({ _message, publishOptions }, 'sendToServer called: after')
     }
 
     // emit original message
-    this.emit('publish', queueOrRoute, _message)
+    this.emit('publish', messageProperties.routingKey, _message)
 
     // release options for further processing
     publishOptions.release()
@@ -948,18 +950,7 @@ export class AMQPTransport extends EventEmitter {
       ? publishOptions.exchange
       : this.config.exchange
 
-    this.log.trace({ publishOptions }, 'pre send-to-server publishOptions, isSerialize: %s', publishOptions?.skipSerialize)
-
-    const options = this.publishOptions(exchange, publishOptions)
-
-    this.log.trace({ options }, 'pre send-to-server, isSerialize: %s', options.skipSerialize)
-
-    return this.sendToServer(
-      exchange,
-      route,
-      message,
-      options
-    )
+    return this.sendToServer(message, this.publishOptions(exchange, route, publishOptions))
   }
 
   /**
@@ -975,14 +966,7 @@ export class AMQPTransport extends EventEmitter {
       ? publishOptions.exchange
       : ''
     
-    const options = this.publishOptions(exchange, publishOptions)
-
-    return this.sendToServer(
-      exchange,
-      queue,
-      message,
-      options
-    )
+    return this.sendToServer(message, this.publishOptions(exchange, queue, publishOptions))
   }
 
   /**
@@ -997,12 +981,11 @@ export class AMQPTransport extends EventEmitter {
     const exchange = typeof publishOptions?.exchange === 'string'
       ? publishOptions.exchange
       : this.config.exchange
-
+    
     return this.createMessageHandler(
-      route,
       message,
       this.publish,
-      this.publishOptions(exchange, publishOptions)
+      this.publishOptions(exchange, route, publishOptions)
     )
   }
 
@@ -1018,12 +1001,11 @@ export class AMQPTransport extends EventEmitter {
     const exchange = typeof publishOptions?.exchange === 'string'
       ? publishOptions.exchange
       : ''
-
+    
     return this.createMessageHandler(
-      queue,
       message,
       this.send,
-      this.publishOptions(exchange, publishOptions)
+      this.publishOptions(exchange, queue, publishOptions)
     )
   }
 
@@ -1031,7 +1013,7 @@ export class AMQPTransport extends EventEmitter {
    * Specifies default publishing options
    * @param options
    */
-  private publishOptions(defaultExchange: string, options: PublishOptions | undefined): NormalizedPublishProperties {
+  private publishOptions(defaultExchange: string, routingKey: string, options: PublishOptions | undefined): NormalizedPublishProperties {
     if (options instanceof PublishOptionsFactoryObject) {
       return options as NormalizedPublishProperties
     }
@@ -1039,7 +1021,7 @@ export class AMQPTransport extends EventEmitter {
     const publishOptions = publishOptionsFactory.get()
 
     publishOptions.setDefaultOpts(this._defaultOpts)
-    publishOptions.setOptions(defaultExchange, options)
+    publishOptions.setOptions(defaultExchange, routingKey, options)
 
     if (this.log.isLevelEnabled('trace')) {
       this.log.trace({ publishOptions }, 'publishOptions prepared')
@@ -1104,7 +1086,7 @@ export class AMQPTransport extends EventEmitter {
   private async createMessageHandler<
     T, 
     Z extends (queueOrRoute: string, message: unknown, options?: NormalizedPublishProperties) => Promise<void>
-  >(queueOrRoute: string, message: unknown, publishMessage: Z, options: NormalizedPublishProperties): Promise<T> {
+  >(message: unknown, publishMessage: Z, options: NormalizedPublishProperties): Promise<T> {
     const { messageProperties, cache } = options
 
     let replyTo = messageProperties.replyTo || this._replyTo
@@ -1124,7 +1106,7 @@ export class AMQPTransport extends EventEmitter {
       // work with cache if options.cache is set and is number
       // otherwise cachedResponse is always null
       cachedResponse = this.cache.get(
-        cacheKey(messageProperties.exchange, queueOrRoute, messageProperties.headers, message), 
+        cacheKey(messageProperties.exchange, messageProperties.routingKey, messageProperties.headers, message), 
         cache
       )
 
@@ -1152,7 +1134,7 @@ export class AMQPTransport extends EventEmitter {
     const pushOptions = pushOptionsFactory.get()
     pushOptions.timeout = timeout
     pushOptions.time = time
-    pushOptions.routing = queueOrRoute
+    pushOptions.routing = messageProperties.routingKey
     pushOptions.cache = cachedResponse
     pushOptions.simple = options.simpleResponse
     pushOptions.cacheError = options.cacheError
@@ -1179,7 +1161,7 @@ export class AMQPTransport extends EventEmitter {
     // this is to ensure that queue is not overflown and work will not
     // be completed later on
     publishMessage
-      .call(this, queueOrRoute, message, options)
+      .call(this, messageProperties.routingKey, message, options)
       .catch((err: Error) => {
         this.log.error({ err }, 'error sending message')
         replyStorage.reject(correlationId, err)

@@ -33,7 +33,7 @@ export interface PublishOptions extends MessageProperties {
   deliveryMode: 1 | 2  // transient or persistant, default to 1
 }
 
-const transformData = (data: string | Record<string, any> | Buffer | undefined, options: { contentType?: string }): Buffer => {
+const transformData = (data: unknown, options: { contentType?: string }): Buffer => {
   // data must be a buffer
   if (typeof data === 'string') {
     options.contentType = 'string/utf8'
@@ -54,6 +54,10 @@ const transformData = (data: string | Record<string, any> | Buffer | undefined, 
   if (data === undefined) {
     options.contentType = 'application/undefined'
     return Buffer.allocUnsafe(0)
+  }
+
+  if (!Buffer.isBuffer(data)) {
+    throw new Error(`data is not of a supported type: ${typeof data}`)
   }
 
   return data
@@ -163,22 +167,24 @@ export class Publisher extends Channel {
     this.publishAsync(exchange, routingKey, data, options)
       .then(() => cb?.(), cb)
   }
+  
+  private async recover() {
+    debug(4, () => ['publish channel in inoperable state'])
+    if (!this._recoverableState()) {
+      debug(4, () => ['state irrecoverable'])
+      throw new Error(`Channel ${this.channel} is closed and will not re-open? ${this.state} ${this.confirm} ${this.confirmState}`)
+    }
 
-  async publishAsync(exchange: string, routingKey: string, _data: any, _options: Partial<PublishOptions> = Object.create(null)) {
-    const options = _options.reuse !== true ? { ..._options } : _options
+    debug(4, () => ['state recoverable, wait for:', this.confirm ? 'confirm' : 'open'])
+    if (this.confirm && (this.confirmState === ConfirmState.closed || this.confirmState === ConfirmState.noAck)) {
+      this.confirmMode()
+    }
+    await this._wait(this.confirm ? 'confirm' : 'open')
+  }
 
+  async publishMessageAsync(_data: unknown, options: PublishOptions) {
     if (this._inoperableState()) {
-      debug(4, () => ['publish channel in inoperable state'])
-      if (this._recoverableState()) {
-        debug(4, () => ['state recoverable, wait for:', this.confirm ? 'confirm' : 'open'])
-        if (this.confirm && (this.confirmState === ConfirmState.closed || this.confirmState === ConfirmState.noAck)) {
-          this.confirmMode()
-        }
-        await this._wait(this.confirm ? 'confirm' : 'open')
-      } else {
-        debug(4, () => ['state irrecoverable'])
-        throw new Error(`Channel ${this.channel} is closed and will not re-open? ${this.state} ${this.confirm} ${this.confirmState}`)
-      }
+      await this.recover()
     }
 
     // perform data transformation, ie obj -> buffer
@@ -192,8 +198,45 @@ export class Publisher extends Channel {
       }
     }
 
-    options.exchange = exchange
-    options.routingKey = routingKey
+    // increment this as the final step before publishing, to make sure we're in sync with the server
+    let thisSequenceNumber: number | null = null
+    if (this.confirm) {
+      thisSequenceNumber = this.seq++
+
+      // This is to tie back this message as failed if it failed in confirm mode with a mandatory or immediate publish
+      if (options.mandatory || options.immediate) {
+        options.headers['x-seq'] = thisSequenceNumber
+      }
+    }
+
+    debug(4, () => ['queue publish', JSON.stringify(options)])
+    this.queuePublish(methods.basicPublish, data, options)
+
+    if (thisSequenceNumber !== null) {
+      await this._waitForSeq(thisSequenceNumber)
+    }
+  }
+
+  async publishAsync(exchange: string, routingKey: string, _data: any, _options: Partial<PublishOptions> = Object.create(null)) {
+    const options = _options.reuse !== true ? { ..._options } : _options
+
+    if (this._inoperableState()) {
+      await this.recover()
+    }
+
+    // perform data transformation, ie obj -> buffer
+    const data = transformData(_data, options)
+
+    // Apply default options after we deal with potentially converting the data
+    for (const key in kBasicPublishDefaults) {
+      if (!hasOwnProperty.call(options, key)) {
+        // @ts-expect-error -- invalid error
+        options[key] = kBasicPublishDefaults[key]
+      }
+    }
+
+    options.exchange ||= exchange
+    options.routingKey ||= routingKey
 
     // increment this as the final step before publishing, to make sure we're in sync with the server
     let thisSequenceNumber: number | null = null

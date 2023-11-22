@@ -16,7 +16,7 @@ export type NormalizedPublishProperties = {
 
   release(): void
   setDefaultOpts(opts: DefaultPublishOptions): void
-  setOptions(defaultExchange: string, options: PublishSettings | undefined): void
+  setOptions(defaultExchange: string, routingKey: string, options: PublishSettings | undefined): void
 }
 
 export const publishOptionsFactory = reusify<NormalizedPublishProperties>(PublishOptionsFactoryObject)
@@ -100,13 +100,16 @@ export function PublishOptionsFactoryObject(this: NormalizedPublishProperties) {
     publishOptionsFactory.release(that)
   }
 
-  this.setOptions = function setOptions(defaultExchange: string, options: PublishSettings | undefined) {
+  this.setOptions = function setOptions(defaultExchange: string, routingKey: string, options: PublishSettings | undefined) {
     const { messageProperties } = that
 
     // done
     if (!options) {
       if (!messageProperties.exchange) {
         messageProperties.exchange = defaultExchange
+      }
+      if (!messageProperties.routingKey) {
+        messageProperties.routingKey = routingKey
       }
       return
     }
@@ -126,6 +129,7 @@ export function PublishOptionsFactoryObject(this: NormalizedPublishProperties) {
     }
 
     messageProperties.exchange = options.exchange || defaultExchange
+    messageProperties.routingKey = options.routingKey || routingKey
 
     // extra logic for timeout
     if (that.timeout > 0 && !messageProperties.expiration) {
