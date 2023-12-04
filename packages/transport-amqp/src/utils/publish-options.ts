@@ -13,6 +13,7 @@ export type NormalizedPublishProperties = {
 
   // messageProperties
   messageProperties: MessageProperties
+  next: NormalizedPublishProperties | null
 
   release(): void
   setDefaultOpts(opts: DefaultPublishOptions): void
@@ -73,6 +74,9 @@ export const kMessagePropertyKeys = [
 export const kMessagePropertyFinder: Record<keyof typeof kMessagePropertyKeys, true> = Object.setPrototypeOf(Object.fromEntries(kMessagePropertyKeys.map(key => [key, true])), null)
 
 export function PublishOptionsFactoryObject(this: NormalizedPublishProperties) {
+  // reusify prop
+  this.next = null
+
   this.gzip = false
   this.skipSerialize = false
   this.simpleResponse = true

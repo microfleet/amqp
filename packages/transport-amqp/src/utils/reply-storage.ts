@@ -22,6 +22,7 @@ export interface PushOptions {
   future: Future | null
   cache: string | null
   cacheError: boolean | ((err: Error) => boolean)
+  next: PushOptions | null
 
   release(): void
   reject(err: Error): void
@@ -29,6 +30,9 @@ export interface PushOptions {
 }
 
 function PushOptions(this: any) {
+  // reusify prop
+  this.next = null
+
   this.timeout = -1 // expected response time.
   this.routing = '' // routing key for error message.
   this.simple = false // whether return body - only response or include headers
@@ -68,6 +72,7 @@ function PushOptions(this: any) {
 }
 
 function Future<T>(this: any) {
+  this.next = null
   this.resolve = null
   this.reject = null
   this.promise = null
