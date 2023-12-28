@@ -31,12 +31,12 @@
   "devDependencies": {
     "@swc-node/register": "^1.6.8",
     "@types/debug": "^4.1.12",
-    "@types/node": "^20.9.0",
-    "eslint": "^8.53.0",
+    "@types/node": "^20.10.5",
+    "eslint": "^8.56.0",
     "eslint-config-makeomatic": "^6.0.0",
     "rimraf": "^5.0.5",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "debug": "^4.3.4"

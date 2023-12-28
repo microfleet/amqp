@@ -1,6 +1,9 @@
-import os = require('os')
-import ref = require('ref-napi')
-import ffi = require('ffi-napi')
+import os from 'node:os'
+import { getSystemErrorName } from 'node:util'
+// @ts-expect-error no types
+import ref from '@makeomatic/ref-napi'
+// @ts-expect-error no types
+import ffi from '@makeomatic/ffi-napi'
 
 let SOL_SOCKET: number
 let SO_SNDBUF: number
@@ -26,6 +29,17 @@ const bindings = ffi.Library(null, {
   setsockopt: [cInt, [cInt, cInt, cInt, ref.refType(cVoid), cInt]],
 })
 
+const errnoException = (errno: number, syscall: string) => {
+  const errname = getSystemErrorName(errno)
+  const err = new Error(`${syscall} ${errname} (${errno})`) as Error & { code: string, errno: number, syscall: string }
+
+  err.code = errname
+  err.errno = errno
+  err.syscall = syscall
+
+  return err
+}
+
 /**
  * Call the native 'setsockopt' API to set an integer socket option.
  * See: Unix man page for setsockopt(2).
@@ -35,10 +49,14 @@ const bindings = ffi.Library(null, {
  * @param {number} value
  * @returns {void}
  */
-function setsockoptInt(fd: number, level: number, name: number, value: number) {
+function setsockoptInt(fd: number, level: number, name: number, value: number): void {
   const valueRef = ref.alloc(cInt, value)
-  // @ts-expect-error -- pointer types
-  bindings.setsockopt(fd, level, name, valueRef, cInt.size)
+  const err = bindings.setsockopt(fd, level, name, valueRef, valueRef.type.size)
+
+  if (err !== 0) {
+    const errno = ffi.errno()
+    throw errnoException(errno, 'getsockopt')
+  }
 }
 
 export const setSocketReadBuffer = (fd: number, size: number) => {
