@@ -334,9 +334,9 @@ export abstract class Channel extends EventEmitter {
       ? this.waitForMethodAsync(okMethod)
       : null
 
-    if (type === 'method') {
+    if (type === TaskType.method) {
       connection._sendMethod(this.channel, method, task.args)
-    } else if (type === 'publish') {
+    } else if (type === TaskType.publish) {
       connection.connection.cork()
       this.connection._sendMethod(this.channel, method, task.options)
       this.connection._sendBody(this.channel, data, task.options)
