@@ -43,20 +43,18 @@
     "read-pkg": "^5.2.0"
   },
   "optionalDependencies": {
-    "@makeomatic/ffi-napi": "^4.0.3",
-    "@makeomatic/ref-napi": "^3.0.3"
+    "@makeomatic/ffi-napi": "^4.1.0",
+    "@makeomatic/ref-napi": "^3.0.6"
   },
   "devDependencies": {
     "@makeomatic/deploy": "^13.0.5",
     "@types/async": "^3.2.24",
     "@types/bytes": "^3.1.4",
     "@types/debug": "^4.1.12",
-    "@types/ffi-napi": "^4.0.10",
     "@types/lodash": "^4.14.202",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.5",
     "@types/readable-stream": "^4.0.10",
-    "@types/ref-napi": "^3.0.12",
     "@types/sinon": "^17.0.2",
     "@types/uuid": "^9.0.7",
     "bluebird": "^3.7.2",

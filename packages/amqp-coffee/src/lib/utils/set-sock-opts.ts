@@ -1,6 +1,8 @@
 import os from 'node:os'
 import { getSystemErrorName } from 'node:util'
+// @ts-expect-error no types
 import ref from '@makeomatic/ref-napi'
+// @ts-expect-error no types
 import ffi from '@makeomatic/ffi-napi'
 
 let SOL_SOCKET: number
@@ -49,7 +51,6 @@ const errnoException = (errno: number, syscall: string) => {
  */
 function setsockoptInt(fd: number, level: number, name: number, value: number): void {
   const valueRef = ref.alloc(cInt, value)
-  // @ts-expect-error -- pointer types
   const err = bindings.setsockopt(fd, level, name, valueRef, valueRef.type.size)
 
   if (err !== 0) {

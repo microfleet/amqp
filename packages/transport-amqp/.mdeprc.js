@@ -8,8 +8,6 @@ module.exports = {
   node: "20",
   auto_compose: true,
   services: ['rabbitmq'],
-  nycCoverage: false,
-  nycReport: false,
   tests: "./test/*.spec.ts",
   test_framework: `c8 ${root}/mocha`,
   extras: {

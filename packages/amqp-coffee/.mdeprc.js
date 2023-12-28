@@ -10,8 +10,6 @@ module.exports = {
   services: ["rabbitmq"],
   tests: "./test/**/*.test.{ts,coffee}",
   test_framework: `c8 ${root}/mocha`,
-  nycCoverage: false,
-  nycReport: false,
   pre: 'rimraf ./coverage/tmp',
   post_exec: 'pnpm exec -- c8 report -r text -r lcov',
   root,
