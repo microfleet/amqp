@@ -141,8 +141,8 @@ export class Connection extends EventEmitter {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { setSocketReadBuffer, setSocketWriteBuffer } = require('./utils/set-sock-opts')
-      this.setSocketReadBuffer = setSocketReadBuffer
-      this.setSocketWriteBuffer = setSocketWriteBuffer
+      this.setSocketReadBuffer = setSocketReadBuffer || (() => {/* noop */ })
+      this.setSocketWriteBuffer = setSocketWriteBuffer || (() => {/* noop */ })
     } catch (e: any) {
       this.setSocketReadBuffer = () => {/* noop */}
       this.setSocketWriteBuffer = () => {/* noop */}
