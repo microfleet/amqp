@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "main": "./src/service.js",
   "dependencies": {
-    "@faker-js/faker": "^8.3.1",
+    "@faker-js/faker": "^8.4.1",
     "@microfleet/amqp-coffee": "workspace:^",
     "@microfleet/transport-amqp": "workspace:^",
     "async": "^3.2.5",

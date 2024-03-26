@@ -89,7 +89,7 @@ export abstract class Channel extends EventEmitter {
     super({ captureRejections: true })
     this.taskPush = this.taskPush.bind(this)
     this.openAsync = promisify(this.open)
-    this.open()
+    queueMicrotask(() => this.open())
   }
 
   temporaryChannel() {
@@ -119,8 +119,17 @@ export abstract class Channel extends EventEmitter {
       this.state = ChannelState.opening
 
       if (cb) this.waitForMethod(methods.channelOpenOk, cb)
-      this.connection._sendMethod(this.channel, methods.channelOpen, {})
-      this.connection.channelManager.channelCount += 1
+
+      const { connection } = this
+      const { channelManager } = connection
+
+      // channelManager assigns this after constructor
+      // so open must always be called in the next tick
+      if (channelManager.isChannelClosed(this.channel)) {
+        channelManager.channelReassign(this)
+      }
+
+      connection._sendMethod(this.channel, methods.channelOpen, {})
 
       if (this.transactional) this.temporaryChannel()
     } else if (cb) {
@@ -291,7 +300,9 @@ export abstract class Channel extends EventEmitter {
   }
 
   async _taskWorker(task: Task): Promise<void> {
-    if (this.transactional) {
+    const { transactional, state, connection, channel } = this
+
+    if (transactional) {
       this.lastChannelAccess = performance.now()
     }
 
@@ -303,26 +314,18 @@ export abstract class Channel extends EventEmitter {
       return
     }
 
-    if (this.state === ChannelState.closed && this.connection.state === 'open') {
-      this.connection.channelManager.channelReassign(this)
+    if (state === ChannelState.closed && connection.state === ConnectionState.open) {
       await this.openAsync().catch(noopErr)
       debug(4, () => ['openAsync done: channel number', this.channel])
       this.queue.unshift(task)
       return
     }
 
-    const { connection } = this
-
-    if (this.state !== ChannelState.open) {
+    if (state !== ChannelState.open) {
       // if our connection is closed that ok, but if its destroyed it will not reopen
       if (connection.state === ConnectionState.destroyed) {
         cb?.(new Error('Connection is destroyed'))
         return
-      }
-
-      if (this.state !== ChannelState.opening && connection.channelManager.isChannelClosed(this.channel)) {
-        debug(4, () => ['channel', this.channel, 'in state', this.state, 'marked as closed'])
-        connection.channelManager.channelReassign(this)
       }
 
       await once(this, 'open')
@@ -335,11 +338,11 @@ export abstract class Channel extends EventEmitter {
       : null
 
     if (type === TaskType.method) {
-      connection._sendMethod(this.channel, method, task.args)
+      connection._sendMethod(channel, method, task.args)
     } else if (type === TaskType.publish) {
       connection.connection.cork()
-      this.connection._sendMethod(this.channel, method, task.options)
-      this.connection._sendBody(this.channel, data, task.options)
+      this.connection._sendMethod(channel, method, task.options)
+      this.connection._sendBody(channel, data, task.options)
       process.nextTick(() => connection.connection.uncork())
     } else {
       throw new Error(`a task was queue with an unknown type of ${type}`)

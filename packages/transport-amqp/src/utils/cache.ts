@@ -50,18 +50,17 @@ export class Cache {
       return cacheKey
     }
 
-    const hashKey = cacheKey
-    const response = this.cache.get(hashKey)
+    const response = this.cache.get(cacheKey)
 
     if (response !== undefined) {
       if (latency(response.maxAge) < ttlOrMaxAge) {
         return response
       }
 
-      this.cache.remove(hashKey)
+      this.cache.remove(cacheKey)
     }
 
-    return hashKey
+    return cacheKey
   }
 
   /**

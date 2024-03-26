@@ -1,7 +1,7 @@
 import 'should'
+import assert from 'node:assert/strict'
+import { setTimeout } from 'node:timers/promises'
 import { Connection as AMQP } from '../src'
-import { strict as assert } from 'assert'
-import { setTimeout } from 'timers/promises'
 
 describe('Exchange', () => {
   let amqp: AMQP
@@ -76,6 +76,6 @@ describe('Exchange', () => {
 
     await exchange.declare()
 
-    amqp.channels.size.should.eql(2)      
+    amqp.channels.size.should.eql(2)
   })
 })

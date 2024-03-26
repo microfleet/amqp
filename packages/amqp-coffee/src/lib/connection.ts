@@ -412,6 +412,13 @@ export class Connection extends EventEmitter {
   }
 
   _connectionClosedEvent(had_error?: boolean) {
+    const previousState = this.state
+
+    // set to closed for channels
+    if (previousState !== ConnectionState.closed && previousState !== ConnectionState.destroyed) {
+      this.state = ConnectionState.closed
+    }
+
     debug(1, () => ['received connection closed event', had_error])
 
     // go through all of our channels and close them
@@ -422,9 +429,9 @@ export class Connection extends EventEmitter {
     }
 
     if (this._connectTimeout) clearTimeout(this._connectTimeout)
-    if (this.state === ConnectionState.open) this.emit('close')
+    if (previousState === ConnectionState.open) this.emit('close')
 
-    if (this.state !== ConnectionState.destroyed) {
+    if (previousState !== ConnectionState.destroyed) {
       if (!this.connectionOptions.reconnect) {
         debug(1, () => 'Connection closed not reconnecting...')
         return
@@ -534,7 +541,7 @@ export class Connection extends EventEmitter {
 
   // called directly in tests to simulate missed heartbeat
   _missedHeartbeat() {
-    if (this.state === 'open') {
+    if (this.state === ConnectionState.open) {
       debug(1, () => 'We missed a heartbeat, destroying the connection.')
       this.connection.destroy()
     }
@@ -595,7 +602,7 @@ export class Connection extends EventEmitter {
 
   _sendMethod<T extends Methods>(channel: number, method: T, args: Partial<InferOptions<T>>) {
 
-    debug(3, () => [`_sendMethod`, `state=${this.state}`, `OpeningStates=${JSON.stringify(OpeningStates)}`])
+    debug(3, () => [`_sendMethod`, `state=${this.state}`, `OpeningStates=${JSON.stringify(OpeningStates)}`, `channel=${channel}`])
 
     if (channel !== 0 && OpeningStates.includes(this.state)) {
       // TODO: introduce queue instead of spawning promises

@@ -31,6 +31,16 @@ describe('Publisher', () => {
     })
   })
 
+  it('publish to non-existent exchange rejects', async () => {
+    await amqp.publish('i-dont-exist', '', 'ok')
+    await assert.rejects(amqp.publish('i-dont-exist', '', 'ok', { confirm: true, mandatory: true }), {
+      reason: {
+        replyCode: 404,
+        replyText: "NOT_FOUND - no exchange 'i-dont-exist' in vhost '/'",
+      }
+    })
+  })
+
   it('we can agressivly publish a series of messages in confirm mode 214', async () => {
     const queue = uuid()
 
