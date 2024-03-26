@@ -190,7 +190,15 @@ export class Consumer extends Channel {
       return { consumerTag: this.consumerTag }
     }
 
-    return this._consume()
+    try {
+      return await this._consume()
+    } catch (err: any) {
+      if (err instanceof ConnectionResetError) {
+        throw err
+      } else {
+        throw new ServerClosedError(err)
+      }
+    }
   }
 
   async flow(active: boolean): Promise<BasicConsumeResponse | BasicCancelResponse> {

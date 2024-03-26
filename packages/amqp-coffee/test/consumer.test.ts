@@ -728,10 +728,29 @@ describe('Consumer', () => {
     let done = false
 
     const messageProcessor = async (m: Message) => {
+      console.log('MESSAGE RECEIVED')
       messagesRecieved += 1
+
       thisproxy.interrupt()
       await setTimeout(25)
-      await consumer.resume() // must call .close() on error
+
+      // as this won't bubble further
+      try {
+        await consumer.resume() // must call .close() on error
+      } catch (err) {
+        assert(err instanceof ServerClosedError)
+        err.reason.replyCode.should.eql(404)
+        errorCount += 1
+
+        await consumer.close()
+
+        if (errorCount === 1) {
+          await setTimeout(300)
+          errorCount.should.eql(1)
+          messagesRecieved.should.eql(1)
+          done = true
+        }
+      }
     }
 
     let queue = ''
@@ -741,19 +760,8 @@ describe('Consumer', () => {
     await q.declare()
     queue = q.queueOptions.queue
 
-    consumer = await amqp.consume(queue, {prefetchCount: 1}, messageProcessor)
-    consumer.on('error', async (error) => {
-      assert(error instanceof ServerClosedError)
-      error.reason.replyCode.should.eql(404)
-      errorCount += 1
-      await consumer.close()
-      if (errorCount === 1) {
-        await setTimeout(300)
-        errorCount.should.eql(1)
-        messagesRecieved.should.eql(1)
-        done = true
-      }
-    })
+    consumer = await amqp.consumer()
+    await consumer.consume(queue, messageProcessor, { prefetchCount: 1 })
 
     await amqp.publish("", queue, testData, {confirm: true})
     await verify(() => done)

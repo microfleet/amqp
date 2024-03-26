@@ -87,11 +87,20 @@ export class Publisher extends Channel {
 
     this.confirm = confirm != null ? confirm : false
     if (this.confirm) {
-      this.confirmMode()
+      queueMicrotask(() => this.confirmMode())
     }
   }
 
   confirmMode(cb?: () => void): void {
+    if (this.confirmState === ConfirmState.open) {
+      return cb?.()
+    }
+
+    if (this.confirmState === ConfirmState.opening) {
+      if (cb) this.once('confirm', cb)
+      return
+    }
+
     this.confirmState = ConfirmState.opening
     this.taskPush(methods.confirmSelect, { noWait: false }, methods.confirmSelectOk, () => {
       this.confirmState = ConfirmState.open
