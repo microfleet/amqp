@@ -21,8 +21,8 @@ module.exports = {
       working_dir: `/src/packages/${dir}`,
       environment: {
         AMQP_TEST: '1', // this must be enable to have low reconnection timer
-        AMQP: '4',
-        DEBUG: 'amqp:*',
+        // AMQP: '4',
+        // DEBUG: 'amqp:*',
         SWC_NODE_PROJECT: './tsconfig.test.json',
         NODE_NO_WARNINGS: '1',
       }
