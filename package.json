@@ -7,6 +7,9 @@
     "prepare": "mdep install",
     "compile": "pnpm -r clean; tsc -b tsconfig.build.json"
   },
+  "resolutions": {
+    "@octokit/request-error": "<= 5.x.x"
+  },
   "devDependencies": {
     "@makeomatic/deploy": "^13.0.7",
     "@node-rs/xxhash-linux-arm64-musl": "^1.7.0",
