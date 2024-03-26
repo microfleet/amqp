@@ -415,7 +415,9 @@ export class Connection extends EventEmitter {
     const previousState = this.state
 
     // set to closed for channels
-    this.state = ConnectionState.closed
+    if (previousState !== ConnectionState.closed && previousState !== ConnectionState.destroyed) {
+      this.state = ConnectionState.closed
+    }
 
     debug(1, () => ['received connection closed event', had_error])
 
