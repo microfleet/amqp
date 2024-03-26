@@ -2,7 +2,7 @@
 import { methods, MethodFrame, ContentHeader } from '@microfleet/amqp-codec'
 import { once } from 'events'
 
-import { Channel } from './channel'
+import { Channel, ChannelState } from './channel'
 import * as defaults from './defaults'
 
 import { BasicReturnError } from './errors/basic-return-error'
@@ -108,6 +108,8 @@ export class Publisher extends Channel {
   }
 
   _channelClosed(message = new Error('Channel closed, try again')): void {
+    debug(4, () => ['_channelClosed', this.channel, 'err', message])
+
     this.confirmState = ConfirmState.closed
 
     for (const cb of this.seqCallbacks.values()) {
@@ -128,13 +130,13 @@ export class Publisher extends Channel {
   }
 
   _inoperableState(): boolean {
-    return this.state !== 'open' || (this.confirm && this.confirmState !== 'open')
+    return this.state !== ChannelState.open || (this.confirm && this.confirmState !== ConfirmState.open)
   }
 
   _recoverableState(): boolean {
-    return this.state === 'opening'
-      || this.state === 'closed'
-      || (this.confirm && this.confirmState === 'opening')
+    return this.state === ChannelState.opening
+      || this.state === ChannelState.closed
+      || (this.confirm && this.confirmState === ConfirmState.opening)
   }
 
   async _wait(eventName: string) {
@@ -175,11 +177,18 @@ export class Publisher extends Channel {
       throw new Error(`Channel ${this.channel} is closed and will not re-open? ${this.state} ${this.confirm} ${this.confirmState}`)
     }
 
-    debug(4, () => ['state recoverable, wait for:', this.confirm ? 'confirm' : 'open'])
+    debug(4, () => ['state recoverable, wait for:', this.confirm ? 'confirm' : 'open', 'on', this.channel])
+
+    // ensure we reopen the channel when requested
+    this.open()
+
+    // set it into confirm mode
     if (this.confirm && (this.confirmState === ConfirmState.closed || this.confirmState === ConfirmState.noAck)) {
       this.confirmMode()
     }
+
     await this._wait(this.confirm ? 'confirm' : 'open')
+    debug(4, () => ['state recovered', this.channel])
   }
 
   async publishMessageAsync(_data: unknown, options: PublishOptions) {

@@ -595,7 +595,7 @@ export class Connection extends EventEmitter {
 
   _sendMethod<T extends Methods>(channel: number, method: T, args: Partial<InferOptions<T>>) {
 
-    debug(3, () => [`_sendMethod`, `state=${this.state}`, `OpeningStates=${JSON.stringify(OpeningStates)}`])
+    debug(3, () => [`_sendMethod`, `state=${this.state}`, `OpeningStates=${JSON.stringify(OpeningStates)}`, `channel=${channel}`])
 
     if (channel !== 0 && OpeningStates.includes(this.state)) {
       // TODO: introduce queue instead of spawning promises
