@@ -728,7 +728,6 @@ describe('Consumer', () => {
     let done = false
 
     const messageProcessor = async (m: Message) => {
-      console.log('MESSAGE RECEIVED')
       messagesRecieved += 1
 
       thisproxy.interrupt()
