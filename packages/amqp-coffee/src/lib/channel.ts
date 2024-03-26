@@ -301,7 +301,6 @@ export abstract class Channel extends EventEmitter {
 
   async _taskWorker(task: Task): Promise<void> {
     const { transactional, state, connection, channel } = this
-    const { channelManager } = connection
 
     if (transactional) {
       this.lastChannelAccess = performance.now()
@@ -316,9 +315,6 @@ export abstract class Channel extends EventEmitter {
     }
 
     if (state === ChannelState.closed && connection.state === ConnectionState.open) {
-      debug(4, () => ['openAsync called on channel number:', channel])
-      // reassign channel number
-      channelManager.channelReassign(this)
       await this.openAsync().catch(noopErr)
       debug(4, () => ['openAsync done: channel number', this.channel])
       this.queue.unshift(task)
@@ -330,11 +326,6 @@ export abstract class Channel extends EventEmitter {
       if (connection.state === ConnectionState.destroyed) {
         cb?.(new Error('Connection is destroyed'))
         return
-      }
-
-      if (state !== ChannelState.opening && channelManager.isChannelClosed(channel)) {
-        debug(4, () => ['channel', channel, 'in state', state, 'marked as closed'])
-        channelManager.channelReassign(this)
       }
 
       await once(this, 'open')
